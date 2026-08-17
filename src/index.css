@@ -1,0 +1,124 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-brand-50: #eef6ff;
+  --color-brand-100: #d9ebff;
+  --color-brand-200: #bcdcff;
+  --color-brand-300: #8ec6ff;
+  --color-brand-400: #59a5ff;
+  --color-brand-500: #3282f6;
+  --color-brand-600: #1f63db;
+  --color-brand-700: #1a4eb0;
+  --color-brand-800: #1b448c;
+  --color-brand-900: #1b3b73;
+
+  --color-ink-50: #f7f8fa;
+  --color-ink-100: #eef0f4;
+  --color-ink-200: #dfe3ea;
+  --color-ink-300: #c5ccd8;
+  --color-ink-400: #97a1b2;
+  --color-ink-500: #6b7684;
+  --color-ink-600: #4e5968;
+  --color-ink-700: #333d4b;
+  --color-ink-800: #21262e;
+  --color-ink-900: #14171c;
+
+  --color-babzip: #f2664a;
+  --color-cafe: #b5762f;
+  --color-sulzip: #7c5cd6;
+  --color-spot: #23a06a;
+
+  --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
+    'Malgun Gothic', system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-ink-100);
+    color: var(--color-ink-800);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button {
+    font-family: inherit;
+  }
+
+  input,
+  select,
+  textarea {
+    font-family: inherit;
+  }
+}
+
+/* @apply 로 재사용하려면 커스텀 클래스를 @utility 로 등록해야 한다 (Tailwind v4) */
+@utility card {
+  @apply rounded-2xl bg-white shadow-[0_1px_2px_rgba(20,23,28,0.06),0_8px_24px_-12px_rgba(20,23,28,0.18)];
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-3 text-[15px]
+    font-semibold transition-colors select-none disabled:cursor-not-allowed disabled:opacity-45;
+}
+
+@utility chip {
+  @apply inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[13px] font-medium
+    transition-colors select-none;
+}
+
+@layer components {
+  .btn-primary {
+    @apply btn bg-brand-500 text-white hover:bg-brand-600 active:bg-brand-700;
+  }
+
+  .btn-ghost {
+    @apply btn bg-ink-100 text-ink-700 hover:bg-ink-200;
+  }
+
+  .btn-outline {
+    @apply btn border border-ink-200 bg-white text-ink-700 hover:bg-ink-50;
+  }
+
+  .field {
+    @apply w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-[15px] text-ink-800
+      outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-100;
+  }
+
+  .label {
+    @apply mb-2 block text-[13px] font-semibold text-ink-600;
+  }
+
+  .chip-off {
+    @apply chip border-ink-200 bg-white text-ink-500 hover:border-ink-300;
+  }
+
+  .chip-on {
+    @apply chip border-brand-500 bg-brand-50 text-brand-700;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-bold;
+  }
+
+  .section-title {
+    @apply text-[17px] font-bold text-ink-800;
+  }
+
+  .hint {
+    @apply text-[13px] leading-relaxed text-ink-500;
+  }
+}
+
+/* Scrollbar polish for the desktop shell */
+.scroll-thin::-webkit-scrollbar {
+  width: 6px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: var(--color-ink-300);
+  border-radius: 999px;
+}

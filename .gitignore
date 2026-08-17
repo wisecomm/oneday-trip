@@ -1,0 +1,16 @@
+node_modules
+dist
+.DS_Store
+*.log
+
+# 환경 변수 — Supabase / 네이버 지도 키가 들어 있으므로 절대 커밋하지 않는다
+.env
+.env.local
+.env.*.local
+
+# Supabase CLI 로컬 상태 (링크된 프로젝트 ref, 임시 파일)
+supabase/.temp
+supabase/.branches
+
+# TypeScript 증분 빌드 캐시
+*.tsbuildinfo

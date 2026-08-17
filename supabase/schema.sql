@@ -1,0 +1,175 @@
+-- =====================================================================
+-- 위치기반 여행 일정 및 맛집 지도 서비스 — Supabase 스키마
+-- Supabase 대시보드 > SQL Editor 에 붙여넣어 실행하세요.
+-- =====================================================================
+
+-- ── 열거형 ───────────────────────────────────────────────────────────
+create type place_category   as enum ('babzip', 'cafe', 'sulzip', 'spot');
+create type transport_type   as enum ('walk', 'transit', 'car');
+create type trip_item_status as enum ('planned', 'reserved', 'waiting', 'visited');
+create type reservation_status as enum ('confirmed', 'cancelled');
+create type waiting_status   as enum ('waiting', 'called', 'cancelled', 'done');
+
+-- ── SYS-01-02 사용자 프로필 ──────────────────────────────────────────
+create table public.profiles (
+  id                  uuid primary key references auth.users on delete cascade,
+  nickname            text not null check (char_length(nickname) between 2 and 12),
+  taste_tags          text[] not null default '{}',
+  -- 웨이팅 성향: 1 대기 민감 ~ 5 느긋
+  waiting_sensitivity smallint not null default 3 check (waiting_sensitivity between 1 and 5),
+  created_at          timestamptz not null default now()
+);
+
+-- ── MAP-04-01 장소 카탈로그 (공개 읽기) ──────────────────────────────
+create table public.places (
+  id            text primary key,
+  name          text not null,
+  category      place_category not null,
+  region        text not null,
+  address       text not null,
+  lat           double precision not null,
+  lng           double precision not null,
+  image_url     text,
+  rating        numeric(2,1) not null default 0 check (rating between 0 and 5),
+  price_level   smallint not null default 2 check (price_level between 1 and 4),
+  tags          text[] not null default '{}',
+  summary       text not null default '',
+  open_hours    text not null default '',
+  -- 실시간 대기 팀 수 (RSV-05-02 현황판 소스)
+  waiting_count integer not null default 0
+);
+
+create index places_region_category_idx on public.places (region, category);
+
+-- ── TRIP-02-01 / TRIP-02-02 여행 ─────────────────────────────────────
+create table public.trips (
+  id                 uuid primary key default gen_random_uuid(),
+  user_id            uuid not null references auth.users on delete cascade,
+  title              text not null,
+  destination        text not null,
+  start_date         date not null,
+  end_date           date not null,
+  companions         text[] not null default '{}',
+  -- 하루에 다닐 수 있는 최대 방문 장소 (1~5, 기본 3)
+  max_places_per_day smallint not null default 3 check (max_places_per_day between 1 and 5),
+  transport          transport_type not null default 'transit',
+  created_at         timestamptz not null default now(),
+  constraint trips_date_range check (end_date >= start_date)
+);
+
+create index trips_user_idx on public.trips (user_id, start_date desc);
+
+-- ── TRIP-03-01 일자별 타임라인 항목 ──────────────────────────────────
+create table public.trip_items (
+  id           uuid primary key default gen_random_uuid(),
+  trip_id      uuid not null references public.trips on delete cascade,
+  place_id     text not null references public.places on delete cascade,
+  day_index    smallint not null check (day_index >= 1),
+  sort_order   smallint not null default 0,
+  planned_time time,
+  status       trip_item_status not null default 'planned',
+  created_at   timestamptz not null default now()
+);
+
+create index trip_items_trip_idx on public.trip_items (trip_id, day_index, sort_order);
+
+-- ── RSV-05-01 예약 ───────────────────────────────────────────────────
+create table public.reservations (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid not null references auth.users on delete cascade,
+  place_id     text not null references public.places on delete cascade,
+  trip_item_id uuid references public.trip_items on delete set null,
+  reserved_at  timestamptz not null,
+  party_size   smallint not null check (party_size between 1 and 12),
+  deposit      integer not null default 0,
+  status       reservation_status not null default 'confirmed',
+  created_at   timestamptz not null default now()
+);
+
+create index reservations_user_idx on public.reservations (user_id, reserved_at);
+
+-- ── RSV-05-02 웨이팅 ─────────────────────────────────────────────────
+create table public.waitings (
+  id            uuid primary key default gen_random_uuid(),
+  user_id       uuid not null references auth.users on delete cascade,
+  place_id      text not null references public.places on delete cascade,
+  party_size    smallint not null check (party_size between 1 and 12),
+  ahead_count   integer not null default 0,
+  -- 기획 정책: 하루 최대 2회까지만 미룰 수 있다
+  delay_count   smallint not null default 0 check (delay_count between 0 and 2),
+  extra_minutes integer not null default 0,
+  status        waiting_status not null default 'waiting',
+  created_at    timestamptz not null default now()
+);
+
+create index waitings_user_idx on public.waitings (user_id, created_at desc);
+
+-- 한 사용자는 동시에 하나의 웨이팅만 진행할 수 있다
+create unique index waitings_one_active_per_user
+  on public.waitings (user_id)
+  where status in ('waiting', 'called');
+
+-- ── 프로필 생성 시점에 대하여 ────────────────────────────────────────
+-- 가입 시 auth.users 트리거로 profiles 행을 자동 생성하지 않는다.
+--
+-- 앱은 'profiles 행의 부재'를 곧 '사용자 등록(SYS-01-02) 미완료' 신호로 사용해
+-- 온보딩 화면으로 보낸다. 트리거로 행을 미리 만들면 가입 직후 필수 등록 절차가
+-- 통째로 건너뛰어진다. 또한 소셜 계정 이름이 nickname 의 길이 제약(2~12자)을
+-- 넘거나 이메일이 없는 provider 의 경우 트리거가 실패해 회원가입 자체가 막힌다.
+--
+-- 소셜 가입 시 닉네임 자동 연동(SYS-01-01)은 클라이언트가 담당한다:
+-- lib/auth.tsx 가 user_metadata 의 full_name/name 을 읽어 온보딩 입력란에 채워 넣고,
+-- 사용자가 확인·수정한 값을 저장하는 시점에 profiles 행이 생성된다.
+-- 데모 모드와 Supabase 모드의 동작이 이 방식에서 정확히 일치한다.
+
+-- =====================================================================
+-- Row Level Security
+-- =====================================================================
+
+alter table public.profiles     enable row level security;
+alter table public.places       enable row level security;
+alter table public.trips        enable row level security;
+alter table public.trip_items   enable row level security;
+alter table public.reservations enable row level security;
+alter table public.waitings     enable row level security;
+
+-- 장소는 비로그인(Guest 모드)에서도 열람 가능해야 한다
+create policy "places are readable by everyone"
+  on public.places for select
+  using (true);
+
+create policy "own profile"
+  on public.profiles for all
+  using (auth.uid() = id)
+  with check (auth.uid() = id);
+
+create policy "own trips"
+  on public.trips for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+-- 타임라인 항목은 소유한 여행에 속한 것만 접근 가능
+create policy "own trip items"
+  on public.trip_items for all
+  using (
+    exists (select 1 from public.trips t where t.id = trip_id and t.user_id = auth.uid())
+  )
+  with check (
+    exists (select 1 from public.trips t where t.id = trip_id and t.user_id = auth.uid())
+  );
+
+create policy "own reservations"
+  on public.reservations for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create policy "own waitings"
+  on public.waitings for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+-- =====================================================================
+-- 실시간 구독 (홈 하단 플로팅 바의 대기 상태 전이에 사용)
+-- =====================================================================
+alter publication supabase_realtime add table public.waitings;
+alter publication supabase_realtime add table public.trip_items;
