@@ -86,6 +86,15 @@ export default function App() {
                 </RequireAuth>
               }
             />
+            {/* 생성 마법사 2단계 — 저장은 이 화면에서 한 번에 일어난다 */}
+            <Route
+              path="trips/new/rules"
+              element={
+                <RequireAuth>
+                  <TripRulesPage />
+                </RequireAuth>
+              }
+            />
             <Route
               path="trips/:tripId/rules"
               element={

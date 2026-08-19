@@ -1,22 +1,41 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useAuth } from '@/lib/auth'
 import { trips } from '@/lib/db'
-import { TRANSPORT_LABEL, TRANSPORT_SPEED_KMH, type Transport, type Trip } from '@/lib/types'
+import {
+  TRANSPORT_LABEL,
+  TRANSPORT_SPEED_KMH,
+  type Transport,
+  type Trip,
+  type TripDraft,
+} from '@/lib/types'
 import { Loading, PageHeader, StepGuide } from '@/components/ui'
 
 /**
  * TRIP-02-02 · 02. 여행 일정 계획 > 2.2 여행 규칙 설정 > 방문 제약 조건 지정
  * 무리한 일정으로 여행 품질이 떨어지는 것을 막는 UX 제약 장치.
+ *
+ * 두 가지 모드로 동작한다.
+ *  · 생성 모드 (/trips/new/rules): 1단계에서 받은 초안에 규칙을 얹어 여기서 처음 저장한다.
+ *  · 수정 모드 (/trips/:tripId/rules): 이미 저장된 여행의 규칙만 갱신한다.
  */
 export function TripRulesPage() {
-  const { tripId = '' } = useParams()
+  const { tripId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
+  const { user } = useAuth()
+
+  const isCreate = !tripId
+  const draft = (location.state ?? null) as TripDraft | null
+
   const [trip, setTrip] = useState<Trip | null>(null)
   const [maxPlaces, setMaxPlaces] = useState(3)
   const [transport, setTransport] = useState<Transport>('transit')
   const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (isCreate || !tripId) return
     let alive = true
     void trips.get(tripId).then((t) => {
       if (!alive || !t) return
@@ -27,15 +46,33 @@ export function TripRulesPage() {
     return () => {
       alive = false
     }
-  }, [tripId])
+  }, [tripId, isCreate])
 
-  if (!trip) return <Loading />
+  // 초안 없이 생성 단계로 직접 들어온 경우 (새로고침·북마크) 1단계로 되돌린다
+  if (isCreate && !draft) return <Navigate to="/trips/new" replace />
+  if (!isCreate && !trip) return <Loading />
+
+  const headerSubtitle = isCreate ? draft!.title : trip!.title
 
   async function save() {
     setBusy(true)
+    setError(null)
     try {
-      await trips.update(tripId, { max_places_per_day: maxPlaces, transport })
-      navigate(`/trips/${tripId}`, { replace: true })
+      if (isCreate) {
+        if (!user) return
+        const created = await trips.create({
+          user_id: user.id,
+          ...draft!,
+          max_places_per_day: maxPlaces,
+          transport,
+        })
+        navigate(`/trips/${created.id}`, { replace: true })
+      } else {
+        await trips.update(tripId!, { max_places_per_day: maxPlaces, transport })
+        navigate(`/trips/${tripId}`, { replace: true })
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '저장에 실패했습니다.')
     } finally {
       setBusy(false)
     }
@@ -43,7 +80,7 @@ export function TripRulesPage() {
 
   return (
     <>
-      <PageHeader title="여행 규칙 설정" subtitle={trip.title} back />
+      <PageHeader title="여행 규칙 설정" subtitle={headerSubtitle} back />
 
       <div className="px-5 py-5">
         <div className="mb-6">
@@ -117,8 +154,12 @@ export function TripRulesPage() {
           </p>
         </section>
 
+        {error && (
+          <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-[13px] text-red-600">{error}</p>
+        )}
+
         <button type="button" onClick={save} disabled={busy} className="btn-primary w-full">
-          규칙 저장하고 타임라인 보기
+          {busy ? '저장 중…' : isCreate ? '여행 저장하고 타임라인 보기' : '규칙 저장하고 타임라인 보기'}
         </button>
       </div>
     </>

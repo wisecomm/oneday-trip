@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '@/lib/auth'
-import { trips } from '@/lib/db'
 import { DESTINATIONS } from '@/lib/seed'
-import { COMPANION_LABEL, type Companion } from '@/lib/types'
+import { COMPANION_LABEL, type Companion, type TripDraft } from '@/lib/types'
 import { PageHeader, StepGuide } from '@/components/ui'
 
 function todayIso(offsetDays = 0): string {
@@ -19,44 +17,53 @@ export function formatTripDate(iso: string): string {
   return `${d.getMonth() + 1}월 ${d.getDate()}일 (${weekday})`
 }
 
+/** 목적지로부터 만드는 기본 제목 */
+export function defaultTripTitle(destination: string): string {
+  return `${destination} 당일치기`
+}
+
 /**
  * TRIP-02-01 · 02. 여행 일정 계획 > 2.1 일정 생성 > 여행 일정 설정
  * 하루 단위 당일치기 서비스이므로 기간이 아닌 날짜 하나를 고른다.
+ *
+ * 이 단계에서는 저장하지 않는다. 규칙(TRIP-02-02)까지 정한 뒤에 한 번에
+ * 저장하므로, 중간에 이탈해도 빈 여행이 남지 않는다.
  */
 export function TripCreatePage() {
-  const { user } = useAuth()
   const navigate = useNavigate()
 
   const [destination, setDestination] = useState<string>(DESTINATIONS[0])
+  const [title, setTitle] = useState(() => defaultTripTitle(DESTINATIONS[0]))
+  // 사용자가 제목을 직접 손댔다면 목적지를 바꿔도 덮어쓰지 않는다
+  const [titleEdited, setTitleEdited] = useState(false)
   const [tripDate, setTripDate] = useState(todayIso(7))
   const [companions, setCompanions] = useState<Companion[]>(['friends'])
-  const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  function changeDestination(next: string) {
+    setDestination(next)
+    if (!titleEdited) setTitle(defaultTripTitle(next))
+  }
+
+  function changeTitle(next: string) {
+    setTitle(next)
+    // 비우면 다시 자동 생성 모드로 돌아간다
+    setTitleEdited(next.trim().length > 0)
+  }
 
   function toggleCompanion(c: Companion) {
     setCompanions((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]))
   }
 
-  async function create() {
-    if (!user) return
-    setBusy(true)
-    setError(null)
-    try {
-      const trip = await trips.create({
-        user_id: user.id,
-        title: `${destination} 당일치기`,
-        destination,
-        trip_date: tripDate,
-        companions,
-        max_places_per_day: 3, // 기본값 3개 제안 (TRIP-02-02 기획 가이드)
-        transport: 'transit',
-      })
-      navigate(`/trips/${trip.id}/rules`, { replace: true })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '일정 생성에 실패했습니다.')
-    } finally {
-      setBusy(false)
+  function goToRules() {
+    const trimmed = title.trim()
+    if (trimmed.length === 0) {
+      setError('여행 제목을 입력해 주세요.')
+      return
     }
+    setError(null)
+    const draft: TripDraft = { title: trimmed, destination, trip_date: tripDate, companions }
+    navigate('/trips/new/rules', { state: draft })
   }
 
   return (
@@ -75,7 +82,7 @@ export function TripCreatePage() {
           <select
             id="destination"
             value={destination}
-            onChange={(e) => setDestination(e.target.value)}
+            onChange={(e) => changeDestination(e.target.value)}
             className="field"
           >
             {DESTINATIONS.map((d) => (
@@ -86,6 +93,25 @@ export function TripCreatePage() {
           </select>
           <p className="hint mt-1.5">
             선택한 지역 기준으로 추천 검색 인덱스가 활성화됩니다.
+          </p>
+        </section>
+
+        <section className="mb-7">
+          <label className="label" htmlFor="trip-title">
+            여행 제목
+          </label>
+          <input
+            id="trip-title"
+            value={title}
+            onChange={(e) => changeTitle(e.target.value)}
+            maxLength={30}
+            placeholder={defaultTripTitle(destination)}
+            className="field"
+          />
+          <p className="hint mt-1.5">
+            {titleEdited
+              ? '직접 입력한 제목이 사용됩니다.'
+              : '목적지에 맞춰 자동으로 채워집니다. 원하는 이름으로 바꿔도 됩니다.'}
           </p>
         </section>
 
@@ -125,12 +151,7 @@ export function TripCreatePage() {
           <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-[13px] text-red-600">{error}</p>
         )}
 
-        <button
-          type="button"
-          onClick={create}
-          disabled={busy}
-          className="btn-primary w-full"
-        >
+        <button type="button" onClick={goToRules} className="btn-primary w-full">
           다음 · 여행 규칙 설정
         </button>
       </div>

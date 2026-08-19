@@ -53,6 +53,18 @@ export interface Place {
   waiting_count: number
 }
 
+/**
+ * 여행 생성 마법사 1단계(TRIP-02-01)에서 2단계(TRIP-02-02)로 넘기는 초안.
+ * 규칙까지 정하고 나서야 한 번에 저장하므로, 그 사이에는 DB 가 아니라
+ * 라우터 state 로만 들고 다닌다.
+ */
+export interface TripDraft {
+  title: string
+  destination: string
+  trip_date: string
+  companions: Companion[]
+}
+
 export type TripItemStatus = 'planned' | 'reserved' | 'waiting' | 'visited'
 
 export interface TripItem {
