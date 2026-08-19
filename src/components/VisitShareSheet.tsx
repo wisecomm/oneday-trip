@@ -23,6 +23,7 @@ export function VisitShareSheet({
 }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [file, setFile] = useState<File | null>(null)
+  const [caption, setCaption] = useState('')
   const [toast, setToast] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -33,6 +34,9 @@ export function VisitShareSheet({
       setError(null)
       return
     }
+
+    // 자동 생성 문구는 출발점일 뿐이다. 사용자가 자기 말로 고쳐 쓸 수 있어야 한다.
+    setCaption(buildCaption(input))
     let revoked: string | null = null
     let alive = true
 
@@ -64,7 +68,8 @@ export function VisitShareSheet({
 
   if (!input) return null
 
-  const caption = buildCaption(input)
+  /** 인스타그램 캡션 상한 */
+  const CAPTION_LIMIT = 2200
 
   async function share() {
     if (!file) return
@@ -118,10 +123,40 @@ export function VisitShareSheet({
           </div>
 
           <div>
-            <p className="label">캡션</p>
-            <p className="max-h-28 overflow-y-auto rounded-xl bg-ink-100 px-4 py-3 text-[13px] leading-relaxed whitespace-pre-line text-ink-700">
-              {caption}
-            </p>
+            <div className="mb-2 flex items-baseline justify-between">
+              <label className="label !mb-0" htmlFor="visit-caption">
+                캡션
+              </label>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`text-[11.5px] font-semibold ${
+                    caption.length > CAPTION_LIMIT ? 'text-red-500' : 'text-ink-400'
+                  }`}
+                >
+                  {caption.length.toLocaleString()} / {CAPTION_LIMIT.toLocaleString()}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCaption(buildCaption(input!))}
+                  className="text-[12px] font-semibold text-brand-600"
+                >
+                  기본 문구로
+                </button>
+              </div>
+            </div>
+            <textarea
+              id="visit-caption"
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              rows={5}
+              placeholder="오늘 어땠는지 적어 보세요."
+              className="field resize-y leading-relaxed"
+            />
+            {caption.length > CAPTION_LIMIT && (
+              <p className="mt-1.5 text-[12px] font-semibold text-red-500">
+                인스타그램 캡션은 {CAPTION_LIMIT.toLocaleString()}자를 넘을 수 없습니다.
+              </p>
+            )}
           </div>
 
           <div className="flex gap-2">
