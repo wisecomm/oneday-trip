@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   DndContext,
   KeyboardSensor,
@@ -35,6 +35,12 @@ export function TimelinePage() {
   const { tripId = '' } = useParams()
   const { user } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  // 여행 생성 직후 추천 장소가 자동으로 담긴 경우, 사용자가 직접 담은 것으로
+  // 오해하지 않도록 한 번 알려준다
+  const autoAdded = (location.state as { autoAdded?: number } | null)?.autoAdded ?? 0
+  const [noticeOpen, setNoticeOpen] = useState(autoAdded > 0)
 
   const [trip, setTrip] = useState<Trip | null>(null)
   const [items, setItems] = useState<TripItem[]>([])
@@ -130,6 +136,26 @@ export function TimelinePage() {
       />
 
       <div className="px-4 py-4">
+        {noticeOpen && orderedItems.length > 0 && (
+          <div className="mb-3 flex items-start gap-2 rounded-xl bg-brand-50 px-4 py-3">
+            <span className="text-[15px]" aria-hidden>
+              ✨
+            </span>
+            <p className="flex-1 text-[13px] leading-relaxed font-semibold text-brand-700">
+              오늘의 날씨와 취향에 맞춰 추천 {autoAdded}곳을 담고 최단 동선으로 정렬했습니다.
+              마음에 들지 않으면 빼고 직접 담아 보세요.
+            </p>
+            <button
+              type="button"
+              onClick={() => setNoticeOpen(false)}
+              aria-label="안내 닫기"
+              className="shrink-0 rounded-md px-1 text-brand-400 hover:text-brand-600"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {orderedItems.length === 0 ? (
           <EmptyState
             icon="📍"

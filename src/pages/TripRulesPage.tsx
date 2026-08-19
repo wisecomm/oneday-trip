@@ -1,15 +1,55 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
-import { trips } from '@/lib/db'
+import { places as placesApi, tripItems, trips } from '@/lib/db'
+import { optimizeOrder } from '@/lib/geo'
+import { fetchWeather, recommend, type TripContext } from '@/lib/recommend'
+import { SEED_PLACES } from '@/lib/seed'
 import {
   TRANSPORT_LABEL,
   TRANSPORT_SPEED_KMH,
+  type Profile,
   type Transport,
   type Trip,
   type TripDraft,
 } from '@/lib/types'
 import { Loading, PageHeader, StepGuide } from '@/components/ui'
+
+/**
+ * 여행 생성 직후 타임라인이 비어 있으면 사용자가 무엇부터 해야 할지 막막해진다.
+ * 그래서 AI 추천(MAP-04-02)과 같은 기준으로 상위 장소를 골라 자동으로 담아 준다.
+ *
+ * · 담는 개수는 방금 정한 '하루 최대 방문' 한도를 그대로 따른다.
+ * · 순서는 추천 순위가 아니라 최단 동선(TRIP-03-02)으로 정렬해, 첫 화면부터
+ *   말이 되는 일정이 보이게 한다.
+ *
+ * @returns 실제로 담은 장소 수
+ */
+async function seedRecommendedPlaces(
+  tripId: string,
+  destination: string,
+  count: number,
+  profile: Profile | null,
+): Promise<number> {
+  const anchor = SEED_PLACES.find((p) => p.region === destination) ?? SEED_PLACES[0]
+  const [list, weather] = await Promise.all([
+    placesApi.list({ region: destination }),
+    fetchWeather(anchor.lat, anchor.lng),
+  ])
+  if (list.length === 0) return 0
+
+  const now = new Date()
+  const ctx: TripContext = { hour: now.getHours(), weekday: now.getDay(), ...weather }
+
+  const picked = recommend(list, ctx, profile, count).map((s) => s.place)
+  const order = optimizeOrder(picked.map((p) => ({ lat: p.lat, lng: p.lng })))
+
+  // add() 가 기존 개수로 sort_order 를 계산하므로 순차로 넣어야 순서가 보존된다
+  for (const index of order) {
+    await tripItems.add({ trip_id: tripId, place_id: picked[index].id })
+  }
+  return picked.length
+}
 
 /**
  * TRIP-02-02 · 02. 여행 일정 계획 > 2.2 여행 규칙 설정 > 방문 제약 조건 지정
@@ -23,7 +63,7 @@ export function TripRulesPage() {
   const { tripId } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
 
   const isCreate = !tripId
   const draft = (location.state ?? null) as TripDraft | null
@@ -66,7 +106,17 @@ export function TripRulesPage() {
           max_places_per_day: maxPlaces,
           transport,
         })
-        navigate(`/trips/${created.id}`, { replace: true })
+
+        // 추천 장소 담기는 부가 기능이다. 여기서 실패해도 여행 자체는 이미
+        // 만들어졌으므로, 오류로 흐름을 끊지 않고 빈 타임라인으로 보낸다.
+        let added = 0
+        try {
+          added = await seedRecommendedPlaces(created.id, created.destination, maxPlaces, profile)
+        } catch (err) {
+          console.error('[TripRules] 추천 장소 자동 담기에 실패했습니다.', err)
+        }
+
+        navigate(`/trips/${created.id}`, { replace: true, state: { autoAdded: added } })
       } else {
         await trips.update(tripId!, { max_places_per_day: maxPlaces, transport })
         navigate(`/trips/${tripId}`, { replace: true })
@@ -159,7 +209,13 @@ export function TripRulesPage() {
         )}
 
         <button type="button" onClick={save} disabled={busy} className="btn-primary w-full">
-          {busy ? '저장 중…' : isCreate ? '여행 저장하고 타임라인 보기' : '규칙 저장하고 타임라인 보기'}
+          {busy
+            ? isCreate
+              ? '추천 장소를 담는 중…'
+              : '저장 중…'
+            : isCreate
+              ? '여행 저장하고 타임라인 보기'
+              : '규칙 저장하고 타임라인 보기'}
         </button>
       </div>
     </>
