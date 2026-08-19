@@ -7,11 +7,12 @@ import { contextLabel, fetchWeather, recommend, type Scored, type TripContext } 
 import type { Trip } from '@/lib/types'
 import { CategoryDot, PlaceThumb } from '@/components/PlaceCard'
 import { BottomSheet, EmptyState, Loading, PageHeader } from '@/components/ui'
+import { formatTripDate } from './TripCreatePage'
 
 /**
  * MAP-04-02 · 04. 로컬 장소 탐색 > 4.2 AI 추천 > 맥락 인지 추천 피드
  * 실시간 날씨 API + 회원 프로필 취향 태그를 결합해 초개인화 카드를 구성하고,
- * [저장하기]로 마이 트립 일자별 리스트(3.1)에 다이렉트 추가한다.
+ * [저장하기]로 마이 트립 방문 리스트(3.1)에 다이렉트 추가한다.
  */
 export function RecommendPage() {
   const { user, profile } = useAuth()
@@ -234,17 +235,17 @@ function SaveSheet({
 }) {
   const [busy, setBusy] = useState(false)
 
-  async function save(trip: Trip, day: number) {
+  async function save(trip: Trip) {
     if (!target) return
     setBusy(true)
     try {
-      const existing = (await tripItems.listByTrip(trip.id)).filter((it) => it.day_index === day)
+      const existing = await tripItems.listByTrip(trip.id)
       if (existing.length >= trip.max_places_per_day) {
-        onSaved(`Day ${day}는 최대 ${trip.max_places_per_day}곳까지만 담을 수 있습니다.`)
+        onSaved(`${trip.title}은 최대 ${trip.max_places_per_day}곳까지만 담을 수 있습니다.`)
         return
       }
-      await tripItems.add({ trip_id: trip.id, place_id: target.place.id, day_index: day })
-      onSaved(`${trip.title} Day ${day}에 저장했습니다.`)
+      await tripItems.add({ trip_id: trip.id, place_id: target.place.id })
+      onSaved(`${trip.title}에 저장했습니다.`)
     } finally {
       setBusy(false)
     }
@@ -260,34 +261,22 @@ function SaveSheet({
           </button>
         </div>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="flex flex-col gap-2">
           {myTrips.map((trip) => {
-            const days = Math.max(
-              1,
-              Math.round(
-                (new Date(trip.end_date).getTime() - new Date(trip.start_date).getTime()) /
-                  86_400_000,
-              ) + 1,
-            )
             return (
-              <li key={trip.id} className="rounded-xl border border-ink-200 p-3">
-                <p className="text-[14px] font-bold text-ink-800">{trip.title}</p>
-                <p className="mb-2 text-[12px] text-ink-500">
-                  {trip.start_date} ~ {trip.end_date}
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {Array.from({ length: days }, (_, i) => i + 1).map((d) => (
-                    <button
-                      key={d}
-                      type="button"
-                      disabled={busy}
-                      onClick={() => save(trip, d)}
-                      className="chip-off"
-                    >
-                      Day {d}
-                    </button>
-                  ))}
-                </div>
+              <li key={trip.id}>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => save(trip)}
+                  className="flex w-full items-center gap-3 rounded-xl border border-ink-200 p-3.5 text-left transition-colors hover:bg-ink-50 disabled:opacity-45"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[14px] font-bold text-ink-800">{trip.title}</p>
+                    <p className="text-[12px] text-ink-500">{formatTripDate(trip.trip_date)}</p>
+                  </div>
+                  <span className="shrink-0 text-[13px] font-bold text-brand-600">담기</span>
+                </button>
               </li>
             )
           })}

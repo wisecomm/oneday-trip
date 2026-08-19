@@ -47,31 +47,29 @@ create table public.trips (
   user_id            uuid not null references auth.users on delete cascade,
   title              text not null,
   destination        text not null,
-  start_date         date not null,
-  end_date           date not null,
+  -- 당일치기 서비스이므로 기간이 아닌 날짜 하나를 갖는다
+  trip_date          date not null,
   companions         text[] not null default '{}',
   -- 하루에 다닐 수 있는 최대 방문 장소 (1~5, 기본 3)
   max_places_per_day smallint not null default 3 check (max_places_per_day between 1 and 5),
   transport          transport_type not null default 'transit',
-  created_at         timestamptz not null default now(),
-  constraint trips_date_range check (end_date >= start_date)
+  created_at         timestamptz not null default now()
 );
 
-create index trips_user_idx on public.trips (user_id, start_date desc);
+create index trips_user_idx on public.trips (user_id, trip_date desc);
 
--- ── TRIP-03-01 일자별 타임라인 항목 ──────────────────────────────────
+-- ── TRIP-03-01 타임라인 항목 (하루 안의 방문 순서) ───────────────────
 create table public.trip_items (
   id           uuid primary key default gen_random_uuid(),
   trip_id      uuid not null references public.trips on delete cascade,
   place_id     text not null references public.places on delete cascade,
-  day_index    smallint not null check (day_index >= 1),
   sort_order   smallint not null default 0,
   planned_time time,
   status       trip_item_status not null default 'planned',
   created_at   timestamptz not null default now()
 );
 
-create index trip_items_trip_idx on public.trip_items (trip_id, day_index, sort_order);
+create index trip_items_trip_idx on public.trip_items (trip_id, sort_order);
 
 -- ── RSV-05-01 예약 ───────────────────────────────────────────────────
 create table public.reservations (

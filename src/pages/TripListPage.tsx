@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/auth'
 import { tripItems, trips } from '@/lib/db'
 import { TRANSPORT_LABEL, type Trip } from '@/lib/types'
 import { EmptyState, Loading, PageHeader } from '@/components/ui'
+import { formatTripDate } from './TripCreatePage'
 
 export function TripListPage() {
   const { user } = useAuth()
@@ -54,7 +55,7 @@ export function TripListPage() {
           <EmptyState
             icon="🧳"
             title="아직 만든 여행이 없습니다"
-            description="여행 기간과 목적지를 정하면 일자별 타임라인이 만들어집니다."
+            description="여행 날짜와 목적지를 정하면 타임라인이 만들어집니다."
             action={
               <Link to="/trips/new" className="btn-primary">
                 여행 일정 만들기
@@ -68,14 +69,14 @@ export function TripListPage() {
                 <Link to={`/trips/${t.id}`} className="block">
                   <p className="text-[16px] font-extrabold text-ink-800">{t.title}</p>
                   <p className="mt-0.5 text-[12.5px] text-ink-500">
-                    {t.start_date} ~ {t.end_date}
+                    {formatTripDate(t.trip_date)}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     <span className="badge bg-ink-100 text-ink-600">
                       담은 장소 {counts[t.id] ?? 0}곳
                     </span>
                     <span className="badge bg-ink-100 text-ink-600">
-                      하루 최대 {t.max_places_per_day}곳
+                      최대 {t.max_places_per_day}곳
                     </span>
                     <span className="badge bg-ink-100 text-ink-600">
                       {TRANSPORT_LABEL[t.transport]}
@@ -84,7 +85,7 @@ export function TripListPage() {
                 </Link>
                 <div className="mt-3 flex gap-2">
                   <Link
-                    to={`/trips/${t.id}/route?day=1`}
+                    to={`/trips/${t.id}/route`}
                     className="btn-outline flex-1 !py-2 text-[13px]"
                   >
                     동선 보기

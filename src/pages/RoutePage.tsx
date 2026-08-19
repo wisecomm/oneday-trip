@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { tripItems, trips } from '@/lib/db'
 import { optimizeOrder, routeDistanceKm, routeMinutes } from '@/lib/geo'
 import { TRANSPORT_LABEL, type Place, type Trip, type TripItem } from '@/lib/types'
@@ -14,8 +14,6 @@ import { CategoryDot } from '@/components/PlaceCard'
  */
 export function RoutePage() {
   const { tripId = '' } = useParams()
-  const [params] = useSearchParams()
-  const day = Number(params.get('day') ?? 1)
 
   const [trip, setTrip] = useState<Trip | null>(null)
   const [items, setItems] = useState<TripItem[]>([])
@@ -29,13 +27,13 @@ export function RoutePage() {
     void Promise.all([trips.get(tripId), tripItems.listByTrip(tripId)]).then(([t, list]) => {
       if (!alive) return
       setTrip(t)
-      setItems(list.filter((it) => it.day_index === day).sort((a, b) => a.sort_order - b.sort_order))
+      setItems([...list].sort((a, b) => a.sort_order - b.sort_order))
       setLoading(false)
     })
     return () => {
       alive = false
     }
-  }, [tripId, day])
+  }, [tripId])
 
   const routePlaces = useMemo(
     () => items.map((it) => it.place).filter(Boolean) as Place[],
@@ -59,7 +57,7 @@ export function RoutePage() {
       setItems(reordered.map((it, i) => ({ ...it, sort_order: i })))
       setSaved({ before, after })
       await tripItems.reorder(
-        reordered.map((it, i) => ({ id: it.id, sort_order: i, day_index: day })),
+        reordered.map((it, i) => ({ id: it.id, sort_order: i })),
       )
     } finally {
       setOptimizing(false)
@@ -72,13 +70,13 @@ export function RoutePage() {
   return (
     <>
       <PageHeader
-        title={`Day ${day} 동선 최적화`}
+        title="동선 최적화"
         subtitle={`${trip.destination} · ${TRANSPORT_LABEL[trip.transport]} 기준`}
         back
       />
 
       {routePlaces.length === 0 ? (
-        <EmptyState icon="🧭" title={`Day ${day}에 등록된 장소가 없습니다`} />
+        <EmptyState icon="🧭" title="등록된 장소가 없습니다" />
       ) : (
         <>
           <MapView

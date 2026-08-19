@@ -26,8 +26,8 @@ export interface Trip {
   user_id: string
   title: string
   destination: string
-  start_date: string
-  end_date: string
+  /** 당일치기 서비스이므로 여행은 하루 단위다 */
+  trip_date: string
   companions: Companion[]
   /** TRIP-02-02: 하루에 다닐 수 있는 최대 방문 리스트 (1~5, 기본 3) */
   max_places_per_day: number
@@ -59,7 +59,6 @@ export interface TripItem {
   id: string
   trip_id: string
   place_id: string
-  day_index: number
   sort_order: number
   planned_time: string | null
   status: TripItemStatus

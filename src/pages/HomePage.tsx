@@ -5,6 +5,7 @@ import { places as placesApi, reservations, trips } from '@/lib/db'
 import type { Place, Reservation, Trip } from '@/lib/types'
 import { PlaceCard } from '@/components/PlaceCard'
 import { Loading } from '@/components/ui'
+import { formatTripDate } from './TripCreatePage'
 
 export function HomePage() {
   const { user, profile, isGuest } = useAuth()
@@ -64,7 +65,7 @@ export function HomePage() {
             <p className="text-[12px] font-semibold text-brand-100">다가오는 여행</p>
             <p className="mt-1 text-[19px] font-extrabold">{nextTrip.title}</p>
             <p className="mt-1 text-[13px] text-brand-100">
-              {nextTrip.start_date} ~ {nextTrip.end_date} · 하루 최대 {nextTrip.max_places_per_day}곳
+              {formatTripDate(nextTrip.trip_date)} · 최대 {nextTrip.max_places_per_day}곳
             </p>
           </div>
           <div className="px-4 py-3 text-[13px] font-bold text-brand-600">
@@ -79,7 +80,7 @@ export function HomePage() {
             </span>
             <div className="flex-1">
               <p className="text-[14.5px] font-bold text-ink-800">첫 여행 일정을 만들어 보세요</p>
-              <p className="hint">기간과 목적지만 정하면 일자별 타임라인이 자동 생성됩니다.</p>
+              <p className="hint">날짜와 목적지만 정하면 타임라인이 자동 생성됩니다.</p>
             </div>
           </Link>
         )

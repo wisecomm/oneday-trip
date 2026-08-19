@@ -111,13 +111,13 @@ export const trips = {
         .from('trips')
         .select('*')
         .eq('user_id', userId)
-        .order('start_date', { ascending: false })
+        .order('trip_date', { ascending: false })
       if (error) throw error
       return (data ?? []) as Trip[]
     }
     return readDb()
       .trips.filter((t) => t.user_id === userId)
-      .sort((a, b) => b.start_date.localeCompare(a.start_date))
+      .sort((a, b) => b.trip_date.localeCompare(a.trip_date))
   },
 
   async get(id: string): Promise<Trip | null> {
@@ -174,7 +174,6 @@ export const tripItems = {
         .from('trip_items')
         .select('*, place:places(*)')
         .eq('trip_id', tripId)
-        .order('day_index')
         .order('sort_order')
       if (error) throw error
       return (data ?? []) as TripItem[]
@@ -182,19 +181,15 @@ export const tripItems = {
     return readDb()
       .trip_items.filter((it) => it.trip_id === tripId)
       .map((it) => ({ ...it, place: SEED_PLACES.find((p) => p.id === it.place_id) }))
-      .sort((a, b) => a.day_index - b.day_index || a.sort_order - b.sort_order)
+      .sort((a, b) => a.sort_order - b.sort_order)
   },
 
   async add(input: {
     trip_id: string
     place_id: string
-    day_index: number
     planned_time?: string | null
   }): Promise<TripItem> {
-    const siblings = (await tripItems.listByTrip(input.trip_id)).filter(
-      (it) => it.day_index === input.day_index,
-    )
-    const sort_order = siblings.length
+    const sort_order = (await tripItems.listByTrip(input.trip_id)).length
 
     if (isSupabaseConfigured) {
       const { data, error } = await sb()
@@ -202,7 +197,6 @@ export const tripItems = {
         .insert({
           trip_id: input.trip_id,
           place_id: input.place_id,
-          day_index: input.day_index,
           sort_order,
           planned_time: input.planned_time ?? null,
           status: 'planned',
@@ -217,7 +211,6 @@ export const tripItems = {
       id: uid('item'),
       trip_id: input.trip_id,
       place_id: input.place_id,
-      day_index: input.day_index,
       sort_order,
       planned_time: input.planned_time ?? null,
       status: 'planned',
@@ -227,11 +220,11 @@ export const tripItems = {
   },
 
   /** 드래그 앤 드롭 정렬 결과를 일괄 반영 */
-  async reorder(items: Array<{ id: string; sort_order: number; day_index: number }>): Promise<void> {
+  async reorder(items: Array<{ id: string; sort_order: number }>): Promise<void> {
     if (isSupabaseConfigured) {
       await Promise.all(
-        items.map(({ id, sort_order, day_index }) =>
-          sb().from('trip_items').update({ sort_order, day_index }).eq('id', id),
+        items.map(({ id, sort_order }) =>
+          sb().from('trip_items').update({ sort_order }).eq('id', id),
         ),
       )
       return
@@ -239,12 +232,7 @@ export const tripItems = {
     mutateDb((d) => {
       for (const patch of items) {
         const i = d.trip_items.findIndex((it) => it.id === patch.id)
-        if (i >= 0)
-          d.trip_items[i] = {
-            ...d.trip_items[i],
-            sort_order: patch.sort_order,
-            day_index: patch.day_index,
-          }
+        if (i >= 0) d.trip_items[i] = { ...d.trip_items[i], sort_order: patch.sort_order }
       }
     })
   },

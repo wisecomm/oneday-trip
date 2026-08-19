@@ -23,11 +23,12 @@ import { routeDistanceKm, routeMinutes } from '@/lib/geo'
 import { CATEGORY_LABEL, type Trip, type TripItem } from '@/lib/types'
 import { CategoryDot, PlaceThumb } from '@/components/PlaceCard'
 import { EmptyState, Loading, PageHeader } from '@/components/ui'
-import { dayCount } from './TripCreatePage'
+import { formatTripDate } from './TripCreatePage'
 
 /**
- * TRIP-03-01 · 03. 마이 트립 > 3.1 타임라인 관리 > 일자별 여행 리스트
- * 드래그로 방문 순서를 바꾸면 하단 동선 요약이 즉시 재계산된다.
+ * TRIP-03-01 · 03. 마이 트립 > 3.1 타임라인 관리 > 여행 리스트
+ * 당일치기 서비스이므로 일자 구분 없이 하나의 방문 순서만 관리한다.
+ * 드래그로 순서를 바꾸면 하단 동선 요약이 즉시 재계산되고,
  * 예약/웨이팅 상태는 카드 배지에 자동 바인딩된다.
  */
 export function TimelinePage() {
@@ -37,7 +38,6 @@ export function TimelinePage() {
 
   const [trip, setTrip] = useState<Trip | null>(null)
   const [items, setItems] = useState<TripItem[]>([])
-  const [day, setDay] = useState(1)
   const [loading, setLoading] = useState(true)
   const [statusByPlace, setStatusByPlace] = useState<Record<string, '예약 확정' | '웨이팅 중'>>({})
 
@@ -63,10 +63,9 @@ export function TimelinePage() {
     void load()
   }, [load])
 
-  const days = trip ? dayCount(trip.start_date, trip.end_date) : 1
-  const dayItems = useMemo(
-    () => items.filter((it) => it.day_index === day).sort((a, b) => a.sort_order - b.sort_order),
-    [items, day],
+  const orderedItems = useMemo(
+    () => [...items].sort((a, b) => a.sort_order - b.sort_order),
+    [items],
   )
 
   const sensors = useSensors(
@@ -78,19 +77,14 @@ export function TimelinePage() {
     const { active, over } = event
     if (!over || active.id === over.id) return
 
-    const oldIndex = dayItems.findIndex((it) => it.id === active.id)
-    const newIndex = dayItems.findIndex((it) => it.id === over.id)
+    const oldIndex = orderedItems.findIndex((it) => it.id === active.id)
+    const newIndex = orderedItems.findIndex((it) => it.id === over.id)
     if (oldIndex < 0 || newIndex < 0) return
 
-    const reordered = arrayMove(dayItems, oldIndex, newIndex)
+    const reordered = arrayMove(orderedItems, oldIndex, newIndex)
     // 낙관적 갱신 — 하단 동선 요약이 즉시 재계산된다
-    setItems((prev) => [
-      ...prev.filter((it) => it.day_index !== day),
-      ...reordered.map((it, i) => ({ ...it, sort_order: i })),
-    ])
-    await tripItems.reorder(
-      reordered.map((it, i) => ({ id: it.id, sort_order: i, day_index: day })),
-    )
+    setItems(reordered.map((it, i) => ({ ...it, sort_order: i })))
+    await tripItems.reorder(reordered.map((it, i) => ({ id: it.id, sort_order: i })))
   }
 
   async function remove(id: string) {
@@ -111,19 +105,19 @@ export function TimelinePage() {
       />
     )
 
-  const points = dayItems
+  const points = orderedItems
     .map((it) => it.place)
     .filter(Boolean)
     .map((p) => ({ lat: p!.lat, lng: p!.lng }))
   const totalKm = routeDistanceKm(points)
   const totalMin = routeMinutes(points, trip.transport)
-  const isFull = dayItems.length >= trip.max_places_per_day
+  const isFull = orderedItems.length >= trip.max_places_per_day
 
   return (
     <>
       <PageHeader
         title={trip.title}
-        subtitle={`${trip.start_date} ~ ${trip.end_date} · 하루 최대 ${trip.max_places_per_day}곳`}
+        subtitle={`${formatTripDate(trip.trip_date)} · 최대 ${trip.max_places_per_day}곳`}
         back
         right={
           <Link
@@ -135,39 +129,14 @@ export function TimelinePage() {
         }
       />
 
-      {/* 일자별 탭 — 여행 기간에 따라 동적으로 생성 */}
-      <div className="sticky top-[57px] z-20 flex gap-2 overflow-x-auto border-b border-ink-200 bg-white px-4 py-2.5">
-        {Array.from({ length: days }, (_, i) => i + 1).map((d) => {
-          const count = items.filter((it) => it.day_index === d).length
-          const active = d === day
-          return (
-            <button
-              key={d}
-              type="button"
-              onClick={() => setDay(d)}
-              className={`shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-bold transition-colors ${
-                active ? 'bg-ink-800 text-white' : 'bg-ink-100 text-ink-500'
-              }`}
-            >
-              Day {d}
-              {count > 0 && (
-                <span className={active ? 'ml-1 text-brand-200' : 'ml-1 text-ink-400'}>
-                  {count}
-                </span>
-              )}
-            </button>
-          )
-        })}
-      </div>
-
       <div className="px-4 py-4">
-        {dayItems.length === 0 ? (
+        {orderedItems.length === 0 ? (
           <EmptyState
             icon="📍"
-            title={`Day ${day} 일정이 비어 있어요`}
+            title="아직 담은 장소가 없어요"
             description="지도나 AI 추천에서 마음에 드는 장소를 담아 보세요."
             action={
-              <Link to={`/map?trip=${tripId}&day=${day}`} className="btn-primary">
+              <Link to={`/map?trip=${tripId}`} className="btn-primary">
                 장소 담으러 가기
               </Link>
             }
@@ -175,21 +144,21 @@ export function TimelinePage() {
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
             <SortableContext
-              items={dayItems.map((it) => it.id)}
+              items={orderedItems.map((it) => it.id)}
               strategy={verticalListSortingStrategy}
             >
               <ul className="flex flex-col gap-2.5">
-                {dayItems.map((item, i) => (
+                {orderedItems.map((item, i) => (
                   <SortableItem
                     key={item.id}
                     item={item}
                     order={i + 1}
                     badge={item.place ? statusByPlace[item.place.id] : undefined}
                     legMinutes={
-                      i > 0 && item.place && dayItems[i - 1].place
+                      i > 0 && item.place && orderedItems[i - 1].place
                         ? routeMinutes(
                             [
-                              { lat: dayItems[i - 1].place!.lat, lng: dayItems[i - 1].place!.lng },
+                              { lat: orderedItems[i - 1].place!.lat, lng: orderedItems[i - 1].place!.lng },
                               { lat: item.place.lat, lng: item.place.lng },
                             ],
                             trip.transport,
@@ -205,16 +174,16 @@ export function TimelinePage() {
           </DndContext>
         )}
 
-        {dayItems.length > 0 && (
+        {orderedItems.length > 0 && (
           <div className="card mt-4 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[13px] font-bold text-ink-700">Day {day} 동선 요약</p>
+                <p className="text-[13px] font-bold text-ink-700">동선 요약</p>
                 <p className="mt-0.5 text-[12.5px] text-ink-500">
-                  총 {totalKm.toFixed(1)}km · 이동 {totalMin}분 · {dayItems.length}곳
+                  총 {totalKm.toFixed(1)}km · 이동 {totalMin}분 · {orderedItems.length}곳
                 </p>
               </div>
-              <Link to={`/trips/${tripId}/route?day=${day}`} className="btn-primary !px-3.5 !py-2 text-[13px]">
+              <Link to={`/trips/${tripId}/route`} className="btn-primary !px-3.5 !py-2 text-[13px]">
                 동선 최적화
               </Link>
             </div>
@@ -224,12 +193,12 @@ export function TimelinePage() {
         <div className="mt-3">
           {isFull ? (
             <p className="rounded-xl bg-amber-50 px-4 py-3 text-[13px] leading-relaxed text-amber-700">
-              하루 최대 방문 {trip.max_places_per_day}곳을 모두 채웠습니다. 더 담으려면 여행 규칙에서
+              최대 방문 {trip.max_places_per_day}곳을 모두 채웠습니다. 더 담으려면 여행 규칙에서
               한도를 조정하세요.
             </p>
           ) : (
-            <Link to={`/map?trip=${tripId}&day=${day}`} className="btn-ghost w-full">
-              + Day {day}에 장소 추가 ({dayItems.length}/{trip.max_places_per_day})
+            <Link to={`/map?trip=${tripId}`} className="btn-ghost w-full">
+              + 장소 추가 ({orderedItems.length}/{trip.max_places_per_day})
             </Link>
           )}
         </div>

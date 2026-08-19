@@ -23,7 +23,6 @@ export function ExplorePage() {
 
   // 타임라인에서 '장소 추가'로 진입한 경우 — 담기 CTA 가 활성화된다
   const tripId = params.get('trip')
-  const day = Number(params.get('day') ?? 1)
 
   const [region, setRegion] = useState<string>(params.get('region') ?? DESTINATIONS[0])
   const [active, setActive] = useState<PlaceCategory[]>([])
@@ -31,7 +30,7 @@ export function ExplorePage() {
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Place | null>(null)
   const [trip, setTrip] = useState<Trip | null>(null)
-  const [dayCountForTrip, setDayCountForTrip] = useState(0)
+  const [pickedCount, setPickedCount] = useState(0)
   const [toast, setToast] = useState<string | null>(null)
 
   const load = useCallback(async () => {
@@ -55,8 +54,8 @@ export function ExplorePage() {
     })
     void tripItems
       .listByTrip(tripId)
-      .then((items) => setDayCountForTrip(items.filter((it) => it.day_index === day).length))
-  }, [tripId, day])
+      .then((items) => setPickedCount(items.length))
+  }, [tripId])
 
   useEffect(() => {
     if (!toast) return
@@ -88,14 +87,14 @@ export function ExplorePage() {
 
   async function addToTrip(place: Place) {
     if (!tripId || !trip) return
-    if (dayCountForTrip >= trip.max_places_per_day) {
-      setToast(`Day ${day}는 최대 ${trip.max_places_per_day}곳까지만 담을 수 있습니다.`)
+    if (pickedCount >= trip.max_places_per_day) {
+      setToast(`최대 ${trip.max_places_per_day}곳까지만 담을 수 있습니다.`)
       return
     }
-    await tripItems.add({ trip_id: tripId, place_id: place.id, day_index: day })
-    setDayCountForTrip((n) => n + 1)
+    await tripItems.add({ trip_id: tripId, place_id: place.id })
+    setPickedCount((n) => n + 1)
     setSelected(null)
-    setToast(`Day ${day} 일정에 담았습니다.`)
+    setToast('일정에 담았습니다.')
   }
 
   return (
@@ -131,7 +130,7 @@ export function ExplorePage() {
           </select>
           {trip && (
             <span className="truncate rounded-xl bg-ink-800 px-3 py-2 text-[12.5px] font-bold text-white shadow-sm">
-              Day {day}에 담는 중 · {dayCountForTrip}/{trip.max_places_per_day}
+              담는 중 · {pickedCount}/{trip.max_places_per_day}
             </span>
           )}
         </div>
@@ -226,7 +225,7 @@ export function ExplorePage() {
                   onClick={() => addToTrip(selected)}
                   className="btn-primary flex-1"
                 >
-                  Day {day} 일정에 담기
+                  일정에 담기
                 </button>
               ) : (
                 <button
