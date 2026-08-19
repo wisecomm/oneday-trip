@@ -296,83 +296,87 @@ function SortableItem({
           이동 약 {legMinutes}분
         </div>
       )}
-      <div className={`card flex items-center gap-3 p-3 ${visited ? 'bg-ink-50' : ''}`}>
-        <span
-          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[13px] font-extrabold text-white ${
-            visited ? 'bg-emerald-500' : 'bg-brand-500'
-          }`}
-        >
-          {visited ? '✓' : order}
-        </span>
+      {/*
+        한 줄에 정보와 액션을 모두 넣으면 장소명이 잘리고 버튼도 눈에 띄지 않는다.
+        위쪽은 정보, 아래쪽은 액션으로 나눠 이름에 폭을 온전히 내어 준다.
+      */}
+      <div className={`card overflow-hidden ${visited ? 'bg-ink-50' : ''}`}>
+        <div className="flex items-center gap-3 p-3">
+          <span
+            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[13px] font-extrabold text-white ${
+              visited ? 'bg-emerald-500' : 'bg-brand-500'
+            }`}
+          >
+            {visited ? '✓' : order}
+          </span>
 
-        {place && <PlaceThumb place={place} size={46} />}
+          {place && <PlaceThumb place={place} size={46} />}
 
-        <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
-          <div className="flex items-center gap-1.5">
-            {place && <CategoryDot category={place.category} />}
-            <p className="truncate text-[14.5px] font-bold text-ink-800">
-              {place?.name ?? '알 수 없는 장소'}
-            </p>
-          </div>
-          <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            <span className="text-[12px] text-ink-500">
-              {place ? CATEGORY_LABEL[place.category] : ''} · {place?.open_hours}
-            </span>
-            {visited && <span className="badge bg-emerald-50 text-emerald-700">방문 완료</span>}
-            {badge && (
-              <span
-                className={`badge ${
-                  badge === '예약 확정'
-                    ? 'bg-brand-50 text-brand-700'
-                    : 'bg-amber-50 text-amber-700'
-                }`}
-              >
-                {badge}
+          <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
+            <div className="flex items-center gap-1.5">
+              {place && <CategoryDot category={place.category} />}
+              <p className="truncate text-[14.5px] font-bold text-ink-800">
+                {place?.name ?? '알 수 없는 장소'}
+              </p>
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              <span className="text-[12px] text-ink-500">
+                {place ? CATEGORY_LABEL[place.category] : ''} · {place?.open_hours}
               </span>
-            )}
-          </div>
-        </button>
+              {visited && <span className="badge bg-emerald-50 text-emerald-700">방문 완료</span>}
+              {badge && (
+                <span
+                  className={`badge ${
+                    badge === '예약 확정'
+                      ? 'bg-brand-50 text-brand-700'
+                      : 'bg-amber-50 text-amber-700'
+                  }`}
+                >
+                  {badge}
+                </span>
+              )}
+            </div>
+          </button>
 
-        <button
-          type="button"
-          onClick={onToggleVisit}
-          aria-label={visited ? '방문 완료 취소' : '방문 완료로 표시하고 인증 카드 만들기'}
-          title={visited ? '방문 완료 취소' : '방문 완료'}
-          className={`shrink-0 rounded-lg px-2 py-1.5 text-[12px] font-bold transition-colors ${
-            visited
-              ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-              : 'bg-ink-100 text-ink-500 hover:bg-ink-200'
-          }`}
-        >
-          {visited ? '취소' : '방문'}
-        </button>
+          {/* 드래그 앤 드롭 정렬 핸들 */}
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            aria-label="순서 변경 핸들"
+            className="shrink-0 cursor-grab touch-none rounded-lg p-1.5 text-ink-300 hover:bg-ink-100 active:cursor-grabbing"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+              <circle cx="5" cy="4" r="1.4" />
+              <circle cx="11" cy="4" r="1.4" />
+              <circle cx="5" cy="8" r="1.4" />
+              <circle cx="11" cy="8" r="1.4" />
+              <circle cx="5" cy="12" r="1.4" />
+              <circle cx="11" cy="12" r="1.4" />
+            </svg>
+          </button>
+        </div>
 
-        <button
-          type="button"
-          onClick={onRemove}
-          aria-label="일정에서 빼기"
-          className="shrink-0 rounded-lg p-1.5 text-ink-300 hover:bg-ink-100 hover:text-ink-500"
-        >
-          ✕
-        </button>
-
-        {/* 드래그 앤 드롭 정렬 핸들 */}
-        <button
-          type="button"
-          {...attributes}
-          {...listeners}
-          aria-label="순서 변경 핸들"
-          className="shrink-0 cursor-grab touch-none rounded-lg p-1.5 text-ink-300 hover:bg-ink-100 active:cursor-grabbing"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
-            <circle cx="5" cy="4" r="1.4" />
-            <circle cx="11" cy="4" r="1.4" />
-            <circle cx="5" cy="8" r="1.4" />
-            <circle cx="11" cy="8" r="1.4" />
-            <circle cx="5" cy="12" r="1.4" />
-            <circle cx="11" cy="12" r="1.4" />
-          </svg>
-        </button>
+        <div className="flex divide-x divide-ink-100 border-t border-ink-100">
+          <button
+            type="button"
+            onClick={onToggleVisit}
+            className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[13px] font-bold transition-colors ${
+              visited
+                ? 'text-emerald-600 hover:bg-emerald-50'
+                : 'text-brand-600 hover:bg-brand-50'
+            }`}
+          >
+            {visited ? '방문 완료 취소' : '✓ 방문 완료 · 인증하기'}
+          </button>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="shrink-0 px-5 py-2.5 text-[13px] font-semibold text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-600"
+          >
+            빼기
+          </button>
+        </div>
       </div>
     </li>
   )
