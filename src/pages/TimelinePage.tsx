@@ -23,6 +23,8 @@ import { routeDistanceKm, routeMinutes } from '@/lib/geo'
 import { CATEGORY_LABEL, type Trip, type TripItem } from '@/lib/types'
 import { CategoryDot, PlaceThumb } from '@/components/PlaceCard'
 import { EmptyState, Loading, PageHeader } from '@/components/ui'
+import { VisitShareSheet } from '@/components/VisitShareSheet'
+import type { VisitCardInput } from '@/lib/share-card'
 import { formatTripDate } from './TripCreatePage'
 
 /**
@@ -46,6 +48,7 @@ export function TimelinePage() {
   const [items, setItems] = useState<TripItem[]>([])
   const [loading, setLoading] = useState(true)
   const [statusByPlace, setStatusByPlace] = useState<Record<string, '예약 확정' | '웨이팅 중'>>({})
+  const [shareTarget, setShareTarget] = useState<VisitCardInput | null>(null)
 
   const load = useCallback(async () => {
     const [t, list] = await Promise.all([trips.get(tripId), tripItems.listByTrip(tripId)])
@@ -96,6 +99,28 @@ export function TimelinePage() {
   async function remove(id: string) {
     setItems((prev) => prev.filter((it) => it.id !== id))
     await tripItems.remove(id)
+  }
+
+  /**
+   * 방문 완료 토글.
+   * 처음 완료로 표시할 때만 인증 카드 시트를 띄운다 — 취소했다가 다시 누르는
+   * 경우에도 매번 뜨면 성가시므로, 상태가 실제로 '방문함'으로 바뀔 때만 연다.
+   */
+  async function toggleVisit(item: TripItem, order: number) {
+    const nextStatus = item.status === 'visited' ? 'planned' : 'visited'
+    setItems((prev) =>
+      prev.map((it) => (it.id === item.id ? { ...it, status: nextStatus } : it)),
+    )
+    await tripItems.setStatus(item.id, nextStatus)
+
+    if (nextStatus === 'visited' && item.place && trip) {
+      setShareTarget({
+        place: item.place,
+        tripTitle: trip.title,
+        tripDate: formatTripDate(trip.trip_date),
+        order,
+      })
+    }
   }
 
   if (loading) return <Loading />
@@ -193,6 +218,7 @@ export function TimelinePage() {
                     }
                     onOpen={() => navigate(`/places/${item.place_id}`)}
                     onRemove={() => remove(item.id)}
+                    onToggleVisit={() => toggleVisit(item, i + 1)}
                   />
                 ))}
               </ul>
@@ -229,6 +255,8 @@ export function TimelinePage() {
           )}
         </div>
       </div>
+
+      <VisitShareSheet input={shareTarget} onClose={() => setShareTarget(null)} />
     </>
   )
 }
@@ -240,6 +268,7 @@ function SortableItem({
   legMinutes,
   onOpen,
   onRemove,
+  onToggleVisit,
 }: {
   item: TripItem
   order: number
@@ -247,11 +276,13 @@ function SortableItem({
   legMinutes: number | null
   onOpen: () => void
   onRemove: () => void
+  onToggleVisit: () => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
   })
   const place = item.place
+  const visited = item.status === 'visited'
 
   return (
     <li
@@ -265,9 +296,13 @@ function SortableItem({
           이동 약 {legMinutes}분
         </div>
       )}
-      <div className="card flex items-center gap-3 p-3">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-500 text-[13px] font-extrabold text-white">
-          {order}
+      <div className={`card flex items-center gap-3 p-3 ${visited ? 'bg-ink-50' : ''}`}>
+        <span
+          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[13px] font-extrabold text-white ${
+            visited ? 'bg-emerald-500' : 'bg-brand-500'
+          }`}
+        >
+          {visited ? '✓' : order}
         </span>
 
         {place && <PlaceThumb place={place} size={46} />}
@@ -283,6 +318,7 @@ function SortableItem({
             <span className="text-[12px] text-ink-500">
               {place ? CATEGORY_LABEL[place.category] : ''} · {place?.open_hours}
             </span>
+            {visited && <span className="badge bg-emerald-50 text-emerald-700">방문 완료</span>}
             {badge && (
               <span
                 className={`badge ${
@@ -295,6 +331,20 @@ function SortableItem({
               </span>
             )}
           </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={onToggleVisit}
+          aria-label={visited ? '방문 완료 취소' : '방문 완료로 표시하고 인증 카드 만들기'}
+          title={visited ? '방문 완료 취소' : '방문 완료'}
+          className={`shrink-0 rounded-lg px-2 py-1.5 text-[12px] font-bold transition-colors ${
+            visited
+              ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+              : 'bg-ink-100 text-ink-500 hover:bg-ink-200'
+          }`}
+        >
+          {visited ? '취소' : '방문'}
         </button>
 
         <button
