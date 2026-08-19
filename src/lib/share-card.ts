@@ -59,8 +59,24 @@ export interface VisitCardInput {
   order: number
 }
 
-/** 방문 인증 카드를 PNG Blob 으로 만든다 */
-export async function createVisitCard(input: VisitCardInput): Promise<Blob> {
+/** 사진을 4:5 캔버스에 잘리지 않게 꽉 채워(cover) 그린다 */
+async function drawCover(ctx: CanvasRenderingContext2D, photo: Blob): Promise<void> {
+  const bitmap = await createImageBitmap(photo)
+  try {
+    const scale = Math.max(W / bitmap.width, H / bitmap.height)
+    const w = bitmap.width * scale
+    const h = bitmap.height * scale
+    ctx.drawImage(bitmap, (W - w) / 2, (H - h) / 2, w, h)
+  } finally {
+    bitmap.close()
+  }
+}
+
+/**
+ * 방문 인증 카드를 PNG Blob 으로 만든다.
+ * @param photo 사용자가 고른 사진. 없으면 카테고리 색 그라디언트 배경을 쓴다.
+ */
+export async function createVisitCard(input: VisitCardInput, photo?: Blob | null): Promise<Blob> {
   const { place, tripTitle, tripDate, order } = input
   const canvas = document.createElement('canvas')
   canvas.width = W
@@ -70,19 +86,37 @@ export async function createVisitCard(input: VisitCardInput): Promise<Blob> {
 
   const accent = CATEGORY_COLOR[place.category]
 
-  // 배경 — 카테고리 색에서 어두운 쪽으로 떨어지는 대각 그라디언트
-  const bg = ctx.createLinearGradient(0, 0, W, H)
-  bg.addColorStop(0, accent)
-  bg.addColorStop(1, '#14171c')
-  ctx.fillStyle = bg
-  ctx.fillRect(0, 0, W, H)
+  if (photo) {
+    await drawCover(ctx, photo)
 
-  // 은은한 원형 하이라이트로 단조로움을 덜어 준다
-  const glow = ctx.createRadialGradient(W * 0.78, H * 0.16, 0, W * 0.78, H * 0.16, W * 0.7)
-  glow.addColorStop(0, 'rgba(255,255,255,0.20)')
-  glow.addColorStop(1, 'rgba(255,255,255,0)')
-  ctx.fillStyle = glow
-  ctx.fillRect(0, 0, W, H)
+    // 사진 위의 흰 글씨가 밝은 부분에서 묻히지 않도록 위아래에 어둠을 깐다
+    const topScrim = ctx.createLinearGradient(0, 0, 0, H * 0.3)
+    topScrim.addColorStop(0, 'rgba(0,0,0,0.55)')
+    topScrim.addColorStop(1, 'rgba(0,0,0,0)')
+    ctx.fillStyle = topScrim
+    ctx.fillRect(0, 0, W, H * 0.3)
+
+    const bottomScrim = ctx.createLinearGradient(0, H * 0.32, 0, H)
+    bottomScrim.addColorStop(0, 'rgba(0,0,0,0)')
+    bottomScrim.addColorStop(0.55, 'rgba(0,0,0,0.55)')
+    bottomScrim.addColorStop(1, 'rgba(0,0,0,0.88)')
+    ctx.fillStyle = bottomScrim
+    ctx.fillRect(0, H * 0.32, W, H * 0.68)
+  } else {
+    // 배경 — 카테고리 색에서 어두운 쪽으로 떨어지는 대각 그라디언트
+    const bg = ctx.createLinearGradient(0, 0, W, H)
+    bg.addColorStop(0, accent)
+    bg.addColorStop(1, '#14171c')
+    ctx.fillStyle = bg
+    ctx.fillRect(0, 0, W, H)
+
+    // 은은한 원형 하이라이트로 단조로움을 덜어 준다
+    const glow = ctx.createRadialGradient(W * 0.78, H * 0.16, 0, W * 0.78, H * 0.16, W * 0.7)
+    glow.addColorStop(0, 'rgba(255,255,255,0.20)')
+    glow.addColorStop(1, 'rgba(255,255,255,0)')
+    ctx.fillStyle = glow
+    ctx.fillRect(0, 0, W, H)
+  }
 
   const pad = 96
 
