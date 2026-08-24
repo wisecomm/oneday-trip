@@ -79,7 +79,9 @@ function WaitingFloatingBar({ minutes, name }: { minutes: number; name: string }
 function DemoBanner() {
   return (
     <div className="bg-brand-900 px-4 py-1.5 text-center text-[11.5px] font-medium text-brand-100">
-      데모 모드 — <code className="font-mono">.env</code> 에 Supabase 키를 넣으면 실제 백엔드에 연결됩니다
+      데모 모드 — Supabase 환경변수(VITE_SUPABASE_URL 등)가 빌드에 없습니다. 로컬은{' '}
+      <code className="font-mono">.env</code>, 배포 환경은 호스팅 서비스의 환경변수 설정을
+      확인해 주세요
     </div>
   )
 }
