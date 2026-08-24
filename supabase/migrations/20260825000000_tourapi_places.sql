@@ -1,23 +1,22 @@
 -- =====================================================================
--- 지역 + 장소 카탈로그 시드 데이터 (지역 4곳, 장소 79곳)
--- schema.sql 실행 후 SQL Editor 에 붙여넣어 실행하세요.
--- src/lib/seed.ts 의 SEED_PLACES 와 동일한 내용입니다.
+-- 장소 카탈로그를 손수 만든 시드 25곳에서 TourAPI(한국관광공사) 실데이터 79곳으로 교체
 --
--- 장소 데이터는 한국관광공사 TourAPI(KorService2) 에서 가져왔다.
--- rating·tags 는 TourAPI 가 제공하지 않아 0/빈 배열로 둔다.
--- 술집(sulzip) 은 TourAPI 에 주점 분류가 사실상 없어 비어 있다.
+-- 사용자 확인 사항:
+--   · 기존 여행·타임라인·예약·웨이팅은 전부 지운다 (테스트 데이터, 재시작 합의됨)
+--   · 술집(sulzip) 카테고리는 이번엔 비워 둔다 — TourAPI 에 주점 분류 자체가
+--     없어(FD04 전 지역 0건, "포차"·"펍" 키워드 검색도 0건), 억지로 채우지 않았다.
+--     추후 다른 소스로 보충할 때까지는 지도 필터에서 술집이 빈 상태로 남는다.
+--
+-- 데이터 출처: TourAPI 지역기반 목록(areaBasedList2) + 상세소개(detailCommon2)
+-- + 영업시간(detailIntro2). rating·tags 는 TourAPI 가 제공하지 않아 0/빈 배열로
+-- 둔다 — 추천 점수 계산에서 이 장소들은 태그·시간대 보너스에만 의존한다.
 -- =====================================================================
 
--- places.region 이 regions.name 을 참조하므로 반드시 먼저 넣는다
-insert into public.regions (name, lat, lng, sort_order) values
-  ('서울 성수', 37.5449, 127.0504, 0),
-  ('제주',      33.4257, 126.5857, 1),
-  ('부산',      35.1239, 129.0716, 2),
-  ('경주',      35.8288, 129.2361, 3)
-on conflict (name) do update set
-  lat = excluded.lat,
-  lng = excluded.lng,
-  sort_order = excluded.sort_order;
+-- 자식 → 부모 순서로 지운다. trips 를 지우면 trip_items 는 cascade 로 함께 지워진다.
+delete from public.waitings;
+delete from public.reservations;
+delete from public.trips;
+delete from public.places;
 
 insert into public.places
   (id, name, category, region, address, lat, lng, image_url, rating, price_level, tags, summary, open_hours, waiting_count)
@@ -100,19 +99,4 @@ values
   ('p-tour-1958053', '귀산서원', 'spot', '경주', '경상북도 경주시 현곡면 구산서원길 71-12', 35.89, 129.1613, 'https://tong.visitkorea.or.kr/cms/resource/26/3412526_image2_1.jpg', 0, 1, '{}'::text[], '1786년(정조 10)에 지방 유림의 공의로 서유(徐愈)의 학문과 덕행을 추모하기 위해 귀산서사(龜山書社)를 창건하여 위패를 모셨다', '상시 개방', 0),
   ('p-tour-590997', '경주월드 캘리포니아비치', 'spot', '경주', '경상북도 경주시 보문로 544 경주월드', 35.8364, 129.2822, 'https://tong.visitkorea.or.kr/cms/resource/07/3544407_image2_1.JPG', 0, 1, '{}'::text[], '경주월드에 있는 이국적인 풍경을 가진 물놀이 시설로 여름 시즌에만 운영한다', '시즌 별로 상이함', 0),
   ('p-tour-337505', '연지암(경주)', 'spot', '경주', '경상북도 경주시 외동읍 활성길 120-5', 35.7537, 129.3278, 'https://tong.visitkorea.or.kr/cms/resource/69/3412469_image2_1.jpg', 0, 1, '{}'::text[], '경주 괘릉 안쪽 활성리라는 작은 마을 언덕에 있는 연지암은 일제강점기 말 김연지화 보살이 창건했다', '상시 개방', 0),
-  ('p-tour-319572', '경주 동부 사적지대', 'spot', '경주', '경상북도 경주시 황남동', 35.8354, 129.218, 'https://tong.visitkorea.or.kr/cms/resource/21/3582421_image2_1.jpg', 0, 1, '{}'::text[], '동서는 안압지로부터 교동까지 남북은 반월성 남쪽의 남천에서 고분공원 앞 첨성로에 이르는 광대한 지역이다', '상시 개방', 0)
-
-on conflict (id) do update set
-  name          = excluded.name,
-  category      = excluded.category,
-  region        = excluded.region,
-  address       = excluded.address,
-  lat           = excluded.lat,
-  lng           = excluded.lng,
-  image_url     = excluded.image_url,
-  rating        = excluded.rating,
-  price_level   = excluded.price_level,
-  tags          = excluded.tags,
-  summary       = excluded.summary,
-  open_hours    = excluded.open_hours,
-  waiting_count = excluded.waiting_count;
+  ('p-tour-319572', '경주 동부 사적지대', 'spot', '경주', '경상북도 경주시 황남동', 35.8354, 129.218, 'https://tong.visitkorea.or.kr/cms/resource/21/3582421_image2_1.jpg', 0, 1, '{}'::text[], '동서는 안압지로부터 교동까지 남북은 반월성 남쪽의 남천에서 고분공원 앞 첨성로에 이르는 광대한 지역이다', '상시 개방', 0);
