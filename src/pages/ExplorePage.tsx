@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { places as placesApi, tripItems, trips } from '@/lib/db'
-import { DESTINATIONS } from '@/lib/seed'
+import { useRegions } from '@/hooks/useRegions'
 import { distanceKm } from '@/lib/geo'
 import { CATEGORY_LABEL, type Place, type PlaceCategory, type Trip } from '@/lib/types'
 import { MapView } from '@/components/MapView'
@@ -24,7 +24,8 @@ export function ExplorePage() {
   // 타임라인에서 '장소 추가'로 진입한 경우 — 담기 CTA 가 활성화된다
   const tripId = params.get('trip')
 
-  const [region, setRegion] = useState<string>(params.get('region') ?? DESTINATIONS[0])
+  const { regions } = useRegions()
+  const [region, setRegion] = useState<string>(params.get('region') ?? '')
   const [active, setActive] = useState<PlaceCategory[]>([])
   const [list, setList] = useState<Place[]>([])
   const [loading, setLoading] = useState(true)
@@ -42,9 +43,16 @@ export function ExplorePage() {
     }
   }, [region, active])
 
+  // 지역 목록이 비동기로 도착하므로, url 에 region 쿼리가 없었다면 첫 지역을 기본값으로 채운다
   useEffect(() => {
+    if (region || regions.length === 0) return
+    setRegion(regions[0].name)
+  }, [regions, region])
+
+  useEffect(() => {
+    if (!region) return
     void load()
-  }, [load])
+  }, [load, region])
 
   useEffect(() => {
     if (!tripId) return
@@ -122,9 +130,9 @@ export function ExplorePage() {
             className="rounded-xl border border-ink-200 bg-white px-3 py-2 text-[13.5px] font-bold text-ink-700 shadow-sm"
             aria-label="지역 선택"
           >
-            {DESTINATIONS.map((d) => (
-              <option key={d} value={d}>
-                {d}
+            {regions.map((r) => (
+              <option key={r.name} value={r.name}>
+                {r.name}
               </option>
             ))}
           </select>

@@ -1,10 +1,11 @@
 import { isSupabaseConfigured, db as sb } from './supabase'
 import { mutateDb, readDb, uid } from './local-store'
-import { SEED_PLACES } from './seed'
+import { DEMO_REGIONS, SEED_PLACES } from './seed'
 import type {
   Place,
   PlaceCategory,
   Profile,
+  Region,
   Reservation,
   Trip,
   TripItem,
@@ -18,6 +19,19 @@ import type {
  */
 
 const nowIso = () => new Date().toISOString()
+
+/* ─────────────────────── Regions (TRIP-02-01) ─────────────────────── */
+
+export const regions = {
+  async list(): Promise<Region[]> {
+    if (isSupabaseConfigured) {
+      const { data, error } = await sb().from('regions').select('*').order('sort_order')
+      if (error) throw error
+      return (data ?? []) as Region[]
+    }
+    return DEMO_REGIONS
+  },
+}
 
 /* ───────────────────────── Places (MAP-04-01) ───────────────────────── */
 

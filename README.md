@@ -90,13 +90,31 @@ Authentication > Sign In / Providers > Email 에 비슷한 토글이 나란히 �
 | 테이블 | 용도 |
 |---|---|
 | `profiles` | 닉네임 · 취향 태그 · 웨이팅 성향 (SYS-01-02) |
-| `places` | 장소 카탈로그. 비로그인 읽기 허용 |
-| `trips` | 여행 기간 · 목적지 · 하루 최대 방문 수 · 이동수단 |
-| `trip_items` | 일자별 타임라인 항목 (`day_index`, `sort_order`) |
+| `regions` | 목적지 지역 목록과 지도 초기 중심 좌표. 비로그인 읽기 허용 |
+| `places` | 장소 카탈로그. `region` 이 `regions.name` 을 참조. 비로그인 읽기 허용 |
+| `trips` | 여행 날짜(당일치기) · 목적지 · 하루 최대 방문 수 · 이동수단. `destination` 이 `regions.name` 을 참조 |
+| `trip_items` | 방문 순서 (`sort_order`) — 당일치기라 일자 구분이 없다 |
 | `reservations` | 예약 (RSV-05-01) |
 | `waitings` | 웨이팅. `delay_count ≤ 2` 체크 제약, 사용자당 진행 중 1건 유니크 인덱스 |
 
 RLS 는 전 테이블에 적용되어 있고, 사용자는 자신의 행만 읽고 쓸 수 있습니다.
+
+### 목적지 지역 추가하기
+
+지역 목록은 코드가 아니라 `regions` 테이블에 있습니다. 새 지역을 추가하려면 코드 수정이나
+재배포 없이, Supabase 대시보드의 Table Editor(또는 SQL Editor)에서 행 하나만 추가하면
+됩니다:
+
+```sql
+insert into public.regions (name, lat, lng, sort_order) values ('강릉', 37.7519, 128.8761, 4);
+```
+
+앱은 `regions.list()` ([db.ts](src/lib/db.ts))로 이 테이블을 읽어 드롭다운을 채우므로,
+새로고침만으로 반영됩니다. `places.region` 과 `trips.destination` 이 `regions.name` 을
+외래키로 참조하므로, 장소나 여행에 쓸 지역명은 여기 등록된 이름과 정확히 일치해야 합니다.
+
+데모 모드(Supabase 미연결)에서는 [seed.ts](src/lib/seed.ts) 의 `DEMO_REGIONS` 를 대신
+씁니다 — 지역을 추가했다면 데모 모드에서도 보이게 하고 싶은 경우 이 배열도 함께 갱신하세요.
 
 ## 네이버 지도 연결
 

@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { DESTINATIONS } from '@/lib/seed'
+import { useRegions } from '@/hooks/useRegions'
 import { COMPANION_LABEL, type Companion, type TripDraft } from '@/lib/types'
-import { PageHeader, StepGuide } from '@/components/ui'
+import { Loading, PageHeader, StepGuide } from '@/components/ui'
 
 function todayIso(offsetDays = 0): string {
   const d = new Date()
@@ -31,14 +31,22 @@ export function defaultTripTitle(destination: string): string {
  */
 export function TripCreatePage() {
   const navigate = useNavigate()
+  const { regions, loading: regionsLoading } = useRegions()
 
-  const [destination, setDestination] = useState<string>(DESTINATIONS[0])
-  const [title, setTitle] = useState(() => defaultTripTitle(DESTINATIONS[0]))
+  const [destination, setDestination] = useState<string>('')
+  const [title, setTitle] = useState('')
   // 사용자가 제목을 직접 손댔다면 목적지를 바꿔도 덮어쓰지 않는다
   const [titleEdited, setTitleEdited] = useState(false)
   const [tripDate, setTripDate] = useState(todayIso(7))
   const [companions, setCompanions] = useState<Companion[]>(['friends'])
   const [error, setError] = useState<string | null>(null)
+
+  // 지역 목록이 비동기로 도착하므로, 도착한 뒤 첫 지역을 기본 선택으로 채운다
+  useEffect(() => {
+    if (regions.length === 0 || destination) return
+    setDestination(regions[0].name)
+    setTitle(defaultTripTitle(regions[0].name))
+  }, [regions, destination])
 
   function changeDestination(next: string) {
     setDestination(next)
@@ -66,6 +74,8 @@ export function TripCreatePage() {
     navigate('/trips/new/rules', { state: draft })
   }
 
+  if (regionsLoading) return <Loading />
+
   return (
     <>
       <PageHeader title="여행 일정 설정" subtitle="여행 날짜와 목적지를 정해 주세요" back />
@@ -85,9 +95,9 @@ export function TripCreatePage() {
             onChange={(e) => changeDestination(e.target.value)}
             className="field"
           >
-            {DESTINATIONS.map((d) => (
-              <option key={d} value={d}>
-                {d}
+            {regions.map((r) => (
+              <option key={r.name} value={r.name}>
+                {r.name}
               </option>
             ))}
           </select>
@@ -151,7 +161,12 @@ export function TripCreatePage() {
           <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-[13px] text-red-600">{error}</p>
         )}
 
-        <button type="button" onClick={goToRules} className="btn-primary w-full">
+        <button
+          type="button"
+          onClick={goToRules}
+          disabled={!destination}
+          className="btn-primary w-full"
+        >
           다음 · 여행 규칙 설정
         </button>
       </div>

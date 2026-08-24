@@ -13,6 +13,14 @@ export type Companion = 'solo' | 'couple' | 'friends' | 'family' | 'pet'
 /** 웨이팅 성향 (SYS-01-02: 대기 민감 1 ~ 느긋 5) */
 export type WaitingSensitivity = 1 | 2 | 3 | 4 | 5
 
+/** 목적지 지역. places.region / trips.destination 이 이 name 을 그대로 참조한다 */
+export interface Region {
+  name: string
+  lat: number
+  lng: number
+  sort_order: number
+}
+
 export interface Profile {
   id: string
   nickname: string

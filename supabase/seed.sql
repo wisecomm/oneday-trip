@@ -1,8 +1,19 @@
 -- =====================================================================
--- 장소 카탈로그 시드 데이터 (25곳)
+-- 지역 + 장소 카탈로그 시드 데이터 (지역 4곳, 장소 25곳)
 -- schema.sql 실행 후 SQL Editor 에 붙여넣어 실행하세요.
 -- src/lib/seed.ts 의 SEED_PLACES 와 동일한 내용입니다.
 -- =====================================================================
+
+-- places.region 이 regions.name 을 참조하므로 반드시 먼저 넣는다
+insert into public.regions (name, lat, lng, sort_order) values
+  ('서울 성수', 37.5449, 127.0504, 0),
+  ('제주',      33.4257, 126.5857, 1),
+  ('부산',      35.1239, 129.0716, 2),
+  ('경주',      35.8288, 129.2361, 3)
+on conflict (name) do update set
+  lat = excluded.lat,
+  lng = excluded.lng,
+  sort_order = excluded.sort_order;
 
 insert into public.places
   (id, name, category, region, address, lat, lng, rating, price_level, tags, summary, open_hours, waiting_count)

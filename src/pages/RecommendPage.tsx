@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { places as placesApi, tripItems, trips } from '@/lib/db'
-import { DESTINATIONS, SEED_PLACES } from '@/lib/seed'
+import { useRegions } from '@/hooks/useRegions'
+import { SEED_PLACES } from '@/lib/seed'
 import { contextLabel, fetchWeather, recommend, type Scored, type TripContext } from '@/lib/recommend'
 import type { Trip } from '@/lib/types'
 import { CategoryDot, PlaceThumb } from '@/components/PlaceCard'
@@ -18,7 +19,8 @@ export function RecommendPage() {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
 
-  const [region, setRegion] = useState<string>(DESTINATIONS[0])
+  const { regions } = useRegions()
+  const [region, setRegion] = useState<string>('')
   const [ctx, setCtx] = useState<TripContext | null>(null)
   const [feed, setFeed] = useState<Scored[]>([])
   const [loading, setLoading] = useState(true)
@@ -47,9 +49,16 @@ export function RecommendPage() {
     }
   }, [region, profile])
 
+  // 지역 목록이 비동기로 도착하므로, 도착한 뒤 첫 지역을 기본 선택으로 채운다
   useEffect(() => {
+    if (region || regions.length === 0) return
+    setRegion(regions[0].name)
+  }, [regions, region])
+
+  useEffect(() => {
+    if (!region) return
     void load()
-  }, [load])
+  }, [load, region])
 
   useEffect(() => {
     if (user) void trips.list(user.id).then(setMyTrips)
@@ -102,9 +111,9 @@ export function RecommendPage() {
               className="field !py-2 !text-[13.5px] font-bold"
               aria-label="추천 지역"
             >
-              {DESTINATIONS.map((d) => (
-                <option key={d} value={d}>
-                  {d}
+              {regions.map((r) => (
+                <option key={r.name} value={r.name}>
+                  {r.name}
                 </option>
               ))}
             </select>

@@ -20,12 +20,26 @@ create table public.profiles (
   created_at          timestamptz not null default now()
 );
 
+-- ── 목적지 지역 (공개 읽기) ───────────────────────────────────────────
+-- 코드 상수가 아니라 테이블로 관리해, 대시보드에서 행을 추가하는 것만으로
+-- 새 지역이 반영되게 한다.
+create table public.regions (
+  name        text primary key,
+  -- 지도 초기 중심 좌표 — 해당 지역 등록 장소들의 대략적인 중심
+  lat         double precision not null,
+  lng         double precision not null,
+  sort_order  smallint not null default 0,
+  created_at  timestamptz not null default now()
+);
+
+create index regions_sort_order_idx on public.regions (sort_order);
+
 -- ── MAP-04-01 장소 카탈로그 (공개 읽기) ──────────────────────────────
 create table public.places (
   id            text primary key,
   name          text not null,
   category      place_category not null,
-  region        text not null,
+  region        text not null references public.regions(name),
   address       text not null,
   lat           double precision not null,
   lng           double precision not null,
@@ -46,7 +60,7 @@ create table public.trips (
   id                 uuid primary key default gen_random_uuid(),
   user_id            uuid not null references auth.users on delete cascade,
   title              text not null,
-  destination        text not null,
+  destination        text not null references public.regions(name),
   -- 당일치기 서비스이므로 기간이 아닌 날짜 하나를 갖는다
   trip_date          date not null,
   companions         text[] not null default '{}',
@@ -124,6 +138,7 @@ create unique index waitings_one_active_per_user
 -- Row Level Security
 -- =====================================================================
 
+alter table public.regions      enable row level security;
 alter table public.profiles     enable row level security;
 alter table public.places       enable row level security;
 alter table public.trips        enable row level security;
@@ -131,7 +146,11 @@ alter table public.trip_items   enable row level security;
 alter table public.reservations enable row level security;
 alter table public.waitings     enable row level security;
 
--- 장소는 비로그인(Guest 모드)에서도 열람 가능해야 한다
+-- 지역·장소는 비로그인(Guest 모드)에서도 열람 가능해야 한다
+create policy "regions are readable by everyone"
+  on public.regions for select
+  using (true);
+
 create policy "places are readable by everyone"
   on public.places for select
   using (true);

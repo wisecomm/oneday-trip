@@ -1,4 +1,4 @@
-import type { Place } from './types'
+import type { Place, Region } from './types'
 
 /**
  * 장소 카탈로그 시드 데이터.
@@ -415,5 +415,15 @@ export const SEED_PLACES: Place[] = [
   },
 ]
 
-/** TRIP-02-01: 목적지 도시 선택 드롭다운 */
-export const DESTINATIONS = ['서울 성수', '제주', '부산', '경주'] as const
+/**
+ * 데모 모드(백엔드 미연결)에서 쓰는 지역 목록.
+ * Supabase 연결 시에는 regions 테이블의 값을 대신 쓴다 — 이 배열과 정확히
+ * 같은 이름·좌표·순서로 시드되어 있으므로(supabase/seed.sql), 두 모드의
+ * 동작이 일치한다.
+ */
+export const DEMO_REGIONS: Region[] = [
+  { name: '서울 성수', lat: 37.5449, lng: 127.0504, sort_order: 0 },
+  { name: '제주', lat: 33.4257, lng: 126.5857, sort_order: 1 },
+  { name: '부산', lat: 35.1239, lng: 129.0716, sort_order: 2 },
+  { name: '경주', lat: 35.8288, lng: 129.2361, sort_order: 3 },
+]
