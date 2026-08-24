@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { places as placesApi, tripItems, trips } from '@/lib/db'
 import { useRegions } from '@/hooks/useRegions'
-import { SEED_PLACES } from '@/lib/seed'
 import { contextLabel, fetchWeather, recommend, type Scored, type TripContext } from '@/lib/recommend'
 import type { Trip } from '@/lib/types'
 import { CategoryDot, PlaceThumb } from '@/components/PlaceCard'
 import { BottomSheet, EmptyState, Loading, PageHeader } from '@/components/ui'
 import { formatTripDate } from './TripCreatePage'
+
+/** 하위 지역(구/시) 선택 대신 상위 지역 전체를 보고 싶을 때 쓰는 표식값 — 실제 지역명이 아니다 */
+const ALL_LEAF = '전체'
 
 /**
  * MAP-04-02 · 04. 로컬 장소 탐색 > 4.2 AI 추천 > 맥락 인지 추천 피드
@@ -19,7 +21,8 @@ export function RecommendPage() {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
 
-  const { regions } = useRegions()
+  const { groups, regions } = useRegions()
+  const [group, setGroup] = useState<string>('')
   const [region, setRegion] = useState<string>('')
   const [ctx, setCtx] = useState<TripContext | null>(null)
   const [feed, setFeed] = useState<Scored[]>([])
@@ -31,10 +34,15 @@ export function RecommendPage() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const anchor = SEED_PLACES.find((p) => p.region === region) ?? SEED_PLACES[0]
+      // 날씨는 구/시 단위로 갈라 볼 필요가 없어, 선택된 시/도의 중심 좌표를 그대로 쓴다
+      const anchor = groups.find((g) => g.name === group)
+      const filter =
+        region === ALL_LEAF
+          ? { regions: regions.filter((r) => r.group_name === group).map((r) => r.name) }
+          : { region }
       const [list, weather] = await Promise.all([
-        placesApi.list({ region }),
-        fetchWeather(anchor.lat, anchor.lng),
+        placesApi.list(filter),
+        anchor ? fetchWeather(anchor.lat, anchor.lng) : Promise.resolve({ weather: 'clear' as const, temperature: null }),
       ])
       const now = new Date()
       const nextCtx: TripContext = {
@@ -47,18 +55,24 @@ export function RecommendPage() {
     } finally {
       setLoading(false)
     }
-  }, [region, profile])
+  }, [region, group, regions, groups, profile])
 
-  // 지역 목록이 비동기로 도착하므로, 도착한 뒤 첫 지역을 기본 선택으로 채운다
+  // 지역 목록이 비동기로 도착하면 첫 상위 지역 + 전체보기를 기본 선택으로 채운다
   useEffect(() => {
-    if (region || regions.length === 0) return
-    setRegion(regions[0].name)
-  }, [regions, region])
+    if (region || groups.length === 0) return
+    setGroup(groups[0].name)
+    setRegion(ALL_LEAF)
+  }, [groups, region])
 
   useEffect(() => {
-    if (!region) return
+    if (!region || groups.length === 0) return
     void load()
-  }, [load, region])
+  }, [load, region, groups.length])
+
+  function changeGroup(next: string) {
+    setGroup(next)
+    setRegion(ALL_LEAF)
+  }
 
   useEffect(() => {
     if (user) void trips.list(user.id).then(setMyTrips)
@@ -70,9 +84,10 @@ export function RecommendPage() {
     return () => clearTimeout(id)
   }, [toast])
 
+  const regionLabel = region === ALL_LEAF ? group : region
   const headline = useMemo(
-    () => (ctx ? contextLabel(ctx, region) : '추천 맥락을 분석하는 중'),
-    [ctx, region],
+    () => (ctx ? contextLabel(ctx, regionLabel) : '추천 맥락을 분석하는 중'),
+    [ctx, regionLabel],
   )
 
   return (
@@ -104,18 +119,33 @@ export function RecommendPage() {
             )}
           </div>
 
-          <div className="flex items-center gap-2 px-4 py-3">
+          <div className="flex items-center gap-1.5 px-4 py-3">
+            <select
+              value={group}
+              onChange={(e) => changeGroup(e.target.value)}
+              className="field min-w-0 !py-2 !text-[13.5px] font-bold"
+              aria-label="시/도 선택"
+            >
+              {groups.map((g) => (
+                <option key={g.name} value={g.name}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
             <select
               value={region}
               onChange={(e) => setRegion(e.target.value)}
-              className="field !py-2 !text-[13.5px] font-bold"
-              aria-label="추천 지역"
+              className="field min-w-0 flex-1 !py-2 !text-[13.5px] font-bold"
+              aria-label="구/시 선택"
             >
-              {regions.map((r) => (
-                <option key={r.name} value={r.name}>
-                  {r.name}
-                </option>
-              ))}
+              <option value={ALL_LEAF}>전체</option>
+              {regions
+                .filter((r) => r.group_name === group)
+                .map((r) => (
+                  <option key={r.name} value={r.name}>
+                    {r.name.slice(group.length + 1)}
+                  </option>
+                ))}
             </select>
             <button
               type="button"

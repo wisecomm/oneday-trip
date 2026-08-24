@@ -11,6 +11,9 @@ import { BottomSheet, Loading } from '@/components/ui'
 
 const CATEGORIES: PlaceCategory[] = ['babzip', 'cafe', 'sulzip', 'spot']
 
+/** 하위 지역(구/시) 선택 대신 상위 지역 전체를 보고 싶을 때 쓰는 표식값 — 실제 지역명이 아니다 */
+const ALL_LEAF = '전체'
+
 /**
  * MAP-04-01 · 04. 로컬 장소 탐색 > 4.1 맛집/명소 지도 > 실시간 지도 홈
  * 필터 클릭 시 마커 배열을 갱신·재렌더링하고, 마커 클릭 시 하단 미니 상세 카드를 띄운다.
@@ -24,7 +27,8 @@ export function ExplorePage() {
   // 타임라인에서 '장소 추가'로 진입한 경우 — 담기 CTA 가 활성화된다
   const tripId = params.get('trip')
 
-  const { regions } = useRegions()
+  const { groups, regions } = useRegions()
+  const [group, setGroup] = useState<string>('')
   const [region, setRegion] = useState<string>(params.get('region') ?? '')
   const [active, setActive] = useState<PlaceCategory[]>([])
   const [list, setList] = useState<Place[]>([])
@@ -37,22 +41,35 @@ export function ExplorePage() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      setList(await placesApi.list({ region, categories: active.length ? active : undefined }))
+      const categories = active.length ? active : undefined
+      const filter =
+        region === ALL_LEAF
+          ? { regions: regions.filter((r) => r.group_name === group).map((r) => r.name), categories }
+          : { region, categories }
+      setList(await placesApi.list(filter))
     } finally {
       setLoading(false)
     }
-  }, [region, active])
+  }, [region, group, regions, active])
 
-  // 지역 목록이 비동기로 도착하므로, url 에 region 쿼리가 없었다면 첫 지역을 기본값으로 채운다
+  // 지역 목록이 비동기로 도착하므로, url 에 region 쿼리가 없었다면 첫 상위 지역 + 전체보기로 채운다
   useEffect(() => {
-    if (region || regions.length === 0) return
-    setRegion(regions[0].name)
-  }, [regions, region])
+    if (region || groups.length === 0) return
+    setGroup(groups[0].name)
+    setRegion(ALL_LEAF)
+  }, [groups, region])
+
+  // region 이 url 쿼리나 여행 목적지로부터 실제 지역명으로 채워진 경우, 소속 상위 지역을 역으로 맞춘다
+  useEffect(() => {
+    if (!region || region === ALL_LEAF || regions.length === 0) return
+    const match = regions.find((r) => r.name === region)
+    if (match && match.group_name !== group) setGroup(match.group_name)
+  }, [region, regions, group])
 
   useEffect(() => {
-    if (!region) return
+    if (!region || groups.length === 0) return
     void load()
-  }, [load, region])
+  }, [load, region, groups.length])
 
   useEffect(() => {
     if (!tripId) return
@@ -64,6 +81,26 @@ export function ExplorePage() {
       .listByTrip(tripId)
       .then((items) => setPickedCount(items.length))
   }, [tripId])
+
+  /** 상위 지역을 바꾸면 하위 선택은 '전체'로 되돌린다 — 특정 구 하나로 좁혀 놓은 채 다른 시/도로
+   *  넘어가면 그 시/도에 없는 지역명이 남아 있는 꼴이라 혼란스럽다 */
+  function changeGroup(next: string) {
+    setGroup(next)
+    setRegion(ALL_LEAF)
+    setParams((p) => {
+      p.delete('region')
+      return p
+    })
+  }
+
+  function changeRegion(next: string) {
+    setRegion(next)
+    setParams((p) => {
+      if (next === ALL_LEAF) p.delete('region')
+      else p.set('region', next)
+      return p
+    })
+  }
 
   useEffect(() => {
     if (!toast) return
@@ -117,27 +154,36 @@ export function ExplorePage() {
 
       {/* 상단 필터 */}
       <div className="pointer-events-none absolute inset-x-0 top-0 p-3">
-        <div className="pointer-events-auto mb-2 flex items-center gap-2">
+        <div className="pointer-events-auto mb-2 flex items-center gap-1.5">
           <select
-            value={region}
-            onChange={(e) => {
-              setRegion(e.target.value)
-              setParams((p) => {
-                p.set('region', e.target.value)
-                return p
-              })
-            }}
-            className="rounded-xl border border-ink-200 bg-white px-3 py-2 text-[13.5px] font-bold text-ink-700 shadow-sm"
-            aria-label="지역 선택"
+            value={group}
+            onChange={(e) => changeGroup(e.target.value)}
+            className="min-w-0 rounded-xl border border-ink-200 bg-white px-2.5 py-2 text-[13px] font-bold text-ink-700 shadow-sm"
+            aria-label="시/도 선택"
           >
-            {regions.map((r) => (
-              <option key={r.name} value={r.name}>
-                {r.name}
+            {groups.map((g) => (
+              <option key={g.name} value={g.name}>
+                {g.name}
               </option>
             ))}
           </select>
+          <select
+            value={region}
+            onChange={(e) => changeRegion(e.target.value)}
+            className="min-w-0 flex-1 rounded-xl border border-ink-200 bg-white px-2.5 py-2 text-[13px] font-bold text-ink-700 shadow-sm"
+            aria-label="구/시 선택"
+          >
+            <option value={ALL_LEAF}>전체</option>
+            {regions
+              .filter((r) => r.group_name === group)
+              .map((r) => (
+                <option key={r.name} value={r.name}>
+                  {r.name.slice(group.length + 1)}
+                </option>
+              ))}
+          </select>
           {trip && (
-            <span className="truncate rounded-xl bg-ink-800 px-3 py-2 text-[12.5px] font-bold text-white shadow-sm">
+            <span className="shrink-0 truncate rounded-xl bg-ink-800 px-2.5 py-2 text-[12px] font-bold text-white shadow-sm">
               담는 중 · {pickedCount}/{trip.max_places_per_day}
             </span>
           )}

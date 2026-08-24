@@ -1,23 +1,45 @@
 -- =====================================================================
--- 지역 + 장소 카탈로그 시드 데이터 (지역 4곳, 장소 79곳)
+-- 지역(상위 4 · 하위 15) + 장소 카탈로그 시드 데이터 (79곳)
 -- schema.sql 실행 후 SQL Editor 에 붙여넣어 실행하세요.
--- src/lib/seed.ts 의 SEED_PLACES 와 동일한 내용입니다.
+-- src/lib/seed.ts 의 DEMO_REGION_GROUPS · DEMO_REGIONS · SEED_PLACES 와 동일합니다.
 --
 -- 장소 데이터는 한국관광공사 TourAPI(KorService2) 에서 가져왔다.
 -- rating·tags 는 TourAPI 가 제공하지 않아 0/빈 배열로 둔다.
 -- 술집(sulzip) 은 TourAPI 에 주점 분류가 사실상 없어 비어 있다.
 -- =====================================================================
 
--- places.region 이 regions.name 을 참조하므로 반드시 먼저 넣는다
-insert into public.regions (name, lat, lng, sort_order) values
-  ('서울 성수', 37.5449, 127.0504, 0),
-  ('제주',      33.4257, 126.5857, 1),
-  ('부산',      35.1239, 129.0716, 2),
-  ('경주',      35.8288, 129.2361, 3)
+insert into public.region_groups (name, lat, lng, sort_order) values
+  ('서울', 37.5449, 127.0504, 0),
+  ('제주', 33.4257, 126.5857, 1),
+  ('부산', 35.1239, 129.0716, 2),
+  ('경북', 35.8288, 129.2361, 3)
 on conflict (name) do update set
   lat = excluded.lat,
   lng = excluded.lng,
   sort_order = excluded.sort_order;
+
+-- places.region 이 regions.name 을 참조하므로 반드시 먼저 넣는다
+insert into public.regions (name, lat, lng, sort_order, group_name) values
+  ('서울 성동구', 37.5451, 127.0492, 0, '서울'),
+  ('제주 제주시', 33.477, 126.6075, 0, '제주'),
+  ('제주 서귀포시', 33.2896, 126.5884, 1, '제주'),
+  ('부산 해운대구', 35.1649, 129.1677, 0, '부산'),
+  ('부산 기장군', 35.2953, 129.1997, 1, '부산'),
+  ('부산 부산진구', 35.1591, 129.0593, 2, '부산'),
+  ('부산 수영구', 35.1608, 129.112, 3, '부산'),
+  ('부산 서구', 35.0576, 129.0172, 4, '부산'),
+  ('부산 중구', 35.1016, 129.0261, 5, '부산'),
+  ('부산 사하구', 35.1004, 129.0048, 6, '부산'),
+  ('부산 남구', 35.1505, 129.0898, 7, '부산'),
+  ('부산 연제구', 35.1763, 129.0905, 8, '부산'),
+  ('부산 강서구', 35.116, 128.8935, 9, '부산'),
+  ('부산 금정구', 35.2539, 129.055, 10, '부산'),
+  ('경북 경주시', 35.8349, 129.2747, 0, '경북')
+on conflict (name) do update set
+  lat = excluded.lat,
+  lng = excluded.lng,
+  sort_order = excluded.sort_order,
+  group_name = excluded.group_name;
 
 insert into public.places
   (id, name, category, region, address, lat, lng, image_url, rating, price_level, tags, summary, open_hours, waiting_count)
@@ -101,7 +123,6 @@ values
   ('p-tour-590997', '경주월드 캘리포니아비치', 'spot', '경주', '경상북도 경주시 보문로 544 경주월드', 35.8364, 129.2822, 'https://tong.visitkorea.or.kr/cms/resource/07/3544407_image2_1.JPG', 0, 1, '{}'::text[], '경주월드에 있는 이국적인 풍경을 가진 물놀이 시설로 여름 시즌에만 운영한다', '시즌 별로 상이함', 0),
   ('p-tour-337505', '연지암(경주)', 'spot', '경주', '경상북도 경주시 외동읍 활성길 120-5', 35.7537, 129.3278, 'https://tong.visitkorea.or.kr/cms/resource/69/3412469_image2_1.jpg', 0, 1, '{}'::text[], '경주 괘릉 안쪽 활성리라는 작은 마을 언덕에 있는 연지암은 일제강점기 말 김연지화 보살이 창건했다', '상시 개방', 0),
   ('p-tour-319572', '경주 동부 사적지대', 'spot', '경주', '경상북도 경주시 황남동', 35.8354, 129.218, 'https://tong.visitkorea.or.kr/cms/resource/21/3582421_image2_1.jpg', 0, 1, '{}'::text[], '동서는 안압지로부터 교동까지 남북은 반월성 남쪽의 남천에서 고분공원 앞 첨성로에 이르는 광대한 지역이다', '상시 개방', 0)
-
 on conflict (id) do update set
   name          = excluded.name,
   category      = excluded.category,

@@ -22,9 +22,20 @@ create table public.profiles (
 
 -- ── 목적지 지역 (공개 읽기) ───────────────────────────────────────────
 -- 코드 상수가 아니라 테이블로 관리해, 대시보드에서 행을 추가하는 것만으로
--- 새 지역이 반영되게 한다.
+-- 새 지역이 반영되게 한다. 상위(시/도) · 하위(구/시) 2단 구조다.
+create table public.region_groups (
+  name        text primary key,
+  lat         double precision not null,
+  lng         double precision not null,
+  sort_order  smallint not null default 0,
+  created_at  timestamptz not null default now()
+);
+
 create table public.regions (
   name        text primary key,
+  -- '부산 서구'처럼 그룹명을 붙여 전역 유일성을 보장한다 — '강서구'처럼
+  -- 다른 구 이름을 부분 문자열로 포함하는 경우가 있어 접두어 없이는 위험하다
+  group_name  text not null references public.region_groups(name),
   -- 지도 초기 중심 좌표 — 해당 지역 등록 장소들의 대략적인 중심
   lat         double precision not null,
   lng         double precision not null,
@@ -32,7 +43,7 @@ create table public.regions (
   created_at  timestamptz not null default now()
 );
 
-create index regions_sort_order_idx on public.regions (sort_order);
+create index regions_group_name_idx on public.regions (group_name, sort_order);
 
 -- ── MAP-04-01 장소 카탈로그 (공개 읽기) ──────────────────────────────
 create table public.places (
@@ -138,6 +149,7 @@ create unique index waitings_one_active_per_user
 -- Row Level Security
 -- =====================================================================
 
+alter table public.region_groups enable row level security;
 alter table public.regions      enable row level security;
 alter table public.profiles     enable row level security;
 alter table public.places       enable row level security;
@@ -147,6 +159,10 @@ alter table public.reservations enable row level security;
 alter table public.waitings     enable row level security;
 
 -- 지역·장소는 비로그인(Guest 모드)에서도 열람 가능해야 한다
+create policy "region groups are readable by everyone"
+  on public.region_groups for select
+  using (true);
+
 create policy "regions are readable by everyone"
   on public.regions for select
   using (true);

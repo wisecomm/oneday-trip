@@ -13,12 +13,25 @@ export type Companion = 'solo' | 'couple' | 'friends' | 'family' | 'pet'
 /** 웨이팅 성향 (SYS-01-02: 대기 민감 1 ~ 느긋 5) */
 export type WaitingSensitivity = 1 | 2 | 3 | 4 | 5
 
-/** 목적지 지역. places.region / trips.destination 이 이 name 을 그대로 참조한다 */
+/** 목적지 상위 지역(시/도) */
+export interface RegionGroup {
+  name: string
+  lat: number
+  lng: number
+  sort_order: number
+}
+
+/**
+ * 목적지 하위 지역(구/시). places.region / trips.destination 이 이 name 을
+ * 그대로 참조한다. name 은 '부산 서구'처럼 그룹명을 붙여 전역 유일성을 보장한다
+ * — '강서구'처럼 다른 구 이름을 부분 문자열로 포함하는 경우가 있어서다.
+ */
 export interface Region {
   name: string
   lat: number
   lng: number
   sort_order: number
+  group_name: string
 }
 
 export interface Profile {

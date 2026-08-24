@@ -90,8 +90,9 @@ Authentication > Sign In / Providers > Email 에 비슷한 토글이 나란히 �
 | 테이블 | 용도 |
 |---|---|
 | `profiles` | 닉네임 · 취향 태그 · 웨이팅 성향 (SYS-01-02) |
-| `regions` | 목적지 지역 목록과 지도 초기 중심 좌표. 비로그인 읽기 허용 |
-| `places` | 장소 카탈로그. `region` 이 `regions.name` 을 참조. 비로그인 읽기 허용 |
+| `region_groups` | 상위 목적지 지역(시/도). 비로그인 읽기 허용 |
+| `regions` | 하위 목적지 지역(구/시). `group_name` 이 `region_groups.name` 을 참조. 비로그인 읽기 허용 |
+| `places` | 장소 카탈로그. `region` 이 `regions.name`(하위 지역)을 참조. 비로그인 읽기 허용 |
 | `trips` | 여행 날짜(당일치기) · 목적지 · 하루 최대 방문 수 · 이동수단. `destination` 이 `regions.name` 을 참조 |
 | `trip_items` | 방문 순서 (`sort_order`) — 당일치기라 일자 구분이 없다 |
 | `reservations` | 예약 (RSV-05-01) |
@@ -124,20 +125,36 @@ RLS 는 전 테이블에 적용되어 있고, 사용자는 자신의 행만 읽�
 
 ### 목적지 지역 추가하기
 
-지역 목록은 코드가 아니라 `regions` 테이블에 있습니다. 새 지역을 추가하려면 코드 수정이나
-재배포 없이, Supabase 대시보드의 Table Editor(또는 SQL Editor)에서 행 하나만 추가하면
-됩니다:
+지역은 상위(시/도) · 하위(구/시) 2단으로 관리합니다. 화면의 지역 선택도 이 순서로
+두 단계 드롭다운입니다 — 첫 선택 시 하위는 항상 '전체'가 기본값이고, 시/도를 바꾸면
+다시 '전체'로 돌아갑니다.
+
+**기존 상위 지역에 하위 지역을 추가하는 경우** (예: 부산에 '동래구' 추가):
 
 ```sql
-insert into public.regions (name, lat, lng, sort_order) values ('강릉', 37.7519, 128.8761, 4);
+insert into public.regions (name, lat, lng, sort_order, group_name)
+values ('부산 동래구', 35.2048, 129.0788, 11, '부산');
 ```
 
-앱은 `regions.list()` ([db.ts](src/lib/db.ts))로 이 테이블을 읽어 드롭다운을 채우므로,
-새로고침만으로 반영됩니다. `places.region` 과 `trips.destination` 이 `regions.name` 을
-외래키로 참조하므로, 장소나 여행에 쓸 지역명은 여기 등록된 이름과 정확히 일치해야 합니다.
+하위 지역 이름은 `'부산 동래구'`처럼 상위 지역명을 접두어로 붙입니다 — 접두어 없이
+'서구'만 쓰면 '강서구'처럼 다른 구 이름에 부분 문자열로 포함된 이름과 뒤섞일 수 있어서입니다.
 
-데모 모드(Supabase 미연결)에서는 [seed.ts](src/lib/seed.ts) 의 `DEMO_REGIONS` 를 대신
-씁니다 — 지역을 추가했다면 데모 모드에서도 보이게 하고 싶은 경우 이 배열도 함께 갱신하세요.
+**새 상위 지역(시/도)을 통째로 추가하는 경우**엔 `region_groups` 에도 행을 먼저 넣어야
+합니다:
+
+```sql
+insert into public.region_groups (name, lat, lng, sort_order) values ('강원', 37.8228, 128.1555, 4);
+insert into public.regions (name, lat, lng, sort_order, group_name) values ('강원 강릉시', 37.7519, 128.8761, 0, '강원');
+```
+
+앱은 `regionGroups.list()` · `regions.list()` ([db.ts](src/lib/db.ts))로 두 테이블을
+읽어 드롭다운을 채우므로, 새로고침만으로 반영됩니다. `places.region` 과
+`trips.destination` 이 `regions.name`(하위 지역)을 외래키로 참조하므로, 장소나 여행에
+쓸 지역명은 여기 등록된 이름과 정확히 일치해야 합니다.
+
+데모 모드(Supabase 미연결)에서는 [seed.ts](src/lib/seed.ts) 의 `DEMO_REGION_GROUPS` ·
+`DEMO_REGIONS` 를 대신 씁니다 — 지역을 추가했다면 데모 모드에서도 보이게 하고 싶은 경우
+이 배열들도 함께 갱신하세요.
 
 ## 네이버 지도 연결
 

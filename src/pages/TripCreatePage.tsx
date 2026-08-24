@@ -31,8 +31,9 @@ export function defaultTripTitle(destination: string): string {
  */
 export function TripCreatePage() {
   const navigate = useNavigate()
-  const { regions, loading: regionsLoading } = useRegions()
+  const { groups, regions, loading: regionsLoading } = useRegions()
 
+  const [group, setGroup] = useState<string>('')
   const [destination, setDestination] = useState<string>('')
   const [title, setTitle] = useState('')
   // 사용자가 제목을 직접 손댔다면 목적지를 바꿔도 덮어쓰지 않는다
@@ -41,12 +42,25 @@ export function TripCreatePage() {
   const [companions, setCompanions] = useState<Companion[]>(['friends'])
   const [error, setError] = useState<string | null>(null)
 
-  // 지역 목록이 비동기로 도착하므로, 도착한 뒤 첫 지역을 기본 선택으로 채운다
+  const leafOptions = regions.filter((r) => r.group_name === group)
+
+  // 지역 목록이 비동기로 도착하므로, 도착한 뒤 첫 상위·하위 지역을 기본 선택으로 채운다
   useEffect(() => {
-    if (regions.length === 0 || destination) return
-    setDestination(regions[0].name)
-    setTitle(defaultTripTitle(regions[0].name))
-  }, [regions, destination])
+    if (groups.length === 0 || regions.length === 0 || group) return
+    const firstGroup = groups[0].name
+    const firstLeaf = regions.find((r) => r.group_name === firstGroup)
+    if (!firstLeaf) return
+    setGroup(firstGroup)
+    setDestination(firstLeaf.name)
+    setTitle(defaultTripTitle(firstLeaf.name))
+  }, [groups, regions, group])
+
+  function changeGroup(next: string) {
+    setGroup(next)
+    // 상위 지역을 바꾸면 그 아래 첫 하위 지역으로 다시 맞춘다
+    const firstLeaf = regions.find((r) => r.group_name === next)
+    if (firstLeaf) changeDestination(firstLeaf.name)
+  }
 
   function changeDestination(next: string) {
     setDestination(next)
@@ -86,24 +100,34 @@ export function TripCreatePage() {
         </div>
 
         <section className="mb-7">
-          <label className="label" htmlFor="destination">
-            목적지 도시
-          </label>
-          <select
-            id="destination"
-            value={destination}
-            onChange={(e) => changeDestination(e.target.value)}
-            className="field"
-          >
-            {regions.map((r) => (
-              <option key={r.name} value={r.name}>
-                {r.name}
-              </option>
-            ))}
-          </select>
-          <p className="hint mt-1.5">
-            선택한 지역 기준으로 추천 검색 인덱스가 활성화됩니다.
-          </p>
+          <p className="label">목적지</p>
+          <div className="grid grid-cols-2 gap-2">
+            <select
+              value={group}
+              onChange={(e) => changeGroup(e.target.value)}
+              className="field"
+              aria-label="시/도 선택"
+            >
+              {groups.map((g) => (
+                <option key={g.name} value={g.name}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
+            <select
+              value={destination}
+              onChange={(e) => changeDestination(e.target.value)}
+              className="field"
+              aria-label="구/시 선택"
+            >
+              {leafOptions.map((r) => (
+                <option key={r.name} value={r.name}>
+                  {r.name.slice(group.length + 1)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <p className="hint mt-1.5">선택한 지역 기준으로 추천 검색 인덱스가 활성화됩니다.</p>
         </section>
 
         <section className="mb-7">

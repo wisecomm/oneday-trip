@@ -1,11 +1,12 @@
 import { isSupabaseConfigured, db as sb } from './supabase'
 import { mutateDb, readDb, uid } from './local-store'
-import { DEMO_REGIONS, SEED_PLACES } from './seed'
+import { DEMO_REGIONS, DEMO_REGION_GROUPS, SEED_PLACES } from './seed'
 import type {
   Place,
   PlaceCategory,
   Profile,
   Region,
+  RegionGroup,
   Reservation,
   Trip,
   TripItem,
@@ -20,9 +21,21 @@ import type {
 
 const nowIso = () => new Date().toISOString()
 
-/* ─────────────────────── Regions (TRIP-02-01) ─────────────────────── */
+/* ─────────────────── Region groups · regions (TRIP-02-01) ─────────────────── */
+
+export const regionGroups = {
+  async list(): Promise<RegionGroup[]> {
+    if (isSupabaseConfigured) {
+      const { data, error } = await sb().from('region_groups').select('*').order('sort_order')
+      if (error) throw error
+      return (data ?? []) as RegionGroup[]
+    }
+    return DEMO_REGION_GROUPS
+  },
+}
 
 export const regions = {
+  /** 하위(구/시) 지역 전체. group_name 으로 필터링해 상위 지역에 속한 것만 골라 쓴다 */
   async list(): Promise<Region[]> {
     if (isSupabaseConfigured) {
       const { data, error } = await sb().from('regions').select('*').order('sort_order')
@@ -36,7 +49,10 @@ export const regions = {
 /* ───────────────────────── Places (MAP-04-01) ───────────────────────── */
 
 export interface PlaceFilter {
+  /** 하위 지역(구/시) 하나만 볼 때. region·regions 를 동시에 주면 region 이 우선한다 */
   region?: string
+  /** 상위 지역(시/도) 전체를 볼 때 — 그 아래 하위 지역 이름 목록을 그대로 넘긴다 */
+  regions?: string[]
   categories?: PlaceCategory[]
   keyword?: string
 }
@@ -46,6 +62,7 @@ export const places = {
     if (isSupabaseConfigured) {
       let query = sb().from('places').select('*')
       if (filter.region) query = query.eq('region', filter.region)
+      else if (filter.regions?.length) query = query.in('region', filter.regions)
       if (filter.categories?.length) query = query.in('category', filter.categories)
       if (filter.keyword) query = query.ilike('name', `%${filter.keyword}%`)
       const { data, error } = await query.order('rating', { ascending: false })
@@ -55,6 +72,8 @@ export const places = {
 
     return SEED_PLACES.filter((p) => {
       if (filter.region && p.region !== filter.region) return false
+      if (!filter.region && filter.regions?.length && !filter.regions.includes(p.region))
+        return false
       if (filter.categories?.length && !filter.categories.includes(p.category)) return false
       if (filter.keyword && !p.name.includes(filter.keyword)) return false
       return true
