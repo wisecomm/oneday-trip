@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { CATEGORY_COLOR, CATEGORY_LABEL, type Place } from '@/lib/types'
 
 export function CategoryDot({ category }: { category: Place['category'] }) {
@@ -11,6 +12,22 @@ export function CategoryDot({ category }: { category: Place['category'] }) {
 }
 
 export function PlaceThumb({ place, size = 56 }: { place: Place; size?: number }) {
+  const [imageFailed, setImageFailed] = useState(false)
+
+  if (place.image_url && !imageFailed) {
+    return (
+      <img
+        src={place.image_url}
+        alt=""
+        width={size}
+        height={size}
+        className="shrink-0 rounded-xl object-cover"
+        style={{ width: size, height: size }}
+        onError={() => setImageFailed(true)}
+      />
+    )
+  }
+
   return (
     <div
       className="flex shrink-0 items-center justify-center rounded-xl text-white"

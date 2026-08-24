@@ -37,9 +37,12 @@ export function PlaceDetailPage() {
   const [busy, setBusy] = useState(false)
   const [confirmed, setConfirmed] = useState<{ when: string; party: number } | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  // 사진 URL이 죽어 있는 경우(TourAPI CDN 만료 등) 그라디언트 플레이스홀더로 되돌아간다
+  const [imageFailed, setImageFailed] = useState(false)
 
   useEffect(() => {
     let alive = true
+    setImageFailed(false)
     void placesApi.get(placeId).then((p) => {
       if (!alive) return
       setPlace(p)
@@ -132,17 +135,33 @@ export function PlaceDetailPage() {
     <>
       <PageHeader title={place.name} subtitle={CATEGORY_LABEL[place.category]} back />
 
-      {/* 대표 이미지 영역 */}
-      <div
-        className="flex h-44 items-center justify-center text-white"
-        style={{
-          background: `linear-gradient(135deg, var(--color-${place.category}), color-mix(in srgb, var(--color-${place.category}) 65%, #14171c))`,
-        }}
-      >
-        <span className="text-[13px] font-bold tracking-wide opacity-90">
-          {CATEGORY_LABEL[place.category]} · {place.region}
-        </span>
-      </div>
+      {/* 대표 이미지 영역 — 실제 사진이 있으면 그걸 쓰고, 없거나 로드 실패 시 그라디언트로 대체한다 */}
+      {place.image_url && !imageFailed ? (
+        <div className="relative h-44">
+          <img
+            src={place.image_url}
+            alt={place.name}
+            className="h-full w-full object-cover"
+            onError={() => setImageFailed(true)}
+          />
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-900/70 to-transparent px-4 pt-8 pb-3">
+            <span className="text-[13px] font-bold tracking-wide text-white">
+              {CATEGORY_LABEL[place.category]} · {place.region}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div
+          className="flex h-44 items-center justify-center text-white"
+          style={{
+            background: `linear-gradient(135deg, var(--color-${place.category}), color-mix(in srgb, var(--color-${place.category}) 65%, #14171c))`,
+          }}
+        >
+          <span className="text-[13px] font-bold tracking-wide opacity-90">
+            {CATEGORY_LABEL[place.category]} · {place.region}
+          </span>
+        </div>
+      )}
 
       <div className="px-4 py-4">
         <div className="mb-4">
