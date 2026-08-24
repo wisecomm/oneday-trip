@@ -7,6 +7,38 @@ import { PlaceCard } from '@/components/PlaceCard'
 import { Loading } from '@/components/ui'
 import { formatTripDate } from './TripCreatePage'
 
+/**
+ * 지역별로 고르게 섞어 count 개를 뽑는다.
+ * rating 이 없거나 전부 0인 장소가 섞여 있으면(TourAPI 수집분) DB 의 rating
+ * 정렬이 무의미해져 항상 같은 지역·카테고리 몇 곳만 노출되는 문제가 있었다.
+ * 지역별 라운드로빈으로 뽑고 지역 내부는 매 호출마다 섞어, 한 지역이 결과를
+ * 독차지하지 않고 새로고침마다 다른 곳이 보이게 한다.
+ */
+function pickSpread(places: Place[], count: number): Place[] {
+  const byRegion = new Map<string, Place[]>()
+  for (const p of places) {
+    const bucket = byRegion.get(p.region) ?? []
+    bucket.push(p)
+    byRegion.set(p.region, bucket)
+  }
+  for (const bucket of byRegion.values()) {
+    for (let i = bucket.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[bucket[i], bucket[j]] = [bucket[j], bucket[i]]
+    }
+  }
+
+  const queues = [...byRegion.values()]
+  const result: Place[] = []
+  for (let round = 0; result.length < count && queues.some((q) => round < q.length); round += 1) {
+    for (const q of queues) {
+      if (result.length >= count) break
+      if (round < q.length) result.push(q[round])
+    }
+  }
+  return result
+}
+
 export function HomePage() {
   const { user, profile, isGuest } = useAuth()
   const [myTrips, setMyTrips] = useState<Trip[]>([])
@@ -25,7 +57,11 @@ export function HomePage() {
       if (!alive) return
       setMyTrips(t)
       setUpcoming(r.filter((x) => x.status === 'confirmed').slice(0, 2))
-      setPopular(p.slice(0, 5))
+      // list() 는 rating 내림차순인데, TourAPI 로 들여온 장소는 rating 이 전부 0이라
+      // 동점이다. 동점 처리 순서는 DB 가 보장해 주지 않고, 실제로는 삽입 순서를
+      // 그대로 따라가 매번 같은 지역·카테고리 몇 곳만 뜨는 문제가 있었다.
+      // '인기 있는 곳' 은 실제 순위가 없으므로, 지역별로 고르게 섞어 노출한다.
+      setPopular(pickSpread(p, 5))
       setLoading(false)
     }
     void load()
