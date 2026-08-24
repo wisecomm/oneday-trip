@@ -65,7 +65,7 @@ export function ProfileSetupPage() {
         waiting_sensitivity: sensitivity,
       })
       await refreshProfile()
-      navigate(isEdit ? '/me' : '/trips/new', { replace: true })
+      navigate(isEdit ? '/me' : '/', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : '저장에 실패했습니다.')
     } finally {
