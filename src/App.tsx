@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from '@/lib/auth'
 import { AppLayout } from '@/components/AppLayout'
 import { Loading } from '@/components/ui'
 import { LoginPage } from '@/pages/LoginPage'
+import { SignupPage } from '@/pages/SignupPage'
 import { ProfileSetupPage } from '@/pages/ProfileSetupPage'
 import { AccountHelpPage } from '@/pages/AccountHelpPage'
 import { AuthCallbackPage } from '@/pages/AuthCallbackPage'
@@ -32,6 +33,7 @@ export default function App() {
       <Routes>
         {/* 인증 · 온보딩 (풀스크린) */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/help/account" element={<AccountHelpPage />} />
         <Route
