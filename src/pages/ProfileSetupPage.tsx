@@ -3,7 +3,7 @@ import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { profiles } from '@/lib/db'
 import { TASTE_TAGS } from '@/lib/types'
-import { PageHeader, StepGuide } from '@/components/ui'
+import { PageHeader } from '@/components/ui'
 
 /**
  * SYS-01-02 · 01. 온보딩 및 회원 > 1.2 사용자 프로필 > 사용자 등록
@@ -72,12 +72,6 @@ export function ProfileSetupPage() {
         />
 
         <div className="px-5 py-5">
-          {!isEdit && (
-            <div className="mb-6">
-              <StepGuide steps={['사용자 등록', '여행 일정', '여행 규칙']} current={0} />
-            </div>
-          )}
-
           <section className="mb-7">
             <label className="label" htmlFor="nickname">
               닉네임
@@ -115,7 +109,7 @@ export function ProfileSetupPage() {
           )}
 
           <button type="button" onClick={save} disabled={busy} className="btn-primary w-full">
-            {isEdit ? '변경 사항 저장' : '저장하고 여행 만들기'}
+            {isEdit ? '변경 사항 저장' : '저장'}
           </button>
         </div>
       </div>
