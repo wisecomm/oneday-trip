@@ -123,7 +123,7 @@ export function RecommendPage() {
             <select
               value={group}
               onChange={(e) => changeGroup(e.target.value)}
-              className="field min-w-0 !py-2 !text-[13.5px] font-bold"
+              className="field !w-auto min-w-0 !py-2 !text-[13.5px] font-bold"
               aria-label="시/도 선택"
             >
               {groups.map((g) => (
