@@ -21,6 +21,10 @@ export function RoutePage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [optimizing, setOptimizing] = useState(false)
   const [saved, setSaved] = useState<{ before: number; after: number } | null>(null)
+  // 경로 최적화나 수동 순서 변경으로 화면상 순서가 DB 에 반영된 상태와 달라지면 켜진다
+  const [dirty, setDirty] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -35,6 +39,12 @@ export function RoutePage() {
     }
   }, [tripId])
 
+  useEffect(() => {
+    if (!toast) return
+    const id = setTimeout(() => setToast(null), 2400)
+    return () => clearTimeout(id)
+  }, [toast])
+
   const routePlaces = useMemo(
     () => items.map((it) => it.place).filter(Boolean) as Place[],
     [items],
@@ -45,19 +55,20 @@ export function RoutePage() {
 
   /** 인접한 두 항목의 순서를 맞바꾼다 — 드래그 대신 위/아래 버튼을 쓰는 이유는
    *  핸드폰에서 드래그가 화면 스크롤 제스처와 자주 충돌해 손가락으로 정확히
-   *  집어 옮기기 어렵기 때문이다. 버튼은 오탐 없이 항상 정확히 한 칸씩 움직인다. */
+   *  집어 옮기기 어렵기 때문이다. 버튼은 오탐 없이 항상 정확히 한 칸씩 움직인다.
+   *  화면에서만 순서를 바꾸고, 실제 저장은 '저장' 버튼을 눌러야 이뤄진다. */
   function move(index: number, direction: -1 | 1) {
     const target = index + direction
     if (target < 0 || target >= items.length) return
     const next = [...items]
     ;[next[index], next[target]] = [next[target], next[index]]
-    const reordered = next.map((it, i) => ({ ...it, sort_order: i }))
-    setItems(reordered)
+    setItems(next.map((it, i) => ({ ...it, sort_order: i })))
     setSaved(null)
-    void tripItems.reorder(reordered.map((it, i) => ({ id: it.id, sort_order: i })))
+    setDirty(true)
   }
 
-  async function optimize() {
+  /** 최단 거리 기준으로 화면상 순서만 재정렬한다 — 저장은 '저장' 버튼을 눌러야 이뤄진다 */
+  function optimize() {
     if (!trip || items.length < 3) return
     setOptimizing(true)
     try {
@@ -70,11 +81,20 @@ export function RoutePage() {
 
       setItems(reordered.map((it, i) => ({ ...it, sort_order: i })))
       setSaved({ before, after })
-      await tripItems.reorder(
-        reordered.map((it, i) => ({ id: it.id, sort_order: i })),
-      )
+      setDirty(true)
     } finally {
       setOptimizing(false)
+    }
+  }
+
+  async function save() {
+    setSaving(true)
+    try {
+      await tripItems.reorder(items.map((it, i) => ({ id: it.id, sort_order: i })))
+      setDirty(false)
+      setToast('저장했습니다.')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -119,6 +139,15 @@ export function RoutePage() {
                 {optimizing ? '계산 중…' : '경로 최적화'}
               </button>
             </div>
+
+            <button
+              type="button"
+              onClick={save}
+              disabled={!dirty || saving}
+              className="btn-primary mb-3 w-full"
+            >
+              {saving ? '저장 중…' : dirty ? '순서 저장하기' : '저장됨'}
+            </button>
 
             {routePlaces.length < 3 && (
               <p className="hint mb-3">장소가 3곳 이상일 때 최적화 효과가 있습니다.</p>
@@ -219,6 +248,14 @@ export function RoutePage() {
             </ol>
           </div>
         </>
+      )}
+
+      {toast && (
+        <div className="fixed inset-x-0 bottom-6 z-40 flex justify-center px-6">
+          <p className="rounded-xl bg-ink-800 px-4 py-2.5 text-center text-[13px] font-semibold text-white shadow-lg">
+            {toast}
+          </p>
+        </div>
       )}
     </>
   )
