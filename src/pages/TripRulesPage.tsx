@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/auth'
 import { places as placesApi, tripItems, trips } from '@/lib/db'
 import { useRegions } from '@/hooks/useRegions'
 import { optimizeOrder } from '@/lib/geo'
-import { fetchWeather, recommend, type TripContext } from '@/lib/recommend'
+import { fetchWeather, recommendMix, type CategoryQuota, type TripContext } from '@/lib/recommend'
 import { SEED_PLACES } from '@/lib/seed'
 import {
   TRANSPORT_LABEL,
@@ -18,13 +18,19 @@ import {
 } from '@/lib/types'
 import { Loading, PageHeader, StepGuide } from '@/components/ui'
 
-/** 여행 생성 직후 자동으로 담아 줄 추천 장소 개수 */
-const AUTO_ADD_COUNT = 5
+/** 여행 생성 직후 자동으로 담아 줄 추천 장소 구성 — 밥집 2 · 카페 1 · 명소 2, 총 5곳 */
+const AUTO_ADD_QUOTA: CategoryQuota[] = [
+  { category: 'babzip', count: 2 },
+  { category: 'cafe', count: 1 },
+  { category: 'spot', count: 2 },
+]
 
 /**
  * 여행 생성 직후 타임라인이 비어 있으면 사용자가 무엇부터 해야 할지 막막해진다.
  * 그래서 AI 추천(MAP-04-02)과 같은 기준으로 상위 장소를 골라 자동으로 담아 준다.
  *
+ * · 카테고리 비율을 AUTO_ADD_QUOTA 로 고정해, 점수만 따라가다 카페만 5곳처럼
+ *   한쪽으로 쏠리지 않고 밥집·카페·명소가 고르게 섞이게 한다.
  * · 순서는 추천 순위가 아니라 최단 동선(TRIP-03-02)으로 정렬해, 첫 화면부터
  *   말이 되는 일정이 보이게 한다.
  *
@@ -33,7 +39,6 @@ const AUTO_ADD_COUNT = 5
 async function seedRecommendedPlaces(
   tripId: string,
   destination: string,
-  count: number,
   profile: Profile | null,
   groups: RegionGroup[],
   regions: Region[],
@@ -55,7 +60,7 @@ async function seedRecommendedPlaces(
   const now = new Date()
   const ctx: TripContext = { hour: now.getHours(), weekday: now.getDay(), ...weather }
 
-  const picked = recommend(list, ctx, profile, count).map((s) => s.place)
+  const picked = recommendMix(list, ctx, profile, AUTO_ADD_QUOTA)
   const order = optimizeOrder(picked.map((p) => ({ lat: p.lat, lng: p.lng })))
 
   // add() 가 기존 개수로 sort_order 를 계산하므로 순차로 넣어야 순서가 보존된다
@@ -125,7 +130,6 @@ export function TripRulesPage() {
           added = await seedRecommendedPlaces(
             created.id,
             created.destination,
-            AUTO_ADD_COUNT,
             profile,
             groups,
             regions,

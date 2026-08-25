@@ -1,4 +1,4 @@
-import type { Place, Profile } from './types'
+import type { Place, PlaceCategory, Profile } from './types'
 
 /**
  * MAP-04-02 추천 엔진.
@@ -129,4 +129,44 @@ export function recommend(
   })
 
   return scored.sort((a, b) => b.score - a.score).slice(0, limit)
+}
+
+export interface CategoryQuota {
+  category: PlaceCategory
+  count: number
+}
+
+/**
+ * 카테고리 비율을 정해 두고 그 안에서 점수순으로 고른다.
+ * 순수 점수 랭킹만 쓰면(recommend) 카페 5곳처럼 한쪽으로 쏠릴 수 있어,
+ * 여행 생성 직후 자동 담기(TripRulesPage)처럼 "골고루 구성"이 중요한 곳에 쓴다.
+ * 특정 카테고리가 목표만큼 없으면, 부족한 만큼은 남은 곳 중 점수순으로 채운다.
+ */
+export function recommendMix(
+  list: Place[],
+  ctx: TripContext,
+  profile: Profile | null,
+  quota: CategoryQuota[],
+): Place[] {
+  const picked: Place[] = []
+  const pickedIds = new Set<string>()
+
+  for (const { category, count } of quota) {
+    const subset = list.filter((p) => p.category === category)
+    for (const { place } of recommend(subset, ctx, profile, count)) {
+      picked.push(place)
+      pickedIds.add(place.id)
+    }
+  }
+
+  const target = quota.reduce((sum, q) => sum + q.count, 0)
+  const shortfall = target - picked.length
+  if (shortfall > 0) {
+    const remaining = list.filter((p) => !pickedIds.has(p.id))
+    for (const { place } of recommend(remaining, ctx, profile, shortfall)) {
+      picked.push(place)
+    }
+  }
+
+  return picked
 }
