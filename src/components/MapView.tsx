@@ -6,7 +6,7 @@ import {
   onNaverAuthFailure,
 } from '@/lib/naver'
 import { projectToViewport, type LatLng } from '@/lib/geo'
-import { CATEGORY_COLOR, type Place } from '@/lib/types'
+import { CATEGORY_COLOR, CATEGORY_ICON, type Place } from '@/lib/types'
 
 interface MapViewProps {
   places: Place[]
@@ -251,12 +251,14 @@ function escapeHtml(s: string): string {
 function markerHtml(place: Place, order: number | undefined, selected: boolean): string {
   const color = CATEGORY_COLOR[place.category]
   const size = selected ? 38 : 30
-  const label = order ?? ''
+  // 방문 순번이 있으면(동선 지도) 숫자를, 없으면(일반 탐색) 카테고리 아이콘을 보여준다
+  const label = order ?? CATEGORY_ICON[place.category]
+  const fontSize = order !== undefined ? (selected ? 15 : 13) : (selected ? 17 : 15)
   const name = escapeHtml(place.name)
   return `<div style="display:flex;flex-direction:column;align-items:center;width:${MARKER_WIDTH}px">
     <div style="width:${size}px;height:${size}px;box-sizing:border-box;border-radius:999px;
       background:${color};color:#fff;display:flex;align-items:center;justify-content:center;
-      font-weight:800;font-size:${selected ? 15 : 13}px;font-family:inherit;cursor:pointer;
+      font-weight:800;font-size:${fontSize}px;font-family:inherit;line-height:1;cursor:pointer;
       box-shadow:0 4px 12px rgba(0,0,0,.28);border:2.5px solid #fff">${label}</div>
     <span style="margin-top:3px;max-width:84px;font-size:11px;font-weight:700;color:#21262e;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:inherit;
@@ -361,17 +363,16 @@ function FallbackMap({
             >
               <circle r={r + 3} fill="#fff" opacity="0.95" />
               <circle r={r} fill={CATEGORY_COLOR[place.category]} />
-              {order !== undefined && (
-                <text
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  fontSize={selected ? 14 : 12}
-                  fontWeight="800"
-                  fill="#fff"
-                >
-                  {order}
-                </text>
-              )}
+              {/* 방문 순번이 있으면(동선 지도) 숫자를, 없으면(일반 탐색) 카테고리 아이콘을 보여준다 */}
+              <text
+                textAnchor="middle"
+                dominantBaseline="central"
+                fontSize={order !== undefined ? (selected ? 14 : 12) : (selected ? 16 : 14)}
+                fontWeight="800"
+                fill="#fff"
+              >
+                {order ?? CATEGORY_ICON[place.category]}
+              </text>
               {/* 원 아래 중앙에 이름표 — 흰 테두리(halo)로 지도 위에서도 읽히게 한다 */}
               <text
                 y={r + 13}

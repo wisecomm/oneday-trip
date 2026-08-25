@@ -125,6 +125,14 @@ export const CATEGORY_COLOR: Record<PlaceCategory, string> = {
   spot: '#23a06a',
 }
 
+/** 지도 마커 등에서 색상만으로 구분하기 어려울 때(색맹 등) 함께 쓰는 카테고리 아이콘 */
+export const CATEGORY_ICON: Record<PlaceCategory, string> = {
+  babzip: '🍚',
+  cafe: '☕',
+  sulzip: '🍺',
+  spot: '📍',
+}
+
 export const TRANSPORT_LABEL: Record<Transport, string> = {
   walk: '도보',
   transit: '대중교통',
