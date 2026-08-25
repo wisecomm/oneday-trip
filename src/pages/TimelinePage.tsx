@@ -145,14 +145,6 @@ export function TimelinePage() {
         title={trip.title}
         subtitle={`${formatTripDate(trip.trip_date)} · ${trip.start_time.slice(0, 5)}~${trip.end_time.slice(0, 5)}`}
         back
-        right={
-          <Link
-            to={`/trips/${tripId}/rules`}
-            className="rounded-lg px-2 py-1.5 text-[13px] font-semibold text-ink-500"
-          >
-            규칙
-          </Link>
-        }
       />
 
       <div className="px-4 py-4">
@@ -352,7 +344,7 @@ function SortableItem({
             onClick={onRemove}
             className="shrink-0 px-5 py-2.5 text-[13px] font-semibold text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-600"
           >
-            빼기
+            삭제
           </button>
         </div>
       </div>
