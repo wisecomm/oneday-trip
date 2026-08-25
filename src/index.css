@@ -122,3 +122,19 @@
   background: var(--color-ink-300);
   border-radius: 999px;
 }
+
+/* 지도 위 '내 위치' 마커 — 네이버 지도 마커는 innerHTML 로 주입되므로 클래스로 참조한다 */
+@keyframes my-location-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.65;
+  }
+  70%,
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+.my-location-pulse {
+  animation: my-location-pulse 1.6s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
+}

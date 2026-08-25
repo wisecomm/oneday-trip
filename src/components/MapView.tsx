@@ -266,10 +266,17 @@ function markerHtml(place: Place, order: number | undefined, selected: boolean):
   </div>`
 }
 
-/** 내 위치 마커 — 장소 마커(핀 모양)와 구분되도록 파란 점 + 후광으로 그린다 */
+/**
+ * 내 위치 마커 — 장소 마커(핀 모양)와 구분되도록 파란 점 + 후광으로 그리고,
+ * 지도 위에서 눈에 띄도록 바깥으로 번져 나가는 파동 애니메이션(index.css 의
+ * my-location-pulse)을 겹친다. 파동은 절대 위치라 22×22 앵커 계산에 영향을 주지 않는다.
+ */
 function myLocationMarkerHtml(): string {
-  return `<div style="width:22px;height:22px;border-radius:999px;background:#3282f6;
-    border:3px solid #fff;box-shadow:0 0 0 5px rgba(50,130,246,.25),0 4px 10px rgba(0,0,0,.25)"></div>`
+  return `<div style="position:relative;width:22px;height:22px">
+    <span class="my-location-pulse" style="position:absolute;inset:0;border-radius:999px;background:#3282f6"></span>
+    <div style="position:relative;width:22px;height:22px;border-radius:999px;background:#3282f6;
+      border:3px solid #fff;box-shadow:0 0 0 5px rgba(50,130,246,.25),0 4px 10px rgba(0,0,0,.25)"></div>
+  </div>`
 }
 
 /* ───────────────────── 폴백 지도 (키 미설정 시) ───────────────────── */
@@ -392,7 +399,11 @@ function FallbackMap({
 
         {userPoint && (
           <g transform={`translate(${userPoint.x} ${userPoint.y})`}>
-            <circle r={12} fill="#3282f6" opacity="0.22" />
+            {/* 바깥으로 번져 나가는 파동 — 눈에 띄게 반복 애니메이션 */}
+            <circle r={7} fill="#3282f6">
+              <animate attributeName="r" values="7;22;7" dur="1.6s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0.55;0;0.55" dur="1.6s" repeatCount="indefinite" />
+            </circle>
             <circle r={7} fill="#3282f6" stroke="#fff" strokeWidth="2.5" />
           </g>
         )}
