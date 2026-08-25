@@ -192,9 +192,6 @@ export function RecommendPage() {
                     <p className="mt-0.5 truncate text-[12.5px] text-ink-500">{place.summary}</p>
                     <div className="mt-1 flex items-center gap-2 text-[12px] text-ink-500">
                       <span className="font-bold text-ink-700">★ {place.rating.toFixed(1)}</span>
-                      {place.waiting_count > 0 && (
-                        <span className="text-babzip">대기 {place.waiting_count}팀</span>
-                      )}
                     </div>
                   </button>
                 </div>

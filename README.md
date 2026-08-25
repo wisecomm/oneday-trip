@@ -26,7 +26,6 @@ Supabase 대신 localStorage 를, 카카오맵 대신 SVG 폴백 지도를 사�
 | MAP-04-01 | 실시간 지도 홈 | `/map` | [ExplorePage.tsx](src/pages/ExplorePage.tsx) |
 | MAP-04-02 | 맥락 인지 추천 피드 | `/recommend` | [RecommendPage.tsx](src/pages/RecommendPage.tsx) |
 | RSV-05-01 | 레스토랑 상세 및 예약 | `/places/:id` | [PlaceDetailPage.tsx](src/pages/PlaceDetailPage.tsx) |
-| RSV-05-02 | 원격 줄서기 및 순서조절 | `/waiting` | [WaitingPage.tsx](src/pages/WaitingPage.tsx) |
 
 ### 기획 조건 반영 지점
 
@@ -35,9 +34,8 @@ Supabase 대신 localStorage 를, 카카오맵 대신 SVG 폴백 지도를 사�
 - **하루 최대 방문 개수 제약** — 기본값 3곳. 타임라인 추가와 AI 추천 저장 양쪽에서 한도를 검사
 - **이동수단별 소요 시간** — [geo.ts](src/lib/geo.ts) `travelMinutes()`, 직선 거리에 1.3배 우회 계수 적용
 - **동선 최적화** — 최근접 이웃 + 2-opt ([geo.ts](src/lib/geo.ts) `optimizeOrder()`). 순서 변경 시 요약이 즉시 재계산
-- **예약/웨이팅 상태 배지 바인딩** — 타임라인 카드에 '예약 확정' / '웨이팅 중' 자동 표시
-- **웨이팅 미루기** — 순서 변경이 아닌 **+30분 시간 수치**로 렌더링. 하루 최대 2회 (DB 제약으로도 강제)
-- **홈 하단 플로팅 바** — 웨이팅 신청 시 '대기순서 확인' 바로 실시간 전이 ([AppLayout.tsx](src/components/AppLayout.tsx))
+- **예약 상태 배지 바인딩** — 타임라인 카드에 '예약 확정' 자동 표시
+- **장소 상세 전화 연결** — TourAPI 로 받아온 `places.phone` 이 있으면 상세 페이지에 `tel:` 링크 버튼으로 노출 ([PlaceDetailPage.tsx](src/pages/PlaceDetailPage.tsx))
 
 ## Supabase 연결
 
@@ -89,14 +87,13 @@ Authentication > Sign In / Providers > Email 에 비슷한 토글이 나란히 �
 
 | 테이블 | 용도 |
 |---|---|
-| `profiles` | 닉네임 · 취향 태그 · 웨이팅 성향 (SYS-01-02) |
+| `profiles` | 닉네임 · 취향 태그 (SYS-01-02) |
 | `region_groups` | 상위 목적지 지역(시/도). 비로그인 읽기 허용 |
 | `regions` | 하위 목적지 지역(구/시). `group_name` 이 `region_groups.name` 을 참조. 비로그인 읽기 허용 |
 | `places` | 장소 카탈로그. `region` 이 `regions.name`(하위 지역)을 참조. 비로그인 읽기 허용 |
 | `trips` | 여행 날짜(당일치기) · 목적지 · 하루 최대 방문 수 · 이동수단. `destination` 이 `regions.name` 을 참조 |
 | `trip_items` | 방문 순서 (`sort_order`) — 당일치기라 일자 구분이 없다 |
 | `reservations` | 예약 (RSV-05-01) |
-| `waitings` | 웨이팅. `delay_count ≤ 2` 체크 제약, 사용자당 진행 중 1건 유니크 인덱스 |
 
 RLS 는 전 테이블에 적용되어 있고, 사용자는 자신의 행만 읽고 쓸 수 있습니다.
 
@@ -210,5 +207,3 @@ Open-Meteo (날씨, 인증 불필요)
 
 - **결제** — 예약금 결제는 UI 만 있고 실제 PG 연동은 없습니다. [PlaceDetailPage.tsx](src/pages/PlaceDetailPage.tsx) 의 예약 시트에 연동 위치를 표시해 두었습니다.
 - **카카오톡 공유** — Kakao SDK 대신 Web Share API(미지원 시 클립보드 복사)를 사용합니다. 템플릿 카드가 필요하면 Kakao JavaScript SDK 의 `Kakao.Share.sendDefault()` 로 교체하세요.
-- **푸시 알림** — 웨이팅 호출 알림은 화면 내 표시까지만 구현되어 있습니다.
-- **실시간 대기 인원** — `places.waiting_count` 는 정적 시드 값입니다. 운영 시 매장 POS 연동 또는 Supabase Realtime 으로 갱신해야 합니다.

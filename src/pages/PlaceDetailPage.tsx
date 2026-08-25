@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
-import { ActiveWaitingExistsError, places as placesApi, reservations, waitings } from '@/lib/db'
-import { useWaiting } from '@/store/waiting'
+import { places as placesApi, reservations } from '@/lib/db'
 import { CATEGORY_LABEL, type Place } from '@/lib/types'
 import { BottomSheet, EmptyState, Loading, PageHeader, Stepper } from '@/components/ui'
 import { CategoryDot } from '@/components/PlaceCard'
@@ -26,12 +25,11 @@ export function PlaceDetailPage() {
   const { placeId = '' } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { refresh: refreshWaiting } = useWaiting()
 
   const [place, setPlace] = useState<Place | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const [sheet, setSheet] = useState<'none' | 'reserve' | 'waiting'>('none')
+  const [sheet, setSheet] = useState<'none' | 'reserve'>('none')
   const [when, setWhen] = useState(nextHourIso())
   const [party, setParty] = useState(2)
   const [busy, setBusy] = useState(false)
@@ -80,36 +78,6 @@ export function PlaceDetailPage() {
       })
       setSheet('none')
       setConfirmed({ when, party })
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function joinWaiting() {
-    if (!user || !place) {
-      navigate('/login')
-      return
-    }
-    setBusy(true)
-    try {
-      await waitings.create({
-        user_id: user.id,
-        place_id: place.id,
-        party_size: party,
-        ahead_count: place.waiting_count,
-      })
-      await refreshWaiting()
-      setSheet('none')
-      navigate('/waiting')
-    } catch (err) {
-      if (err instanceof ActiveWaitingExistsError) {
-        setSheet('none')
-        setToast(
-          `이미 ${err.existing.place?.name ?? '다른 매장'}에서 대기 중입니다. 기존 대기를 취소한 뒤 신청해 주세요.`,
-        )
-      } else {
-        setToast('웨이팅 신청에 실패했습니다. 잠시 후 다시 시도해 주세요.')
-      }
     } finally {
       setBusy(false)
     }
@@ -177,14 +145,6 @@ export function PlaceDetailPage() {
             <span className="text-ink-300">|</span>
             <span>{place.open_hours}</span>
           </div>
-          {place.phone && (
-            <a
-              href={`tel:${place.phone}`}
-              className="mt-2 inline-flex items-center gap-1 text-[13px] font-semibold text-babzip"
-            >
-              📞 {place.phone}
-            </a>
-          )}
         </div>
 
         <p className="mb-4 text-[14px] leading-relaxed text-ink-700">{place.summary}</p>
@@ -199,25 +159,15 @@ export function PlaceDetailPage() {
           </div>
         )}
 
-        {/* 실시간 대기 현황판 */}
-        <div className="card mb-4 flex items-center justify-between p-4">
-          <div>
-            <p className="text-[12.5px] font-semibold text-ink-500">실시간 대기 인원</p>
-            <p className="mt-0.5 text-[20px] font-extrabold text-ink-800">
-              {place.waiting_count}팀
-              <span className="ml-2 text-[13px] font-bold text-ink-500">
-                예상 {place.waiting_count * 7}분
-              </span>
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setSheet('waiting')}
-            className="btn-outline !px-3.5 !py-2.5 text-[13.5px]"
-          >
-            원격 웨이팅 신청
-          </button>
-        </div>
+        {place.phone && (
+          <a href={`tel:${place.phone}`} className="card mb-4 flex items-center justify-between p-4">
+            <div>
+              <p className="text-[12.5px] font-semibold text-ink-500">전화 문의</p>
+              <p className="mt-0.5 text-[18px] font-extrabold text-ink-800">{place.phone}</p>
+            </div>
+            <span className="btn-outline !px-3.5 !py-2.5 text-[13.5px]">📞 전화 걸기</span>
+          </a>
+        )}
 
         {confirmed ? (
           <div className="card border border-brand-200 p-4">
@@ -285,39 +235,6 @@ export function PlaceDetailPage() {
 
           <button type="button" onClick={reserve} disabled={busy} className="btn-primary w-full">
             예약 확정하기
-          </button>
-        </div>
-      </BottomSheet>
-
-      {/* 웨이팅 신청 시트 */}
-      <BottomSheet
-        open={sheet === 'waiting'}
-        onClose={() => setSheet('none')}
-        title="원격 웨이팅 신청"
-      >
-        <div className="flex flex-col gap-5">
-          <div className="rounded-xl bg-ink-100 p-4">
-            <p className="text-[13px] font-semibold text-ink-600">현재 대기</p>
-            <p className="mt-0.5 text-[22px] font-extrabold text-ink-800">
-              {place.waiting_count}팀
-              <span className="ml-2 text-[14px] font-bold text-ink-500">
-                예상 {place.waiting_count * 7}분
-              </span>
-            </p>
-          </div>
-
-          <div>
-            <p className="label">방문 인원수</p>
-            <Stepper value={party} onChange={setParty} min={1} max={12} />
-          </div>
-
-          <p className="hint">
-            신청하면 홈 하단 바에서 대기 순서를 실시간으로 확인할 수 있습니다. 순서가 다가오면 알림이
-            발송됩니다.
-          </p>
-
-          <button type="button" onClick={joinWaiting} disabled={busy} className="btn-primary w-full">
-            원격 웨이팅 신청
           </button>
         </div>
       </BottomSheet>

@@ -266,12 +266,6 @@ export function ExplorePage() {
 
             <p className="mt-3 text-[13.5px] leading-relaxed text-ink-600">{selected.summary}</p>
 
-            {selected.waiting_count > 0 && (
-              <p className="mt-2 text-[13px] font-bold text-babzip">
-                실시간 대기 {selected.waiting_count}팀
-              </p>
-            )}
-
             <div className="mt-4 flex gap-2">
               {tripId ? (
                 <button

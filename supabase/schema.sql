@@ -8,15 +8,12 @@ create type place_category   as enum ('babzip', 'cafe', 'sulzip', 'spot');
 create type transport_type   as enum ('walk', 'transit', 'car');
 create type trip_item_status as enum ('planned', 'reserved', 'waiting', 'visited');
 create type reservation_status as enum ('confirmed', 'cancelled');
-create type waiting_status   as enum ('waiting', 'called', 'cancelled', 'done');
 
 -- ── SYS-01-02 사용자 프로필 ──────────────────────────────────────────
 create table public.profiles (
   id                  uuid primary key references auth.users on delete cascade,
   nickname            text not null check (char_length(nickname) between 2 and 12),
   taste_tags          text[] not null default '{}',
-  -- 웨이팅 성향: 1 대기 민감 ~ 5 느긋
-  waiting_sensitivity smallint not null default 3 check (waiting_sensitivity between 1 and 5),
   created_at          timestamptz not null default now()
 );
 
@@ -60,9 +57,7 @@ create table public.places (
   tags          text[] not null default '{}',
   summary       text not null default '',
   open_hours    text not null default '',
-  phone         text,
-  -- 실시간 대기 팀 수 (RSV-05-02 현황판 소스)
-  waiting_count integer not null default 0
+  phone         text
 );
 
 create index places_region_category_idx on public.places (region, category);
@@ -112,27 +107,6 @@ create table public.reservations (
 
 create index reservations_user_idx on public.reservations (user_id, reserved_at);
 
--- ── RSV-05-02 웨이팅 ─────────────────────────────────────────────────
-create table public.waitings (
-  id            uuid primary key default gen_random_uuid(),
-  user_id       uuid not null references auth.users on delete cascade,
-  place_id      text not null references public.places on delete cascade,
-  party_size    smallint not null check (party_size between 1 and 12),
-  ahead_count   integer not null default 0,
-  -- 기획 정책: 하루 최대 2회까지만 미룰 수 있다
-  delay_count   smallint not null default 0 check (delay_count between 0 and 2),
-  extra_minutes integer not null default 0,
-  status        waiting_status not null default 'waiting',
-  created_at    timestamptz not null default now()
-);
-
-create index waitings_user_idx on public.waitings (user_id, created_at desc);
-
--- 한 사용자는 동시에 하나의 웨이팅만 진행할 수 있다
-create unique index waitings_one_active_per_user
-  on public.waitings (user_id)
-  where status in ('waiting', 'called');
-
 -- ── 프로필 생성 시점에 대하여 ────────────────────────────────────────
 -- 가입 시 auth.users 트리거로 profiles 행을 자동 생성하지 않는다.
 --
@@ -157,7 +131,6 @@ alter table public.places       enable row level security;
 alter table public.trips        enable row level security;
 alter table public.trip_items   enable row level security;
 alter table public.reservations enable row level security;
-alter table public.waitings     enable row level security;
 
 -- 지역·장소는 비로그인(Guest 모드)에서도 열람 가능해야 한다
 create policy "region groups are readable by everyone"
@@ -197,13 +170,7 @@ create policy "own reservations"
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
-create policy "own waitings"
-  on public.waitings for all
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
-
 -- =====================================================================
--- 실시간 구독 (홈 하단 플로팅 바의 대기 상태 전이에 사용)
+-- 실시간 구독
 -- =====================================================================
-alter publication supabase_realtime add table public.waitings;
 alter publication supabase_realtime add table public.trip_items;

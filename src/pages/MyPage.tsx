@@ -88,7 +88,6 @@ export function MyPage() {
                   ))
                 )}
               </div>
-              <p className="hint mt-2">웨이팅 성향 {profile.waiting_sensitivity} / 5</p>
             </>
           )}
         </section>

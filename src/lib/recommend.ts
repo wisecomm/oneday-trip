@@ -125,17 +125,6 @@ export function recommend(
       reasons.push('맑은 날 야외')
     }
 
-    // 4) 주말이면 대기가 길어지므로, 대기 민감 사용자에게는 혼잡한 곳을 감점
-    const isWeekend = ctx.weekday === 0 || ctx.weekday === 6
-    const sensitivity = profile?.waiting_sensitivity ?? 3
-    if (sensitivity <= 2 && place.waiting_count > 10) {
-      score -= isWeekend ? 5 : 3
-      reasons.push('대기 많음 · 성향상 비추천')
-    } else if (sensitivity >= 4 && place.waiting_count > 10) {
-      score += 1
-      reasons.push('웨이팅 감수형 맛집')
-    }
-
     return { place, score, reasons }
   })
 

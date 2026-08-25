@@ -18,7 +18,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useAuth } from '@/lib/auth'
-import { reservations, tripItems, trips, waitings } from '@/lib/db'
+import { reservations, tripItems, trips } from '@/lib/db'
 import { routeDistanceKm, routeMinutes } from '@/lib/geo'
 import { CATEGORY_LABEL, type Trip, type TripItem } from '@/lib/types'
 import { CategoryDot, PlaceThumb } from '@/components/PlaceCard'
@@ -31,7 +31,7 @@ import { formatTripDate } from './TripCreatePage'
  * TRIP-03-01 · 03. 마이 트립 > 3.1 타임라인 관리 > 여행 리스트
  * 당일치기 서비스이므로 일자 구분 없이 하나의 방문 순서만 관리한다.
  * 드래그로 순서를 바꾸면 하단 동선 요약이 즉시 재계산되고,
- * 예약/웨이팅 상태는 카드 배지에 자동 바인딩된다.
+ * 예약 상태는 카드 배지에 자동 바인딩된다.
  */
 export function TimelinePage() {
   const { tripId = '' } = useParams()
@@ -47,7 +47,7 @@ export function TimelinePage() {
   const [trip, setTrip] = useState<Trip | null>(null)
   const [items, setItems] = useState<TripItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [statusByPlace, setStatusByPlace] = useState<Record<string, '예약 확정' | '웨이팅 중'>>({})
+  const [statusByPlace, setStatusByPlace] = useState<Record<string, '예약 확정'>>({})
   const [shareTarget, setShareTarget] = useState<VisitCardInput | null>(null)
 
   const load = useCallback(async () => {
@@ -56,13 +56,9 @@ export function TimelinePage() {
     setItems(list)
 
     if (user) {
-      const [rs, ws] = await Promise.all([
-        reservations.listByUser(user.id),
-        waitings.listByUser(user.id),
-      ])
-      const map: Record<string, '예약 확정' | '웨이팅 중'> = {}
+      const rs = await reservations.listByUser(user.id)
+      const map: Record<string, '예약 확정'> = {}
       for (const r of rs) if (r.status === 'confirmed') map[r.place_id] = '예약 확정'
-      for (const w of ws) if (w.status === 'waiting') map[w.place_id] = '웨이팅 중'
       setStatusByPlace(map)
     }
     setLoading(false)
@@ -272,7 +268,7 @@ function SortableItem({
 }: {
   item: TripItem
   order: number
-  badge?: '예약 확정' | '웨이팅 중'
+  badge?: '예약 확정'
   legMinutes: number | null
   onOpen: () => void
   onRemove: () => void
@@ -324,17 +320,7 @@ function SortableItem({
                 {place ? CATEGORY_LABEL[place.category] : ''} · {place?.open_hours}
               </span>
               {visited && <span className="badge bg-emerald-50 text-emerald-700">방문 완료</span>}
-              {badge && (
-                <span
-                  className={`badge ${
-                    badge === '예약 확정'
-                      ? 'bg-brand-50 text-brand-700'
-                      : 'bg-amber-50 text-amber-700'
-                  }`}
-                >
-                  {badge}
-                </span>
-              )}
+              {badge && <span className="badge bg-brand-50 text-brand-700">{badge}</span>}
             </div>
           </button>
 

@@ -2,16 +2,8 @@ import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { profiles } from '@/lib/db'
-import { TASTE_TAGS, type WaitingSensitivity } from '@/lib/types'
+import { TASTE_TAGS } from '@/lib/types'
 import { PageHeader, StepGuide } from '@/components/ui'
-
-const SENSITIVITY_LABEL: Record<WaitingSensitivity, string> = {
-  1: '대기 매우 민감',
-  2: '대기 민감',
-  3: '보통',
-  4: '조금 느긋',
-  5: '아주 느긋',
-}
 
 /**
  * SYS-01-02 · 01. 온보딩 및 회원 > 1.2 사용자 프로필 > 사용자 등록
@@ -26,7 +18,6 @@ export function ProfileSetupPage() {
 
   const [nickname, setNickname] = useState('')
   const [tags, setTags] = useState<string[]>([])
-  const [sensitivity, setSensitivity] = useState<WaitingSensitivity>(3)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -34,7 +25,6 @@ export function ProfileSetupPage() {
     if (profile) {
       setNickname(profile.nickname)
       setTags(profile.taste_tags)
-      setSensitivity(profile.waiting_sensitivity)
     } else if (user?.suggestedNickname) {
       // 소셜 가입 시 닉네임 자동 연동 (기획 가이드)
       setNickname(user.suggestedNickname)
@@ -62,7 +52,6 @@ export function ProfileSetupPage() {
         id: user.id,
         nickname: nickname.trim(),
         taste_tags: tags,
-        waiting_sensitivity: sensitivity,
       })
       await refreshProfile()
       navigate(isEdit ? '/me' : '/', { replace: true })
@@ -119,28 +108,6 @@ export function ProfileSetupPage() {
               ))}
             </div>
             <p className="hint mt-2">중복 선택 가능 · AI 추천 피드의 개인화 기준이 됩니다.</p>
-          </section>
-
-          <section className="mb-8">
-            <p className="label">웨이팅 성향</p>
-            <input
-              type="range"
-              min={1}
-              max={5}
-              step={1}
-              value={sensitivity}
-              onChange={(e) => setSensitivity(Number(e.target.value) as WaitingSensitivity)}
-              className="w-full accent-brand-500"
-              aria-label="웨이팅 성향"
-            />
-            <div className="mt-1 flex justify-between text-[11.5px] text-ink-400">
-              <span>대기 민감</span>
-              <span className="font-bold text-brand-600">{SENSITIVITY_LABEL[sensitivity]}</span>
-              <span>느긋</span>
-            </div>
-            <p className="hint mt-2">
-              민감할수록 대기 팀이 적은 장소를 우선 추천하고, 웨이팅 알림을 더 일찍 보냅니다.
-            </p>
           </section>
 
           {error && (

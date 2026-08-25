@@ -123,10 +123,9 @@ export function HomePage() {
       )}
 
       <section className="mb-6">
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-3 gap-2.5">
           <QuickLink to="/map" icon="🗺️" label="맛집 지도" desc="실시간 마커 탐색" />
           <QuickLink to="/recommend" icon="✨" label="AI 추천" desc="날씨·취향 맞춤" />
-          <QuickLink to="/waiting" icon="⏱️" label="원격 웨이팅" desc="줄 서지 않고 대기" />
           <QuickLink to="/trips" icon="🧭" label="마이 트립" desc="동선 최적화" />
         </div>
       </section>

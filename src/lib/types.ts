@@ -10,9 +10,6 @@ export type Transport = 'walk' | 'transit' | 'car'
 /** 동행인 유형 (TRIP-02-01) */
 export type Companion = 'solo' | 'couple' | 'friends' | 'family' | 'pet'
 
-/** 웨이팅 성향 (SYS-01-02: 대기 민감 1 ~ 느긋 5) */
-export type WaitingSensitivity = 1 | 2 | 3 | 4 | 5
-
 /** 목적지 상위 지역(시/도) */
 export interface RegionGroup {
   name: string
@@ -38,7 +35,6 @@ export interface Profile {
   id: string
   nickname: string
   taste_tags: string[]
-  waiting_sensitivity: WaitingSensitivity
   created_at: string
 }
 
@@ -72,8 +68,6 @@ export interface Place {
   open_hours: string
   /** 전화번호 — TourAPI 가 제공하지 않으면 null */
   phone: string | null
-  /** 실시간 대기 인원 현황 (RSV-05-02) */
-  waiting_count: number
 }
 
 /**
@@ -111,24 +105,6 @@ export interface Reservation {
   party_size: number
   deposit: number
   status: ReservationStatus
-  place?: Place
-}
-
-export type WaitingStatus = 'waiting' | 'called' | 'cancelled' | 'done'
-
-export interface Waiting {
-  id: string
-  user_id: string
-  place_id: string
-  party_size: number
-  /** 신청 시점 기준 내 앞의 팀 수 */
-  ahead_count: number
-  /** '미루기' 누적 횟수 — 하루 최대 2회 (기획 정책) */
-  delay_count: number
-  /** 미루기로 누적된 추가 대기 시간(분) */
-  extra_minutes: number
-  status: WaitingStatus
-  created_at: string
   place?: Place
 }
 

@@ -69,12 +69,6 @@ export function PlaceCard({
           <span className="font-semibold text-ink-700">★ {place.rating.toFixed(1)}</span>
           <span>·</span>
           <span>{'₩'.repeat(place.price_level)}</span>
-          {place.waiting_count > 0 && (
-            <>
-              <span>·</span>
-              <span className="font-semibold text-babzip">대기 {place.waiting_count}팀</span>
-            </>
-          )}
         </div>
       </div>
       {right}

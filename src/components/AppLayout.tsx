@@ -1,5 +1,4 @@
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
-import { estimatedWaitMinutes, useWaiting } from '@/store/waiting'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { isSupabaseConfigured } from '@/lib/supabase'
 
 const NAV = [
@@ -12,7 +11,6 @@ const NAV = [
 
 export function AppLayout() {
   const { pathname } = useLocation()
-  const { active } = useWaiting()
 
   // 지도 화면은 전체 높이를 쓰므로 본문 패딩을 제거한다
   const isMapScreen = pathname === '/map'
@@ -25,8 +23,6 @@ export function AppLayout() {
         <main className={`flex-1 ${isMapScreen ? '' : 'pb-28'}`}>
           <Outlet />
         </main>
-
-        {active && <WaitingFloatingBar minutes={estimatedWaitMinutes(active)} name={active.place?.name ?? ''} />}
 
         <nav className="fixed bottom-0 z-40 w-full max-w-[520px] border-t border-ink-200 bg-white/97 pb-[env(safe-area-inset-bottom)] backdrop-blur">
           <ul className="flex">
@@ -54,25 +50,6 @@ export function AppLayout() {
         </nav>
       </div>
     </div>
-  )
-}
-
-function WaitingFloatingBar({ minutes, name }: { minutes: number; name: string }) {
-  return (
-    <Link
-      to="/waiting"
-      className="fixed bottom-[68px] left-1/2 z-40 flex w-[calc(100%-32px)] max-w-[488px] -translate-x-1/2 items-center gap-3 rounded-2xl bg-ink-800 px-4 py-3 text-white shadow-[0_12px_28px_-8px_rgba(20,23,28,0.55)]"
-    >
-      <span className="relative flex h-2.5 w-2.5 shrink-0">
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-300 opacity-75" />
-        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-brand-400" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[13px] font-bold">대기순서 확인 · {name}</p>
-        <p className="text-[12px] text-ink-300">예상 대기 약 {minutes}분</p>
-      </div>
-      <span className="shrink-0 rounded-lg bg-white/15 px-2.5 py-1 text-[12px] font-bold">보기</span>
-    </Link>
   )
 }
 

@@ -1,4 +1,4 @@
-import type { Profile, Reservation, Trip, TripItem, Waiting } from './types'
+import type { Profile, Reservation, Trip, TripItem } from './types'
 
 /**
  * 데모 모드 저장소.
@@ -9,7 +9,6 @@ export interface LocalDb {
   trips: Trip[]
   trip_items: TripItem[]
   reservations: Reservation[]
-  waitings: Waiting[]
 }
 
 const KEY = 'oneday-trip:db'
@@ -19,7 +18,6 @@ const EMPTY: LocalDb = {
   trips: [],
   trip_items: [],
   reservations: [],
-  waitings: [],
 }
 
 export function readDb(): LocalDb {
