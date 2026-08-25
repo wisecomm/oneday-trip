@@ -43,6 +43,20 @@ export function RoutePage() {
   const totalKm = routeDistanceKm(points)
   const totalMin = trip ? routeMinutes(points, trip.transport) : 0
 
+  /** 인접한 두 항목의 순서를 맞바꾼다 — 드래그 대신 위/아래 버튼을 쓰는 이유는
+   *  핸드폰에서 드래그가 화면 스크롤 제스처와 자주 충돌해 손가락으로 정확히
+   *  집어 옮기기 어렵기 때문이다. 버튼은 오탐 없이 항상 정확히 한 칸씩 움직인다. */
+  function move(index: number, direction: -1 | 1) {
+    const target = index + direction
+    if (target < 0 || target >= items.length) return
+    const next = [...items]
+    ;[next[index], next[target]] = [next[target], next[index]]
+    const reordered = next.map((it, i) => ({ ...it, sort_order: i }))
+    setItems(reordered)
+    setSaved(null)
+    void tripItems.reorder(reordered.map((it, i) => ({ id: it.id, sort_order: i })))
+  }
+
   async function optimize() {
     if (!trip || items.length < 3) return
     setOptimizing(true)
@@ -138,26 +152,67 @@ export function RoutePage() {
                         {TRANSPORT_LABEL[trip.transport]} 약 {legMin}분
                       </div>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => setSelectedId(place.id)}
-                      className={`card flex w-full items-center gap-3 p-3 text-left ${
+                    <div
+                      className={`card flex w-full items-center gap-2 p-3 ${
                         selectedId === place.id ? 'ring-2 ring-brand-400' : ''
                       }`}
                     >
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-500 text-[13px] font-extrabold text-white">
-                        {i + 1}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <CategoryDot category={place.category} />
-                          <p className="truncate text-[14.5px] font-bold text-ink-800">
-                            {place.name}
-                          </p>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedId(place.id)}
+                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                      >
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-500 text-[13px] font-extrabold text-white">
+                          {i + 1}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <CategoryDot category={place.category} />
+                            <p className="truncate text-[14.5px] font-bold text-ink-800">
+                              {place.name}
+                            </p>
+                          </div>
+                          <p className="truncate text-[12px] text-ink-500">{place.address}</p>
                         </div>
-                        <p className="truncate text-[12px] text-ink-500">{place.address}</p>
+                      </button>
+
+                      <div className="flex shrink-0 flex-col gap-1">
+                        <button
+                          type="button"
+                          onClick={() => move(i, -1)}
+                          disabled={i === 0}
+                          aria-label="위로 이동"
+                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-ink-200 text-ink-500 disabled:opacity-30"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                            <path
+                              d="M5 15l7-7 7 7"
+                              stroke="currentColor"
+                              strokeWidth="2.2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => move(i, 1)}
+                          disabled={i === routePlaces.length - 1}
+                          aria-label="아래로 이동"
+                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-ink-200 text-ink-500 disabled:opacity-30"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                            <path
+                              d="M5 9l7 7 7-7"
+                              stroke="currentColor"
+                              strokeWidth="2.2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </button>
                       </div>
-                    </button>
+                    </div>
                   </li>
                 )
               })}
