@@ -31,7 +31,6 @@ Supabase 대신 localStorage 를, 카카오맵 대신 SVG 폴백 지도를 사�
 
 - **Guest 모드** — 로그인 화면 하단 '가입 없이 서비스 둘러보기'. `/map`, `/places/:id` 는 비로그인 열람 가능
 - **소셜 가입 시 닉네임 자동 연동** — [auth.tsx](src/lib/auth.tsx) 의 `suggestedNickname`, DB 측은 `handle_new_user()` 트리거
-- **하루 최대 방문 개수 제약** — 기본값 3곳. 타임라인 추가와 AI 추천 저장 양쪽에서 한도를 검사
 - **이동수단별 소요 시간** — [geo.ts](src/lib/geo.ts) `travelMinutes()`, 직선 거리에 1.3배 우회 계수 적용
 - **동선 최적화** — 최근접 이웃 + 2-opt ([geo.ts](src/lib/geo.ts) `optimizeOrder()`). 순서 변경 시 요약이 즉시 재계산
 - **예약 상태 배지 바인딩** — 타임라인 카드에 '예약 확정' 자동 표시
@@ -91,7 +90,7 @@ Authentication > Sign In / Providers > Email 에 비슷한 토글이 나란히 �
 | `region_groups` | 상위 목적지 지역(시/도). 비로그인 읽기 허용 |
 | `regions` | 하위 목적지 지역(구/시). `group_name` 이 `region_groups.name` 을 참조. 비로그인 읽기 허용 |
 | `places` | 장소 카탈로그. `region` 이 `regions.name`(하위 지역)을 참조. 비로그인 읽기 허용 |
-| `trips` | 여행 날짜(당일치기) · 목적지 · 하루 최대 방문 수 · 이동수단. `destination` 이 `regions.name` 을 참조 |
+| `trips` | 여행 날짜(당일치기) · 목적지 · 이동수단. `destination` 이 `regions.name`(leaf) 또는 `region_groups.name`('전체' 선택 시) 을 참조 |
 | `trip_items` | 방문 순서 (`sort_order`) — 당일치기라 일자 구분이 없다 |
 | `reservations` | 예약 (RSV-05-01) |
 

@@ -18,11 +18,13 @@ import {
 } from '@/lib/types'
 import { Loading, PageHeader, StepGuide } from '@/components/ui'
 
+/** 여행 생성 직후 자동으로 담아 줄 추천 장소 개수 */
+const AUTO_ADD_COUNT = 3
+
 /**
  * 여행 생성 직후 타임라인이 비어 있으면 사용자가 무엇부터 해야 할지 막막해진다.
  * 그래서 AI 추천(MAP-04-02)과 같은 기준으로 상위 장소를 골라 자동으로 담아 준다.
  *
- * · 담는 개수는 방금 정한 '하루 최대 방문' 한도를 그대로 따른다.
  * · 순서는 추천 순위가 아니라 최단 동선(TRIP-03-02)으로 정렬해, 첫 화면부터
  *   말이 되는 일정이 보이게 한다.
  *
@@ -64,8 +66,7 @@ async function seedRecommendedPlaces(
 }
 
 /**
- * TRIP-02-02 · 02. 여행 일정 계획 > 2.2 여행 규칙 설정 > 방문 제약 조건 지정
- * 무리한 일정으로 여행 품질이 떨어지는 것을 막는 UX 제약 장치.
+ * TRIP-02-02 · 02. 여행 일정 계획 > 2.2 여행 규칙 설정 > 주 이동수단 지정
  *
  * 두 가지 모드로 동작한다.
  *  · 생성 모드 (/trips/new/rules): 1단계에서 받은 초안에 규칙을 얹어 여기서 처음 저장한다.
@@ -82,7 +83,6 @@ export function TripRulesPage() {
   const draft = (location.state ?? null) as TripDraft | null
 
   const [trip, setTrip] = useState<Trip | null>(null)
-  const [maxPlaces, setMaxPlaces] = useState(3)
   const [transport, setTransport] = useState<Transport>('transit')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -93,7 +93,6 @@ export function TripRulesPage() {
     void trips.get(tripId).then((t) => {
       if (!alive || !t) return
       setTrip(t)
-      setMaxPlaces(t.max_places_per_day)
       setTransport(t.transport)
     })
     return () => {
@@ -116,7 +115,6 @@ export function TripRulesPage() {
         const created = await trips.create({
           user_id: user.id,
           ...draft!,
-          max_places_per_day: maxPlaces,
           transport,
         })
 
@@ -127,7 +125,7 @@ export function TripRulesPage() {
           added = await seedRecommendedPlaces(
             created.id,
             created.destination,
-            maxPlaces,
+            AUTO_ADD_COUNT,
             profile,
             groups,
             regions,
@@ -138,7 +136,7 @@ export function TripRulesPage() {
 
         navigate(`/trips/${created.id}`, { replace: true, state: { autoAdded: added } })
       } else {
-        await trips.update(tripId!, { max_places_per_day: maxPlaces, transport })
+        await trips.update(tripId!, { transport })
         navigate(`/trips/${tripId}`, { replace: true })
       }
     } catch (err) {
@@ -156,38 +154,6 @@ export function TripRulesPage() {
         <div className="mb-6">
           <StepGuide steps={['사용자 등록', '여행 일정', '여행 규칙']} current={2} />
         </div>
-
-        <section className="mb-8">
-          <p className="label">하루에 다닐 수 있는 최대 방문 리스트</p>
-          <div className="card p-5">
-            <div className="mb-3 flex items-baseline justify-between">
-              <span className="text-[28px] font-extrabold text-brand-600">{maxPlaces}곳</span>
-              <span className="text-[12.5px] font-semibold text-ink-400">
-                {maxPlaces <= 2 ? '여유로운 일정' : maxPlaces === 3 ? '권장 (기본값)' : '빡빡한 일정'}
-              </span>
-            </div>
-            <input
-              type="range"
-              min={1}
-              max={5}
-              step={1}
-              value={maxPlaces}
-              onChange={(e) => setMaxPlaces(Number(e.target.value))}
-              className="w-full accent-brand-500"
-              aria-label="하루 최대 방문 장소 개수"
-            />
-            <div className="mt-1 flex justify-between text-[11.5px] text-ink-400">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <span key={n} className={n === maxPlaces ? 'font-bold text-brand-600' : ''}>
-                  {n}
-                </span>
-              ))}
-            </div>
-          </div>
-          <p className="hint mt-2">
-            동선 피로도를 스스로 제약하는 장치입니다. 한도를 넘으면 타임라인에 장소를 추가할 수 없습니다.
-          </p>
-        </section>
 
         <section className="mb-8">
           <p className="label">주 이동수단</p>

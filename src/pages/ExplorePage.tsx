@@ -192,10 +192,6 @@ export function ExplorePage() {
 
   async function addToTrip(place: Place) {
     if (!tripId || !trip) return
-    if (pickedCount >= trip.max_places_per_day) {
-      setToast(`최대 ${trip.max_places_per_day}곳까지만 담을 수 있습니다.`)
-      return
-    }
     await tripItems.add({ trip_id: tripId, place_id: place.id })
     setPickedCount((n) => n + 1)
     setSelected(null)
@@ -245,7 +241,7 @@ export function ExplorePage() {
           </select>
           {trip && (
             <span className="shrink-0 truncate rounded-xl bg-ink-800 px-2.5 py-2 text-[12px] font-bold text-white shadow-sm">
-              담는 중 · {pickedCount}/{trip.max_places_per_day}
+              담는 중 · {pickedCount}곳
             </span>
           )}
         </div>

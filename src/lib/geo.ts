@@ -44,7 +44,7 @@ export function routeMinutes(points: LatLng[], transport: Transport): number {
 /**
  * TRIP-03-02: 동선 최적화.
  * 첫 장소를 출발점으로 고정한 뒤 최근접 이웃(Nearest Neighbour)으로 순서를 만들고,
- * 2-opt 교환으로 교차 구간을 펴서 개선한다. 하루 방문지가 최대 5곳이므로
+ * 2-opt 교환으로 교차 구간을 펴서 개선한다. 당일치기라 방문지가 보통 소수라
  * 이 조합만으로 사실상 최적해에 도달한다.
  *
  * @returns 입력 배열에 대한 방문 순서 인덱스

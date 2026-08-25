@@ -76,9 +76,6 @@ export function TripListPage() {
                       담은 장소 {counts[t.id] ?? 0}곳
                     </span>
                     <span className="badge bg-ink-100 text-ink-600">
-                      최대 {t.max_places_per_day}곳
-                    </span>
-                    <span className="badge bg-ink-100 text-ink-600">
                       {TRANSPORT_LABEL[t.transport]}
                     </span>
                   </div>

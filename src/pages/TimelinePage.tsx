@@ -138,13 +138,12 @@ export function TimelinePage() {
     .map((p) => ({ lat: p!.lat, lng: p!.lng }))
   const totalKm = routeDistanceKm(points)
   const totalMin = routeMinutes(points, trip.transport)
-  const isFull = orderedItems.length >= trip.max_places_per_day
 
   return (
     <>
       <PageHeader
         title={trip.title}
-        subtitle={`${formatTripDate(trip.trip_date)} · 최대 ${trip.max_places_per_day}곳`}
+        subtitle={formatTripDate(trip.trip_date)}
         back
         right={
           <Link
@@ -239,16 +238,9 @@ export function TimelinePage() {
         )}
 
         <div className="mt-3">
-          {isFull ? (
-            <p className="rounded-xl bg-amber-50 px-4 py-3 text-[13px] leading-relaxed text-amber-700">
-              최대 방문 {trip.max_places_per_day}곳을 모두 채웠습니다. 더 담으려면 여행 규칙에서
-              한도를 조정하세요.
-            </p>
-          ) : (
-            <Link to={`/map?trip=${tripId}`} className="btn-ghost w-full">
-              + 장소 추가 ({orderedItems.length}/{trip.max_places_per_day})
-            </Link>
-          )}
+          <Link to={`/map?trip=${tripId}`} className="btn-ghost w-full">
+            + 장소 추가
+          </Link>
         </div>
       </div>
 

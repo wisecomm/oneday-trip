@@ -73,8 +73,6 @@ create table public.trips (
   -- 당일치기 서비스이므로 기간이 아닌 날짜 하나를 갖는다
   trip_date          date not null,
   companions         text[] not null default '{}',
-  -- 하루에 다닐 수 있는 최대 방문 장소 (1~5, 기본 3)
-  max_places_per_day smallint not null default 3 check (max_places_per_day between 1 and 5),
   transport          transport_type not null default 'transit',
   created_at         timestamptz not null default now()
 );

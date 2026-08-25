@@ -101,7 +101,7 @@ export function HomePage() {
             <p className="text-[12px] font-semibold text-brand-100">다가오는 여행</p>
             <p className="mt-1 text-[19px] font-extrabold">{nextTrip.title}</p>
             <p className="mt-1 text-[13px] text-brand-100">
-              {formatTripDate(nextTrip.trip_date)} · 최대 {nextTrip.max_places_per_day}곳
+              {formatTripDate(nextTrip.trip_date)}
             </p>
           </div>
           <div className="px-4 py-3 text-[13px] font-bold text-brand-600">

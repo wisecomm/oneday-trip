@@ -46,8 +46,6 @@ export interface Trip {
   /** 당일치기 서비스이므로 여행은 하루 단위다 */
   trip_date: string
   companions: Companion[]
-  /** TRIP-02-02: 하루에 다닐 수 있는 최대 방문 리스트 (1~5, 기본 3) */
-  max_places_per_day: number
   transport: Transport
   created_at: string
 }

@@ -275,11 +275,6 @@ function SaveSheet({
     if (!target) return
     setBusy(true)
     try {
-      const existing = await tripItems.listByTrip(trip.id)
-      if (existing.length >= trip.max_places_per_day) {
-        onSaved(`${trip.title}은 최대 ${trip.max_places_per_day}곳까지만 담을 수 있습니다.`)
-        return
-      }
       await tripItems.add({ trip_id: trip.id, place_id: target.place.id })
       onSaved(`${trip.title}에 저장했습니다.`)
     } finally {
