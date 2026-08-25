@@ -143,7 +143,7 @@ export function TimelinePage() {
     <>
       <PageHeader
         title={trip.title}
-        subtitle={formatTripDate(trip.trip_date)}
+        subtitle={`${formatTripDate(trip.trip_date)} · ${trip.start_time.slice(0, 5)}~${trip.end_time.slice(0, 5)}`}
         back
         right={
           <Link

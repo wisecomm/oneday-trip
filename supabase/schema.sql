@@ -72,6 +72,9 @@ create table public.trips (
   destination        text not null,
   -- 당일치기 서비스이므로 기간이 아닌 날짜 하나를 갖는다
   trip_date          date not null,
+  -- 하루 동선의 시작·종료 시각 (기본 09:00~20:00)
+  start_time         time not null default '09:00',
+  end_time           time not null default '20:00',
   companions         text[] not null default '{}',
   transport          transport_type not null default 'transit',
   created_at         timestamptz not null default now()

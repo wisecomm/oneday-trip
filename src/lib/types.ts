@@ -45,6 +45,9 @@ export interface Trip {
   destination: string
   /** 당일치기 서비스이므로 여행은 하루 단위다 */
   trip_date: string
+  /** 하루 동선의 시작·종료 시각. 'HH:MM' 형식 (기본 09:00~20:00) */
+  start_time: string
+  end_time: string
   companions: Companion[]
   transport: Transport
   created_at: string
@@ -77,6 +80,8 @@ export interface TripDraft {
   title: string
   destination: string
   trip_date: string
+  start_time: string
+  end_time: string
   companions: Companion[]
 }
 

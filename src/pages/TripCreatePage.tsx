@@ -63,6 +63,8 @@ export function TripCreatePage() {
   // 사용자가 제목을 직접 손댔다면 목적지를 바꿔도 덮어쓰지 않는다
   const [titleEdited, setTitleEdited] = useState(false)
   const [tripDate, setTripDate] = useState(todayIso(7))
+  const [startTime, setStartTime] = useState('09:00')
+  const [endTime, setEndTime] = useState('20:00')
   const [companions, setCompanions] = useState<Companion[]>(['friends'])
   const [existingTitles, setExistingTitles] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -118,6 +120,8 @@ export function TripCreatePage() {
       title: trimmed,
       destination: effectiveDestination,
       trip_date: tripDate,
+      start_time: startTime,
+      end_time: endTime,
       companions,
     }
     navigate('/trips/new/rules', { state: draft })
@@ -131,7 +135,7 @@ export function TripCreatePage() {
 
       <div className="px-5 py-5">
         <div className="mb-6">
-          <StepGuide steps={['사용자 등록', '여행 일정', '여행 규칙']} current={1} />
+          <StepGuide steps={['여행 일정', '여행 규칙']} current={0} />
         </div>
 
         <section className="mb-7">
@@ -199,6 +203,34 @@ export function TripCreatePage() {
           <p className="mt-2 text-[13px] font-semibold text-brand-600">
             {formatTripDate(tripDate)} 당일치기
           </p>
+
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div>
+              <label className="label" htmlFor="trip-start-time">
+                시작 시간
+              </label>
+              <input
+                id="trip-start-time"
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="field"
+              />
+            </div>
+            <div>
+              <label className="label" htmlFor="trip-end-time">
+                종료 시간
+              </label>
+              <input
+                id="trip-end-time"
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                className="field"
+              />
+            </div>
+          </div>
+          <p className="hint mt-1.5">동선 계획의 기준이 되는 하루 활동 시간대입니다.</p>
         </section>
 
         <section className="mb-8">

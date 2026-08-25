@@ -152,7 +152,7 @@ export function TripRulesPage() {
 
       <div className="px-5 py-5">
         <div className="mb-6">
-          <StepGuide steps={['사용자 등록', '여행 일정', '여행 규칙']} current={2} />
+          <StepGuide steps={['여행 일정', '여행 규칙']} current={1} />
         </div>
 
         <section className="mb-8">
