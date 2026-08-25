@@ -19,6 +19,13 @@ interface MapViewProps {
   className?: string
   /** '내 위치 주변 재탐색' 등으로 확보한 사용자 위치 — 있으면 파란 점으로 표시하고 뷰에 포함시킨다 */
   userLocation?: LatLng | null
+  /**
+   * 이전에 보고 있던 지도 위치(중심·줌)를 복원할 때 쓴다 — 있으면 마운트 시
+   * 자동 fitBounds/setCenter 대신 이 위치로 초기화한다 (네이버 SDK 지도만 지원).
+   */
+  initialViewport?: { lat: number; lng: number; zoom: number } | null
+  /** 사용자가 지도를 움직일 때마다(드래그·줌) 현재 중심/줌을 알려준다 (네이버 SDK 지도만 지원) */
+  onViewportChange?: (v: { lat: number; lng: number; zoom: number }) => void
 }
 
 /**
@@ -34,6 +41,8 @@ export function MapView({
   className,
   safeInsets,
   userLocation,
+  initialViewport,
+  onViewportChange,
 }: MapViewProps) {
   // 다른 화면에서 이미 인증 실패가 확인됐다면 처음부터 폴백으로 간다
   const [naverFailed, setNaverFailed] = useState(hasNaverAuthFailed)
@@ -51,6 +60,8 @@ export function MapView({
         onSelect={onSelect}
         className={className}
         userLocation={userLocation}
+        initialViewport={initialViewport}
+        onViewportChange={onViewportChange}
         onFail={() => setNaverFailed(true)}
       />
     )
@@ -78,6 +89,8 @@ function NaverMap({
   onSelect,
   className,
   userLocation,
+  initialViewport,
+  onViewportChange,
   onFail,
 }: MapViewProps & { onFail: () => void }) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -85,6 +98,8 @@ function NaverMap({
   const markersRef = useRef<any[]>([])
   const userMarkerRef = useRef<any>(null)
   const polylineRef = useRef<any>(null)
+  // 복원할 위치가 있을 때, 마운트 직후 첫 자동 맞춤(fitBounds)만 건너뛰기 위한 플래그
+  const appliedInitialViewport = useRef(false)
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
@@ -95,8 +110,16 @@ function NaverMap({
         // 지도 생성 단계에서 던지는 예외도 폴백으로 이어져야 한다.
         // 여기서 놓치면 사용자에게는 빈 화면만 남는다.
         mapRef.current = new naver.maps.Map(containerRef.current, {
-          center: new naver.maps.LatLng(places[0]?.lat ?? 37.5665, places[0]?.lng ?? 126.978),
-          zoom: 11,
+          center: new naver.maps.LatLng(
+            initialViewport?.lat ?? places[0]?.lat ?? 37.5665,
+            initialViewport?.lng ?? places[0]?.lng ?? 126.978,
+          ),
+          zoom: initialViewport?.zoom ?? 11,
+        })
+        // 사용자가 지도를 움직일 때마다(드래그·줌 종료 시) 현재 위치를 상위로 올려 보낸다
+        naver.maps.Event.addListener(mapRef.current, 'idle', () => {
+          const c = mapRef.current.getCenter()
+          onViewportChange?.({ lat: c.lat(), lng: c.lng(), zoom: mapRef.current.getZoom() })
         })
         setReady(true)
       })
@@ -107,7 +130,7 @@ function NaverMap({
     return () => {
       cancelled = true
     }
-    // 최초 1회만 지도 인스턴스를 만든다
+    // 최초 1회만 지도 인스턴스를 만든다 — initialViewport/onViewportChange 는 그 시점 값만 쓴다
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -179,7 +202,15 @@ function NaverMap({
       })
     }
 
-    if (userLocation) {
+    if (initialViewport && !appliedInitialViewport.current) {
+      // 복원할 위치가 있으면 자동 맞춤을 건너뛰고 그 자리를 그대로 둔다.
+      // places 가 아직 비어 있으면(비동기 로딩 중) 이번 렌더는 판단을 유보하고
+      // 플래그를 세우지 않는다 — 그렇지 않으면 빈 배열로 열린 첫 렌더에서 플래그가
+      // 바로 소모돼, 실제 장소 목록이 도착하는 다음 렌더에서 자동 맞춤이 다시 걸린다.
+      if (places.length > 0) {
+        appliedInitialViewport.current = true
+      }
+    } else if (userLocation) {
       // 내 위치를 확보했을 때는 그 지점을 기준으로 뷰를 옮긴다 — 장소가 없거나
       // 하나뿐이면 내 위치에 바로 확대, 여러 곳이면 내 위치를 포함해 전부 보이게 맞춘다
       if (places.length === 0) {
@@ -194,7 +225,7 @@ function NaverMap({
     } else if (places.length > 1) {
       map.fitBounds(bounds, { top: 56, right: 48, bottom: 56, left: 48 })
     }
-  }, [places, route, selectedId, onSelect, userLocation, ready])
+  }, [places, route, selectedId, onSelect, userLocation, initialViewport, ready])
 
   return <div ref={containerRef} className={className} />
 }

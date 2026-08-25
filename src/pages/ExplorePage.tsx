@@ -15,6 +15,14 @@ const CATEGORIES: PlaceCategory[] = ['babzip', 'cafe', 'sulzip', 'spot']
 const ALL_LEAF = '전체'
 
 /**
+ * 다른 탭(홈·AI 추천 등)을 눌렀다가 지도로 돌아왔을 때 보던 자리 그대로
+ * 보여주기 위한 세션 기억 — 컴포넌트 바깥(모듈 스코프)에 둬서 언마운트 후
+ * 재마운트에도 값이 남아 있게 한다. 새로고침하면 초기화된다(의도된 동작).
+ */
+let savedFilters: { group: string; region: string; active: PlaceCategory[] } | null = null
+let savedViewport: { lat: number; lng: number; zoom: number } | null = null
+
+/**
  * MAP-04-01 · 04. 로컬 장소 탐색 > 4.1 맛집/명소 지도 > 실시간 지도 홈
  * 필터 클릭 시 마커 배열을 갱신·재렌더링하고, 마커 클릭 시 하단 미니 상세 카드를 띄운다.
  * 비로그인(Guest) 상태에서도 열람 가능하다.
@@ -28,9 +36,18 @@ export function ExplorePage() {
   const tripId = params.get('trip')
 
   const { groups, regions } = useRegions()
-  const [group, setGroup] = useState<string>('')
-  const [region, setRegion] = useState<string>(params.get('region') ?? '')
-  const [active, setActive] = useState<PlaceCategory[]>([])
+  // 여행 목적지(tripId)나 URL region 쿼리로 들어온 경우는 그 값이 우선이고,
+  // 그것도 아니면 지난번 보던 필터를 그대로 복원한다
+  const [group, setGroup] = useState<string>(() =>
+    tripId || params.get('region') ? '' : (savedFilters?.group ?? ''),
+  )
+  const [region, setRegion] = useState<string>(
+    () => params.get('region') ?? (tripId ? '' : (savedFilters?.region ?? '')),
+  )
+  const [active, setActive] = useState<PlaceCategory[]>(() =>
+    tripId || params.get('region') ? [] : (savedFilters?.active ?? []),
+  )
+  const [initialViewport] = useState(() => (tripId ? null : savedViewport))
   const [list, setList] = useState<Place[]>([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Place | null>(null)
@@ -38,6 +55,16 @@ export function ExplorePage() {
   const [pickedCount, setPickedCount] = useState(0)
   const [toast, setToast] = useState<string | null>(null)
   const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null)
+
+  // 필터가 바뀔 때마다 세션 기억을 갱신한다
+  useEffect(() => {
+    if (!group || !region) return
+    savedFilters = { group, region, active }
+  }, [group, region, active])
+
+  const handleViewportChange = useCallback((v: { lat: number; lng: number; zoom: number }) => {
+    savedViewport = v
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -207,6 +234,8 @@ export function ExplorePage() {
         className="h-full w-full bg-ink-100"
         safeInsets={{ top: 100, bottom: 120 }}
         userLocation={myLocation}
+        initialViewport={initialViewport}
+        onViewportChange={handleViewportChange}
       />
 
       {/* 상단 필터 */}
