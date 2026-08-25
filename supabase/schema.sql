@@ -67,7 +67,9 @@ create table public.trips (
   id                 uuid primary key default gen_random_uuid(),
   user_id            uuid not null references auth.users on delete cascade,
   title              text not null,
-  destination        text not null references public.regions(name),
+  -- regions.name(leaf) 또는 region_groups.name('전체' 선택 시) 둘 중 하나를
+  -- 담는다 — 두 테이블 중 하나를 가리키는 FK 는 표현할 수 없어 제약 없이 둔다
+  destination        text not null,
   -- 당일치기 서비스이므로 기간이 아닌 날짜 하나를 갖는다
   trip_date          date not null,
   companions         text[] not null default '{}',

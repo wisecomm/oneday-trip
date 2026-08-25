@@ -59,14 +59,15 @@ export function ExplorePage() {
     }
   }, [region, group, regions, active, myLocation])
 
-  // 지역 목록이 비동기로 도착하므로, url 에 region 쿼리가 없었다면 첫 상위 지역 + 전체보기로 채운다
+  // 지역 목록이 비동기로 도착하므로, url 에 region 쿼리가 없고 여행 목적지로부터
+  // 채워질 예정도 아니라면 첫 상위 지역 + 전체보기로 채운다
   useEffect(() => {
-    if (region || groups.length === 0) return
+    if (region || tripId || groups.length === 0) return
     setGroup(groups[0].name)
     setRegion(ALL_LEAF)
-  }, [groups, region])
+  }, [groups, region, tripId])
 
-  // region 이 url 쿼리나 여행 목적지로부터 실제 지역명으로 채워진 경우, 소속 상위 지역을 역으로 맞춘다
+  // region 이 url 쿼리로부터 실제 지역명으로 채워진 경우, 소속 상위 지역을 역으로 맞춘다
   useEffect(() => {
     if (!region || region === ALL_LEAF || regions.length === 0) return
     const match = regions.find((r) => r.name === region)
@@ -78,16 +79,32 @@ export function ExplorePage() {
     void load()
   }, [load, region, groups.length])
 
+  // 여행 목적지 원본 문자열 — regions/groups 가 아직 로딩 중일 수 있어 일단 받아만 두고,
+  // 아래 별도 effect 에서 leaf 지역인지 상위 지역(전체) 인지 구분해 반영한다
+  const [tripDestination, setTripDestination] = useState<string | null>(null)
+
   useEffect(() => {
     if (!tripId) return
     void trips.get(tripId).then((t) => {
       setTrip(t)
-      if (t) setRegion(t.destination)
+      setTripDestination(t?.destination ?? null)
     })
     void tripItems
       .listByTrip(tripId)
       .then((items) => setPickedCount(items.length))
   }, [tripId])
+
+  useEffect(() => {
+    if (!tripDestination || regions.length === 0 || groups.length === 0) return
+    const leaf = regions.find((r) => r.name === tripDestination)
+    if (leaf) {
+      setGroup(leaf.group_name)
+      setRegion(leaf.name)
+    } else if (groups.some((g) => g.name === tripDestination)) {
+      setGroup(tripDestination)
+      setRegion(ALL_LEAF)
+    }
+  }, [tripDestination, regions, groups])
 
   /** 상위 지역을 바꾸면 하위 선택은 '전체'로 되돌린다 — 특정 구 하나로 좁혀 놓은 채 다른 시/도로
    *  넘어가면 그 시/도에 없는 지역명이 남아 있는 꼴이라 혼란스럽다 */

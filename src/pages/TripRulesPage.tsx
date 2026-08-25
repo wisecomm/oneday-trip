@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { places as placesApi, tripItems, trips } from '@/lib/db'
+import { useRegions } from '@/hooks/useRegions'
 import { optimizeOrder } from '@/lib/geo'
 import { fetchWeather, recommend, type TripContext } from '@/lib/recommend'
 import { SEED_PLACES } from '@/lib/seed'
@@ -9,6 +10,8 @@ import {
   TRANSPORT_LABEL,
   TRANSPORT_SPEED_KMH,
   type Profile,
+  type Region,
+  type RegionGroup,
   type Transport,
   type Trip,
   type TripDraft,
@@ -30,10 +33,19 @@ async function seedRecommendedPlaces(
   destination: string,
   count: number,
   profile: Profile | null,
+  groups: RegionGroup[],
+  regions: Region[],
 ): Promise<number> {
-  const anchor = SEED_PLACES.find((p) => p.region === destination) ?? SEED_PLACES[0]
+  // destination 은 leaf 지역(regions.name)일 수도, '전체'로 골라 상위 지역
+  // 전체(region_groups.name)를 가리킬 수도 있다 — 후자면 그 아래 leaf 를 다 모은다
+  const asGroup = groups.find((g) => g.name === destination)
+  const filter = asGroup
+    ? { regions: regions.filter((r) => r.group_name === destination).map((r) => r.name) }
+    : { region: destination }
+
+  const anchor = asGroup ?? SEED_PLACES.find((p) => p.region === destination) ?? SEED_PLACES[0]
   const [list, weather] = await Promise.all([
-    placesApi.list({ region: destination }),
+    placesApi.list(filter),
     fetchWeather(anchor.lat, anchor.lng),
   ])
   if (list.length === 0) return 0
@@ -64,6 +76,7 @@ export function TripRulesPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, profile } = useAuth()
+  const { groups, regions } = useRegions()
 
   const isCreate = !tripId
   const draft = (location.state ?? null) as TripDraft | null
@@ -111,7 +124,14 @@ export function TripRulesPage() {
         // 만들어졌으므로, 오류로 흐름을 끊지 않고 빈 타임라인으로 보낸다.
         let added = 0
         try {
-          added = await seedRecommendedPlaces(created.id, created.destination, maxPlaces, profile)
+          added = await seedRecommendedPlaces(
+            created.id,
+            created.destination,
+            maxPlaces,
+            profile,
+            groups,
+            regions,
+          )
         } catch (err) {
           console.error('[TripRules] 추천 장소 자동 담기에 실패했습니다.', err)
         }

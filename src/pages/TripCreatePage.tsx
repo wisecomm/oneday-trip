@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '@/lib/auth'
+import { trips } from '@/lib/db'
 import { useRegions } from '@/hooks/useRegions'
 import { COMPANION_LABEL, type Companion, type TripDraft } from '@/lib/types'
 import { Loading, PageHeader, StepGuide } from '@/components/ui'
+
+/** 하위 지역(구/시) 선택 대신 상위 지역 전체를 목적지로 삼을 때 쓰는 표식값 — 실제 지역명이 아니다 */
+const ALL_LEAF = '전체'
 
 function todayIso(offsetDays = 0): string {
   const d = new Date()
@@ -17,9 +22,27 @@ export function formatTripDate(iso: string): string {
   return `${d.getMonth() + 1}월 ${d.getDate()}일 (${weekday})`
 }
 
-/** 목적지로부터 만드는 기본 제목 */
-export function defaultTripTitle(destination: string): string {
-  return `${destination} 당일치기`
+/** 날짜를 'MM-DD' 형태로 표기 — 제목 끝에 붙는 짧은 표기 */
+function formatMonthDay(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`)
+  return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/**
+ * 목적지·날짜로부터 만드는 기본 제목.
+ * 구/시를 '전체'로 골랐을 때는 특정 구 이름이 없으므로 상위 지역명만 쓴다.
+ */
+export function defaultTripTitle(destination: string, group: string, tripDate: string): string {
+  const place = destination === ALL_LEAF ? group : destination
+  return `${place} 당일치기 ${formatMonthDay(tripDate)}`
+}
+
+/** 기존 제목과 겹치면 '-01', '-02'… 순번을 붙여 구분한다 */
+function dedupeTitle(base: string, existing: string[]): string {
+  if (!existing.includes(base)) return base
+  let n = 1
+  while (existing.includes(`${base}-${String(n).padStart(2, '0')}`)) n += 1
+  return `${base}-${String(n).padStart(2, '0')}`
 }
 
 /**
@@ -31,6 +54,7 @@ export function defaultTripTitle(destination: string): string {
  */
 export function TripCreatePage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { groups, regions, loading: regionsLoading } = useRegions()
 
   const [group, setGroup] = useState<string>('')
@@ -40,31 +64,35 @@ export function TripCreatePage() {
   const [titleEdited, setTitleEdited] = useState(false)
   const [tripDate, setTripDate] = useState(todayIso(7))
   const [companions, setCompanions] = useState<Companion[]>(['friends'])
+  const [existingTitles, setExistingTitles] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
 
   const leafOptions = regions.filter((r) => r.group_name === group)
 
-  // 지역 목록이 비동기로 도착하므로, 도착한 뒤 첫 상위·하위 지역을 기본 선택으로 채운다
+  // 제목 중복 확인용 — 내 기존 여행 제목 목록을 미리 받아 둔다
   useEffect(() => {
-    if (groups.length === 0 || regions.length === 0 || group) return
-    const firstGroup = groups[0].name
-    const firstLeaf = regions.find((r) => r.group_name === firstGroup)
-    if (!firstLeaf) return
-    setGroup(firstGroup)
-    setDestination(firstLeaf.name)
-    setTitle(defaultTripTitle(firstLeaf.name))
-  }, [groups, regions, group])
+    if (!user) return
+    void trips.list(user.id).then((rows) => setExistingTitles(rows.map((t) => t.title)))
+  }, [user])
+
+  // 지역 목록이 비동기로 도착하면 첫 상위 지역 + '전체'를 기본 선택으로 채운다
+  useEffect(() => {
+    if (groups.length === 0 || group) return
+    setGroup(groups[0].name)
+    setDestination(ALL_LEAF)
+  }, [groups, group])
+
+  // 목적지·날짜가 바뀔 때마다 자동 제목을 다시 계산한다 (직접 수정한 경우는 건드리지 않는다)
+  useEffect(() => {
+    if (titleEdited || !destination || !group) return
+    const base = defaultTripTitle(destination, group, tripDate)
+    setTitle(dedupeTitle(base, existingTitles))
+  }, [destination, group, tripDate, existingTitles, titleEdited])
 
   function changeGroup(next: string) {
     setGroup(next)
-    // 상위 지역을 바꾸면 그 아래 첫 하위 지역으로 다시 맞춘다
-    const firstLeaf = regions.find((r) => r.group_name === next)
-    if (firstLeaf) changeDestination(firstLeaf.name)
-  }
-
-  function changeDestination(next: string) {
-    setDestination(next)
-    if (!titleEdited) setTitle(defaultTripTitle(next))
+    // 상위 지역을 바꾸면 특정 구 이름이 그대로 남아 혼란스러우니 '전체'로 되돌린다
+    setDestination(ALL_LEAF)
   }
 
   function changeTitle(next: string) {
@@ -84,7 +112,14 @@ export function TripCreatePage() {
       return
     }
     setError(null)
-    const draft: TripDraft = { title: trimmed, destination, trip_date: tripDate, companions }
+    // '전체' 는 실제 지역명이 아니므로, 저장은 상위 지역명(region_groups.name)으로 한다
+    const effectiveDestination = destination === ALL_LEAF ? group : destination
+    const draft: TripDraft = {
+      title: trimmed,
+      destination: effectiveDestination,
+      trip_date: tripDate,
+      companions,
+    }
     navigate('/trips/new/rules', { state: draft })
   }
 
@@ -116,10 +151,11 @@ export function TripCreatePage() {
             </select>
             <select
               value={destination}
-              onChange={(e) => changeDestination(e.target.value)}
+              onChange={(e) => setDestination(e.target.value)}
               className="field"
               aria-label="구/시 선택"
             >
+              <option value={ALL_LEAF}>전체</option>
               {leafOptions.map((r) => (
                 <option key={r.name} value={r.name}>
                   {r.name.slice(group.length + 1)}
@@ -139,13 +175,13 @@ export function TripCreatePage() {
             value={title}
             onChange={(e) => changeTitle(e.target.value)}
             maxLength={30}
-            placeholder={defaultTripTitle(destination)}
+            placeholder={group ? defaultTripTitle(destination, group, tripDate) : ''}
             className="field"
           />
           <p className="hint mt-1.5">
             {titleEdited
               ? '직접 입력한 제목이 사용됩니다.'
-              : '목적지에 맞춰 자동으로 채워집니다. 원하는 이름으로 바꿔도 됩니다.'}
+              : '목적지·날짜에 맞춰 자동으로 채워집니다. 원하는 이름으로 바꿔도 됩니다.'}
           </p>
         </section>
 
