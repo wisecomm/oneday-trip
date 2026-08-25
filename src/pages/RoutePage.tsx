@@ -81,7 +81,10 @@ export function RoutePage() {
 
       setItems(reordered.map((it, i) => ({ ...it, sort_order: i })))
       setSaved({ before, after })
-      setDirty(true)
+      // 이미 최단 동선이면(개선폭이 미미하면) 저장할 게 없으니 버튼을 활성화하지 않는다
+      if (after < before - 0.05) {
+        setDirty(true)
+      }
     } finally {
       setOptimizing(false)
     }
