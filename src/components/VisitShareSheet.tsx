@@ -68,7 +68,7 @@ export function VisitShareSheet({
     try {
       if (canShareFiles(photo)) {
         // 모바일에서는 이 시트에 인스타그램이 함께 뜬다
-        await navigator.share({ files: [photo], text: caption, title: input!.tripTitle })
+        await navigator.share({ files: [photo], text: caption, title: input!.place.name })
         return
       }
       // 데스크톱 등 파일 공유를 지원하지 않는 환경 — 저장과 캡션 복사로 대신한다
