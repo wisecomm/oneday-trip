@@ -19,7 +19,7 @@ import {
 import { Loading, PageHeader, StepGuide } from '@/components/ui'
 
 /** 여행 생성 직후 자동으로 담아 줄 추천 장소 개수 */
-const AUTO_ADD_COUNT = 3
+const AUTO_ADD_COUNT = 5
 
 /**
  * 여행 생성 직후 타임라인이 비어 있으면 사용자가 무엇부터 해야 할지 막막해진다.
