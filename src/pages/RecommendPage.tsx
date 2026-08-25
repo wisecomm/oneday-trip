@@ -28,6 +28,8 @@ export function RecommendPage() {
   const [feed, setFeed] = useState<Scored[]>([])
   const [loading, setLoading] = useState(true)
   const [myTrips, setMyTrips] = useState<Trip[]>([])
+  // 로그인하지 않았거나 마이 트립 로딩이 끝나야 '다가오는 여행 목적지' 기본값을 확정할 수 있다
+  const [myTripsLoaded, setMyTripsLoaded] = useState(false)
   const [saveTarget, setSaveTarget] = useState<Scored | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
@@ -57,12 +59,26 @@ export function RecommendPage() {
     }
   }, [region, group, regions, groups, profile])
 
-  // 지역 목록이 비동기로 도착하면 첫 상위 지역 + 전체보기를 기본 선택으로 채운다
+  // 지역 목록·마이 트립이 모두 준비되면 기본 지역을 정한다 — 오늘 이후로 예정된
+  // 여행이 있으면 그중 가장 빠른 여행의 목적지로, 없으면 첫 상위 지역으로 맞춘다
   useEffect(() => {
-    if (region || groups.length === 0) return
-    setGroup(groups[0].name)
+    if (region || groups.length === 0 || regions.length === 0 || !myTripsLoaded) return
+
+    const today = new Date().toISOString().slice(0, 10)
+    const upcoming = myTrips
+      .filter((t) => t.trip_date >= today)
+      .sort((a, b) => a.trip_date.localeCompare(b.trip_date))[0]
+
+    let defaultGroup = groups[0].name
+    if (upcoming) {
+      const leaf = regions.find((r) => r.name === upcoming.destination)
+      if (leaf) defaultGroup = leaf.group_name
+      else if (groups.some((g) => g.name === upcoming.destination)) defaultGroup = upcoming.destination
+    }
+
+    setGroup(defaultGroup)
     setRegion(ALL_LEAF)
-  }, [groups, region])
+  }, [groups, regions, region, myTrips, myTripsLoaded])
 
   useEffect(() => {
     if (!region || groups.length === 0) return
@@ -75,7 +91,14 @@ export function RecommendPage() {
   }
 
   useEffect(() => {
-    if (user) void trips.list(user.id).then(setMyTrips)
+    if (!user) {
+      setMyTripsLoaded(true)
+      return
+    }
+    void trips.list(user.id).then((list) => {
+      setMyTrips(list)
+      setMyTripsLoaded(true)
+    })
   }, [user])
 
   useEffect(() => {
