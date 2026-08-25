@@ -258,10 +258,9 @@ function markerHtml(place: Place, order: number | undefined, selected: boolean):
       background:${color};color:#fff;display:flex;align-items:center;justify-content:center;
       font-weight:800;font-size:${selected ? 15 : 13}px;font-family:inherit;cursor:pointer;
       box-shadow:0 4px 12px rgba(0,0,0,.28);border:2.5px solid #fff">${label}</div>
-    <span style="margin-top:3px;max-width:84px;padding:1px 6px;border-radius:6px;
-      background:rgba(255,255,255,.95);font-size:11px;font-weight:700;color:#21262e;
-      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-      box-shadow:0 1px 3px rgba(0,0,0,.18);font-family:inherit">${name}</span>
+    <span style="margin-top:3px;max-width:84px;font-size:11px;font-weight:700;color:#21262e;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:inherit;
+      text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff,0 0 4px #fff">${name}</span>
   </div>`
 }
 
