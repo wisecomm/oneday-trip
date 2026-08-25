@@ -86,10 +86,10 @@ export function PlaceDetailPage() {
   /** 예약 내용을 카카오톡 템플릿 카드로 동행에게 공유 */
   async function shareToKakao() {
     if (!place || !confirmed) return
-    const text = `[하루트립 예약 확정]\n${place.name}\n${new Date(confirmed.when).toLocaleString('ko-KR')} · ${confirmed.party}명\n${place.address}`
+    const text = `[하루여행 예약 확정]\n${place.name}\n${new Date(confirmed.when).toLocaleString('ko-KR')} · ${confirmed.party}명\n${place.address}`
     try {
       if (navigator.share) {
-        await navigator.share({ title: '하루트립 예약 확정', text })
+        await navigator.share({ title: '하루여행 예약 확정', text })
       } else {
         await navigator.clipboard.writeText(text)
         setToast('예약 내용을 클립보드에 복사했습니다.')

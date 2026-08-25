@@ -24,7 +24,7 @@ export interface VisitCardInput {
 /** 인스타그램에 붙여 넣을 캡션 */
 export function buildCaption(input: VisitCardInput): string {
   const { place, tripTitle, tripDate } = input
-  const tags = ['하루트립', place.region.replace(/\s/g, ''), ...place.tags]
+  const tags = ['하루여행', place.region.replace(/\s/g, ''), ...place.tags]
     .map((t) => `#${t.replace(/\s/g, '')}`)
     .join(' ')
   return `${place.name} 다녀왔어요.\n${place.summary}\n\n${tripTitle} · ${tripDate}\n${place.address}\n\n${tags}`

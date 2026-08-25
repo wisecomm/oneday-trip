@@ -56,7 +56,7 @@ export function LoginPage() {
             🗺️
           </div>
           <h1 className="text-[26px] leading-tight font-extrabold text-ink-900">
-            하루트립
+            하루여행
           </h1>
           <p className="mt-1.5 text-[14px] leading-relaxed text-ink-500">
             여행 일정과 로컬 맛집을 지도 위에서 한 번에.
