@@ -180,8 +180,10 @@ function NaverMap({
         zIndex: selected ? 10 : 1,
         icon: {
           content: markerHtml(place, orderIndex.get(place.id), selected),
-          // 마커 콘텐츠의 중앙 하단이 좌표에 오도록 앵커를 잡는다
-          anchor: new naver.maps.Point(size / 2, size),
+          // 콘텐츠는 이름표까지 포함한 MARKER_WIDTH 너비의 래퍼다. 원의 중앙 하단이
+          // 좌표에 오도록, 래퍼 가로 중앙(원도 이름표도 이 축에 맞춰 가운데 정렬된다)
+          // · 원의 세로 하단(래퍼 맨 위에서 size 만큼)을 앵커로 잡는다.
+          anchor: new naver.maps.Point(MARKER_WIDTH / 2, size),
         },
       })
 
@@ -230,19 +232,37 @@ function NaverMap({
   return <div ref={containerRef} className={className} />
 }
 
+/** 마커 콘텐츠 래퍼의 가로 너비(px) — 이름표가 원보다 넓어도 항상 이 축을 기준으로 가운데 정렬한다 */
+const MARKER_WIDTH = 92
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
 /**
- * 마커 콘텐츠 HTML.
- * anchor 를 (size/2, size) 로 잡으므로 바깥 래퍼 없이 정확히 size × size 로만 그린다.
- * 래퍼에 transform 을 주면 앵커 계산과 어긋나 마커가 좌표에서 밀린다.
+ * 마커 콘텐츠 HTML — 카테고리색 원 아래 중앙에 가게 이름표를 붙인다.
+ * 래퍼 너비를 MARKER_WIDTH 로 고정해 두면, 이름 길이와 무관하게 원과 이름표가
+ * 항상 같은 가로축을 기준으로 가운데 정렬되므로 anchor 계산이 흔들리지 않는다.
  */
 function markerHtml(place: Place, order: number | undefined, selected: boolean): string {
   const color = CATEGORY_COLOR[place.category]
   const size = selected ? 38 : 30
   const label = order ?? ''
-  return `<div style="width:${size}px;height:${size}px;box-sizing:border-box;border-radius:999px;
-    background:${color};color:#fff;display:flex;align-items:center;justify-content:center;
-    font-weight:800;font-size:${selected ? 15 : 13}px;font-family:inherit;cursor:pointer;
-    box-shadow:0 4px 12px rgba(0,0,0,.28);border:2.5px solid #fff">${label}</div>`
+  const name = escapeHtml(place.name)
+  return `<div style="display:flex;flex-direction:column;align-items:center;width:${MARKER_WIDTH}px">
+    <div style="width:${size}px;height:${size}px;box-sizing:border-box;border-radius:999px;
+      background:${color};color:#fff;display:flex;align-items:center;justify-content:center;
+      font-weight:800;font-size:${selected ? 15 : 13}px;font-family:inherit;cursor:pointer;
+      box-shadow:0 4px 12px rgba(0,0,0,.28);border:2.5px solid #fff">${label}</div>
+    <span style="margin-top:3px;max-width:84px;padding:1px 6px;border-radius:6px;
+      background:rgba(255,255,255,.95);font-size:11px;font-weight:700;color:#21262e;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+      box-shadow:0 1px 3px rgba(0,0,0,.18);font-family:inherit">${name}</span>
+  </div>`
 }
 
 /** 내 위치 마커 — 장소 마커(핀 모양)와 구분되도록 파란 점 + 후광으로 그린다 */
@@ -353,17 +373,19 @@ function FallbackMap({
                   {order}
                 </text>
               )}
-              {selected && (
-                <text
-                  y={-r - 10}
-                  textAnchor="middle"
-                  fontSize="13"
-                  fontWeight="700"
-                  fill="#21262e"
-                >
-                  {place.name}
-                </text>
-              )}
+              {/* 원 아래 중앙에 이름표 — 흰 테두리(halo)로 지도 위에서도 읽히게 한다 */}
+              <text
+                y={r + 13}
+                textAnchor="middle"
+                fontSize={selected ? 12.5 : 11}
+                fontWeight="700"
+                stroke="#fff"
+                strokeWidth="3"
+                style={{ paintOrder: 'stroke' }}
+                fill="#21262e"
+              >
+                {place.name.length > 8 ? `${place.name.slice(0, 8)}…` : place.name}
+              </text>
             </g>
           )
         })}
