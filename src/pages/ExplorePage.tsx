@@ -47,11 +47,17 @@ export function ExplorePage() {
         region === ALL_LEAF
           ? { regions: regions.filter((r) => r.group_name === group).map((r) => r.name), categories }
           : { region, categories }
-      setList(await placesApi.list(filter))
+      const result = await placesApi.list(filter)
+      // 내 위치를 확보한 상태라면 기본 정렬(평점순) 대신 거리순을 유지한다
+      setList(
+        myLocation
+          ? [...result].sort((a, b) => distanceKm(myLocation, a) - distanceKm(myLocation, b))
+          : result,
+      )
     } finally {
       setLoading(false)
     }
-  }, [region, group, regions, active])
+  }, [region, group, regions, active, myLocation])
 
   // 지역 목록이 비동기로 도착하므로, url 에 region 쿼리가 없었다면 첫 상위 지역 + 전체보기로 채운다
   useEffect(() => {
@@ -122,19 +128,33 @@ export function ExplorePage() {
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         const me = { lat: coords.latitude, lng: coords.longitude }
-        setMyLocation(me)
-        setList((prev) =>
-          [...prev].sort((a, b) => distanceKm(me, a) - distanceKm(me, b)),
+
+        // 지금 필터가 다른 시/도로 좁혀져 있으면 '재탐색'을 눌러도 애초에
+        // 목록에 내 위치 근처 장소가 없다. 가장 가까운 하위 지역(구/시)을 찾아
+        // 그 상위 지역으로 필터를 옮기고, 하위 지역·카테고리는 전체로 되돌려
+        // 놓쳐서 빠지는 곳이 없게 한다.
+        const nearestRegion = regions.reduce<{ region: (typeof regions)[number]; d: number } | null>(
+          (best, r) => {
+            const d = distanceKm(me, r)
+            return !best || d < best.d ? { region: r, d } : best
+          },
+          null,
         )
-        // 실제 행정구역 조회 없이도, 이미 들고 있는 시/도 중심 좌표에서 가장 가까운
-        // 곳을 '대략 어느 도시인지'로 보여준다 — 정확한 행정동보다는 감을 잡는 용도
-        const nearestGroup = groups.reduce<{ name: string; d: number } | null>((best, g) => {
-          const d = distanceKm(me, g)
-          return !best || d < best.d ? { name: g.name, d } : best
-        }, null)
+
+        setMyLocation(me)
+        if (nearestRegion) {
+          setGroup(nearestRegion.region.group_name)
+          setRegion(ALL_LEAF)
+          setActive([])
+          setParams((p) => {
+            p.delete('region')
+            return p
+          })
+        }
+
         setToast(
-          nearestGroup
-            ? `내 위치(${nearestGroup.name} 인근)에서 가까운 순으로 정렬했습니다.`
+          nearestRegion
+            ? `내 위치(${nearestRegion.region.group_name} 인근)에서 가까운 순으로 정렬했습니다.`
             : '내 위치에서 가까운 순으로 정렬했습니다.',
         )
       },
