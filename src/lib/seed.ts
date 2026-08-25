@@ -20,6 +20,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '성수노루는 직원들이 직접 구워주는 한우곱창집이다',
     open_hours: '- 16:00~23:00 - 마지막 주문 22:00',
+    phone: '0507-1388-1936',
     waiting_count: 0,
   },
   {
@@ -36,6 +37,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '성수동에 위치한 할머니의 레시피는 수인·분당선 서울숲역 5번 출구 인근에 자리 잡고 있다',
     open_hours: '- 11:00~21:10 - 준비시간 15:30~16:40 - 점심 마지막 주문 15:00 / 저녁 마지막 주문 20:40',
+    phone: '0507-1429-5101',
     waiting_count: 0,
   },
   {
@@ -52,6 +54,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '성수동에 위치한 성수족발은 서울 3대 족발이라고 불릴 만큼 유명한 족발 맛집이다',
     open_hours: '- 12:00~22:00 - 준비시간 15:00~17:00 - 마지막 주문 21:00',
+    phone: '02-464-0425',
     waiting_count: 0,
   },
   {
@@ -68,6 +71,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '록멘은 수인분당선 서울숲역 1번 출구 경일중학교 방향, 2호선 성수역 4번 출구 경일초등학교 사이 …',
     open_hours: '[평일] - 11:30~21:00 - 준비시간 15:00~17:00 - 마지막 주문 20:30 [일요일] - 12:00~16:00 - 마지막 주문 15:30',
+    phone: '0507-1339-9857',
     waiting_count: 0,
   },
   {
@@ -84,6 +88,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '차이나플레인은 플라타너스 나무처럼 고객에 대한 따뜻한 사랑과 지속적인 애정을 의미하는 프리미엄 차이니즈 레스토랑이다',
     open_hours: '[평일] - 11:00~21:00 - 준비시간 15:00~17:00 - 마지막 주문 14:30, 20:20 [주말] - 11:30~20:00 - 마지막 주문 19:20',
+    phone: '0507-1301-8493',
     waiting_count: 0,
   },
   {
@@ -100,6 +105,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '에르제 성수는 서울지하철 2호선 성수역 2번 출구에서 약 170미터 거리에 있다',
     open_hours: '- 평일 08:00~19:30 - 주말 10:00~19:30',
+    phone: '0507-1485-7021',
     waiting_count: 0,
   },
   {
@@ -116,6 +122,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '리틀 포레스트는 서울지하철 2호선 성수역 성수2가3동행정복지센터 인근에 있다',
     open_hours: '- 10:00~18:00 - 마지막 주문 17:00',
+    phone: '0507-1358-6816',
     waiting_count: 0,
   },
   {
@@ -132,6 +139,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '성동구 금호동에 위치한 비올레타는 2018년에 오픈한 머핀 전문 카페이다',
     open_hours: '13:00~18:00',
+    phone: '0507-1307-8178',
     waiting_count: 0,
   },
   {
@@ -148,6 +156,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '옹근달은 서울지하철 2호선 성수역 4번 출구 인근에 있다',
     open_hours: '- 11:00~23:00 - 마지막 주문 22:30',
+    phone: '02-499-5012',
     waiting_count: 0,
   },
   {
@@ -164,6 +173,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '어니언 성수는 2호선 성수역 2번 출구 앞 카페거리 인근 초입에 있다',
     open_hours: '[평일] - 08:00~22:00 - 마지막 주문 21:30 [주말] - 09:00~22:00 - 마지막 주문 21:30',
+    phone: '0507-1386-3238',
     waiting_count: 0,
   },
   {
@@ -180,6 +190,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '메쉬커피는 서울지하철 2호선 뚝섬역 8번 출구 뚝섬역사거리에서 성수중학교 사이에 있다',
     open_hours: '- 평일 08:00~17:00 - 토요일 10:00~18:00 - 일요일 12:00~17:00',
+    phone: '02-464-7078',
     waiting_count: 0,
   },
   {
@@ -196,6 +207,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '브로벨커피는 서울 지하철 2호선 성수역 3번 출구, 경수중학교 주변에 있는 디저트 카페이다',
     open_hours: '- 평일 08:30~17:00 - 주말 12:00~18:00',
+    phone: '0507-1311-5528',
     waiting_count: 0,
   },
   {
@@ -212,6 +224,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '에이투비 Cafe&Bar는 서울지하철 2호선 성수역 2번 출구에서 약 170미터 거리에 있다',
     open_hours: '- 12:00~23:00 - 마지막 주문 22:30',
+    phone: '070-4617-0812',
     waiting_count: 0,
   },
   {
@@ -228,6 +241,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '한강은 한반도 가운데를 가로지르는 강으로 강원도, 충청북도, 경기도, 서울특별시를 거쳐 서해로 유입하는 강이다',
     open_hours: '상시 개방',
+    phone: '미래한강본부 운영부 02-3780-0812',
     waiting_count: 0,
   },
   {
@@ -244,6 +258,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '살곶이체육공원은 청계천이 중랑천과 만나는 자리 부근으로 한양대학교에서도 내려다보면 바로 보인다',
     open_hours: '상시 개방',
+    phone: '02-2286-6090',
     waiting_count: 0,
   },
   {
@@ -260,6 +275,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '서울 성동구에 위치한 성수연방은 각자의 분야에서 특별한 개성과 능력, 이야기를 가진 구성원들이 모인 생활 문화 소사이어티 플랫폼이다',
     open_hours: '10:00~22:00',
+    phone: '010-8979-8122',
     waiting_count: 0,
   },
   {
@@ -276,6 +292,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '옥수동에 자리한 미타사는 대한불교 조계종 조계사의 직할 사찰로 달맞이봉공원 아래 위치해 있다',
     open_hours: '상시 개방',
+    phone: '02-2298-3377',
     waiting_count: 0,
   },
   {
@@ -292,6 +309,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '이 다리는 정종과 태종의 잦은 행차 때문에 1420년 처음 만들어지기 시작했으나 태종이 죽자 왕의 행차가 거의 없어 완성되지 못하였다',
     open_hours: '상시 개방',
+    phone: '성동구청 문화체육과 02-2286-5202',
     waiting_count: 0,
   },
   {
@@ -308,6 +326,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '성수역 3번과 4번 출구 사이, 붉은색 벽돌을 쌓은 커다란 건물이 있는데, 신세계프라퍼티가 MZ세대…',
     open_hours: '점포 별로 상이함',
+    phone: null,
     waiting_count: 0,
   },
   {
@@ -324,6 +343,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '서울 성수동에 위치한 아모레 성수는 아모레퍼시픽이 제안하는 ‘아름다움’에 대해 차별화된 경험을 할 수 있는 뷰티 플래그십 공간이다',
     open_hours: '10:30~20:30',
+    phone: '02-469-8600',
     waiting_count: 0,
   },
   {
@@ -340,6 +360,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '해녀의 부엌은 제주 해녀들이 손수 만든 음식과 해녀들의 이야기를 담은 공연을 한 번에 즐길 수 있는 로컬 푸드 다이닝 공간이다',
     open_hours: '[목요일~일요일] 10:00~18:00 (준비시간 14:30~17:00) [월요일] 10:00~14:00)',
+    phone: '0507-1385-1828',
     waiting_count: 0,
   },
   {
@@ -356,6 +377,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '소금바치 순이네는 종달리 해안로에 자리하고 있는 해산물 요리 전문점이다',
     open_hours: '09:30~19:30 (마지막 주문 19:00)',
+    phone: '064-784-1230',
     waiting_count: 0,
   },
   {
@@ -372,6 +394,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '낭뜰에쉼팡은 나무 뜰이 있는 쉼터에서 쉬었다 가라는 의미를 담고 있는 제주도 방언이다',
     open_hours: '09:00~19:50 (마지막 주문 18:50)',
+    phone: '064-784-9292',
     waiting_count: 0,
   },
   {
@@ -388,6 +411,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '송림반점은 제주 구도심 서문사거리에 위치한 중식당이다',
     open_hours: '11:30~15:00 (마지막 주문 14:30)',
+    phone: '064-722-4229',
     waiting_count: 0,
   },
   {
@@ -404,6 +428,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '뿌리와 열매는 제주시 구좌읍 송당 사거리 버스정류장 옆에 있는 브런치 카페이다',
     open_hours: '10:40~18:20',
+    phone: '010-6417-3946',
     waiting_count: 0,
   },
   {
@@ -420,6 +445,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '연화키친은 제주 더럭 초등학교 근처, 상가리사무소 근처에 위치하고 있다',
     open_hours: '10:30~20:00 (마지막 주문 19:00)',
+    phone: '0507-1406-9733',
     waiting_count: 0,
   },
   {
@@ -436,6 +462,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '착한튀김은 제주시 화북 남문 주민센터 앞에 있다',
     open_hours: '10:00~19:00',
+    phone: '064-723-3392',
     waiting_count: 0,
   },
   {
@@ -452,6 +479,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '제주시에 위치한 카페 새빌은 기존의 리조트를 리모델링한, 유럽의 중세시대 성같은 분위기의 베이커리 카페이다',
     open_hours: '09:00~18:30 (마지막 주문 18:00)',
+    phone: '064-794-0073',
     waiting_count: 0,
   },
   {
@@ -468,6 +496,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '제주 서귀포시에 위치한 효은디저트는 산방산을 배경으로 자리 잡은 아담한 디저트 카페로, 지역 특산물…',
     open_hours: '11:00~20:00',
+    phone: '0507-1417-8902',
     waiting_count: 0,
   },
   {
@@ -484,6 +513,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '드르쿰다 카페는 광치기 해변에서 차로 2분 거리에 위치해 접근성이 좋고 부근에 유명한 관광지들이 밀…',
     open_hours: '09:00~17:30 (마지막 주문 17:00)',
+    phone: '0507-1402-7765',
     waiting_count: 0,
   },
   {
@@ -500,6 +530,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '제주에서도 아담하고 조용한 마을인 송당에 자리한 북카페다',
     open_hours: '정보 없음',
+    phone: '070-8860-7504',
     waiting_count: 0,
   },
   {
@@ -516,6 +547,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '인디고트리는 오래된 귤 창고를 카페이자 편집샵으로 개조한 곳으로 곳곳이 돌로 꾸며져 투박하면서도 빈…',
     open_hours: '정보 없음',
+    phone: '0506-662-8185',
     waiting_count: 0,
   },
   {
@@ -532,6 +564,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '카페 귤꽃다락은 1978년에 지어진 귤밭 돌창고를 개조한 카페이다',
     open_hours: '10:00~18:40 (마지막 주문 18:00)',
+    phone: '0507-1409-2323',
     waiting_count: 0,
   },
   {
@@ -548,6 +581,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '천제연 폭포는 한라산에서 시작된 중문천이 바다로 흐르면서 형성된 폭포로, 중문관광단지 내에 있다',
     open_hours: '09:00~17:50 (입장 마감 17:10)',
+    phone: '064-760-6331',
     waiting_count: 0,
   },
   {
@@ -564,6 +598,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '가새기오름은 오라동 연미마을 북서쪽에 가로누운 자그마한 화구 없는 원추형 화산체로서, 남북으로 긴 …',
     open_hours: '상시 개방',
+    phone: '제주관광정보센터 064-740-6000',
     waiting_count: 0,
   },
   {
@@ -580,6 +615,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '제주시 애월읍에 자리한 고내 포구는 에메랄드빛 제주 바다를 감상할 수 있는 애월읍 해안도로를 따라 …',
     open_hours: '상시 개방',
+    phone: '제주관광정보센터 064-740-6000',
     waiting_count: 0,
   },
   {
@@ -596,6 +632,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '돈내코는 제주특별자치도 서귀포시에 위치한 계곡으로 에메랄드빛 강물과 난대 상록수림이 울창한 모습을 …',
     open_hours: '상시 개방',
+    phone: '064-733-1584',
     waiting_count: 0,
   },
   {
@@ -612,6 +649,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '하도마을은 아직 개발의 손이 닿지 않아 대중들에게는 많이 알려지지 않은 마을이지만 천연기념물 토끼섬…',
     open_hours: '10:00~17:00 ※ 전화 예약 필수',
+    phone: '010-6396-3075',
     waiting_count: 0,
   },
   {
@@ -628,6 +666,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '한담해변은 제주 북서부에 위치하여 애월에서 곽지까지 해안을 따라 이어진다',
     open_hours: '상시 개방',
+    phone: '064-728-3394',
     waiting_count: 0,
   },
   {
@@ -644,6 +683,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '금호리조트 제주는 남원관광단지에 위치해 있으며 초원과 해안절벽을 끼고 세워졌다',
     open_hours: '상시 개방',
+    phone: '064-766-8000',
     waiting_count: 0,
   },
   {
@@ -660,6 +700,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '부산 진구에 위치한 사미헌은 한우 숯불구이, 갈비탕 등을 판매하는 한식 전문점이다',
     open_hours: '11:00~21:30',
+    phone: '051-819-6677',
     waiting_count: 0,
   },
   {
@@ -676,6 +717,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '마포면옥은 기장군 장안읍에 있는 밀면 맛집이다',
     open_hours: '- 10:10~19:30 - 점심 마지막 주문 14:50 - 준비시간 15:00~16:00 - 저녁 마지막 주문 19:20',
+    phone: '051-727-5585',
     waiting_count: 0,
   },
   {
@@ -692,6 +734,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '미동암소정은 부산 기장군에서 유명한 아홉산숲 입구 인근에 위치해 있다',
     open_hours: '11:00~20:30 (마지막 주문 19:30)',
+    phone: '0507-1426-9441',
     waiting_count: 0,
   },
   {
@@ -708,6 +751,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '탁 트인 바다 위에서 부산의 아름다운 전망을 한눈에 담을 수 있는 클라우드32는 품격 있는 다이닝을…',
     open_hours: '12:00~24:00 (준비시간 15:30~17:00)',
+    phone: '0507-1429-5320',
     waiting_count: 0,
   },
   {
@@ -724,6 +768,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '부산에 위치한 \'야스마루\'는 일본식 소품과 인테리어로 꾸며져 전반적으로 정돈된 분위기를 갖추고 있다',
     open_hours: '12:00~01:00 - 준비시간 15:30~17:30 - 점심 마지막 주문 14:30 / 저녁 마지막 주문 00:00',
+    phone: '010-7144-7600',
     waiting_count: 0,
   },
   {
@@ -740,6 +785,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '이가네 떡볶이는 예능프로그램에서 우승하면서 더욱 유명해진 분식집이다',
     open_hours: '10:00~19:30 ※ 자세한 사항은 전화문의 요망',
+    phone: '051-245-0413',
     waiting_count: 0,
   },
   {
@@ -756,6 +802,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '줄 서서 먹는 토스트 맛집 문토스트는 송정해수욕장 바로 앞에 있다',
     open_hours: '- 14:30~02:30 - 마지막 주문 02:00',
+    phone: null,
     waiting_count: 0,
   },
   {
@@ -772,6 +819,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '부산 기장군 철마에 위치한 브라운피크닉은 동화 속에 나오는 집처럼 예쁜 공간이다',
     open_hours: '[평일] - 11:00~19:00 - 마지막 주문 18:30 [주말} - 11:00~21:00 - 마지막 주문 20:30',
+    phone: '0507-1315-2192',
     waiting_count: 0,
   },
   {
@@ -788,6 +836,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '부산 사하구 괴정동 산 중턱에 위치한 ‘카페 만디’는 일상에서 벗어나 조용한 휴식을 즐기기에 안성맞춤인 감성적인 공간이다',
     open_hours: '12:00~21:30 (마지막 주문 21:00)',
+    phone: '051-977-0049',
     waiting_count: 0,
   },
   {
@@ -804,6 +853,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '부산 남구에 위치한 브런치 카페 \'듀스포레\'는 케이크, 수제 잼, 쿠키 등 직접 만든 건강한 디저트…',
     open_hours: '- 10:00~18:00 - 마지막 주문 17:30',
+    phone: '051-746-5887',
     waiting_count: 0,
   },
   {
@@ -820,6 +870,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '디저트시네마는 매일 영업하지 않아서 사람들을 안달나게 하는 베이커리 맛집이다',
     open_hours: '12:00~16:00 (마지막 주문 15:30) ※ 재료 소진 시 조기 마감',
+    phone: '051-867-5757',
     waiting_count: 0,
   },
   {
@@ -836,6 +887,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '탁 트인 넓은 잔디밭에서 바다를 바라보며 편히 쉴 수 있는 공간이다',
     open_hours: '- 평일 10:00~19:00 (마지막 주문 18:00) - 주말 10:30~21:00 (마지막 주문 20:00)',
+    phone: '0507-1304-7900',
     waiting_count: 0,
   },
   {
@@ -852,6 +904,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '광안리 바닷가의 과일 카페 프루터리포레스트는 달맞이고개 끝자락 숲속에 있다',
     open_hours: '- 평일 10:00~18:00 - 주말 10:00~20:00',
+    phone: '0507-1451-2038',
     waiting_count: 0,
   },
   {
@@ -868,6 +921,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '국청사는 신라시대 의상대사가 창건한 고찰로, 조선 숙종 29년 금정산성 축조와 함께 중수하여 이름을…',
     open_hours: '상시 개방 ※ 자세한 사항은 전화문의 요망',
+    phone: '051-517-5003',
     waiting_count: 0,
   },
   {
@@ -884,6 +938,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '옥련선원은 부산 수영구에 위치한 전통적인 사찰이다',
     open_hours: '상시 개방',
+    phone: '051-757-9066',
     waiting_count: 0,
   },
   {
@@ -900,6 +955,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '금련산은 부산광역시 연제구, 수영구, 남구의 경계에 위치한 산으로, 산의 모양이 연꽃 모양을 닮았다고 하여 붙여진 이름이라고 한다',
     open_hours: '상시 개방',
+    phone: '광안리 관광안내소 051-610-4848',
     waiting_count: 0,
   },
   {
@@ -916,6 +972,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '두도는 부산 서구 송도 반도에서 남동쪽으로 떨어진 섬으로 두도라는 지명은 대가리섬에서 유래하였으며 …',
     open_hours: '상시 개방',
+    phone: '부산서구관광안내소 051-231-0252',
     waiting_count: 0,
   },
   {
@@ -932,6 +989,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '동백공원은 해운대해수욕장 남쪽 끝에 있는 동백섬을 공원으로 조성한 것으로, 1966년 9월 공원 대…',
     open_hours: '상시 개방',
+    phone: '해운대구 관광시설관리사업소 051-749-7622',
     waiting_count: 0,
   },
   {
@@ -948,6 +1006,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '8~7천만 년 전인 중생대 백악기 말 다대포-송도 지역의 동쪽에 있는 동래단층과 서쪽의 양산단층이 …',
     open_hours: '상시 개방',
+    phone: '부산광역시청 환경정책과 051-888-3636',
     waiting_count: 0,
   },
   {
@@ -964,6 +1023,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '부산 해운대구에 위치한 마린시티는 원래 바다였던 곳을 매립하여 생긴 신도시로 밤이 되면 화려하게 불…',
     open_hours: '상시 개방',
+    phone: '해운대관광안내소 051-749-5700',
     waiting_count: 0,
   },
   {
@@ -980,6 +1040,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '요석궁 1779는 300년 전통, 경주 최부잣집의 내림 음식으로 구성된 시절식이 제공되는 곳이다',
     open_hours: '- 12:00~21:00 - 준비시간 16:00~17:30 - 점심 마지막 주문 15:00 - 저녁 마지막 주문 20:00',
+    phone: '0507-1390-3408',
     waiting_count: 0,
   },
   {
@@ -996,6 +1057,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '송정원 순두부는 경상북도 경주시 시래동에 있다',
     open_hours: '[평일] - 10:00~16:30 [주말] - 10:00~15:30 ※ 재료소진시 마감 / 방문 전 전화 필요',
+    phone: '054-742-8828',
     waiting_count: 0,
   },
   {
@@ -1012,6 +1074,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '경주시 보문관광단지의 초입이며 북군 관광단지 내에 있는 맷돌순두부집은 경주를 찾는 관광객들로 항상 붐빈다',
     open_hours: '- 08:00~21:00 - 준비시간 16:00~17:00 - 마지막 주문 20:20',
+    phone: '054-620-9000',
     waiting_count: 0,
   },
   {
@@ -1028,6 +1091,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '백리향 황성본점은 경상북도 경주시 황성동에 있다',
     open_hours: '11:00~21:00 - 준비 시간 15:00~16:00 - 마지막 주문 20:40',
+    phone: '054-741-0100',
     waiting_count: 0,
   },
   {
@@ -1044,6 +1108,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '바다 위의 돌고래횟집은 나정항과 가까운 곳에 있다',
     open_hours: '11:00~21:00 (준비시간 15:00~16:30)',
+    phone: '054-744-3507',
     waiting_count: 0,
   },
   {
@@ -1060,6 +1125,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '밀면식당 본점은 1972년부터 시작하여 50년 이상 밀면을 전문으로 영업해 온 경주의 첫 번째 밀면 전문점이다',
     open_hours: '11:00~19:00 (마지막 주문 18:30)',
+    phone: '0507-1325-8768',
     waiting_count: 0,
   },
   {
@@ -1076,6 +1142,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '가봉반과는 경상북도 경주시 사정동에 자리한 한옥 카페로, 전통 감성과 고즈넉한 분위기가 잘 살아 있는 공간이다',
     open_hours: '[평일] 11:00~18:00 [주말] 11:00~19:00',
+    phone: '054-744-6648',
     waiting_count: 0,
   },
   {
@@ -1092,6 +1159,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '소소밀밀은 북카페로 운영되고 있다',
     open_hours: '정보 없음',
+    phone: '010-5220-3899',
     waiting_count: 0,
   },
   {
@@ -1108,6 +1176,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '경주 황남빵은 1939년 경주 황남동에서 만들어져 빵을 사라 온 사람들에게 황남빵이라고 불리던 것이 그대로 현재의 공식 이름이 되었다',
     open_hours: '08:00~22:00',
+    phone: '054-749-7000',
     waiting_count: 0,
   },
   {
@@ -1124,6 +1193,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '경주 벤자마스 카페는 경상북도 경주에 위치한 고급스러운 카페이다',
     open_hours: '10:00~24:00',
+    phone: '070-4411-8008',
     waiting_count: 0,
   },
   {
@@ -1140,6 +1210,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '히든씨는 경상북도 경주시 감포읍 오류리에 있다',
     open_hours: '09:00~19:30 (마지막 주문 20:30)',
+    phone: '0507-1360-7769',
     waiting_count: 0,
   },
   {
@@ -1156,6 +1227,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '페이지나인은 경상북도 경주시 북군동에 있다',
     open_hours: '10:50~21:00 (마지막 주문 20:00)',
+    phone: '010-2511-7773',
     waiting_count: 0,
   },
   {
@@ -1172,6 +1244,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '한화리조트 경주는 세계적인 문화유산인 경주 보문단지의 대표적인 숙박시설이다',
     open_hours: '상시 개방',
+    phone: '054-777-8900',
     waiting_count: 0,
   },
   {
@@ -1188,6 +1261,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '경주 옥산 세심마을은 회재 이언적 선생이 성리학 연구에 전념하던 곳으로, 훌륭한 문화유산과 아름다운…',
     open_hours: '상시 개방 ※ 체험 프로그램 이용은 전화 문의',
+    phone: '010-2082-6148',
     waiting_count: 0,
   },
   {
@@ -1204,6 +1278,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '경주시 양남면 나산리 큰 마을에 있는 나산서원은 조선 전기의 문신 백촌 김문기를 배향하는 곳으로 일명 나산사라고도 한다',
     open_hours: '09:00~18:00',
+    phone: '경주시청 문화유산과 054-779-6108',
     waiting_count: 0,
   },
   {
@@ -1220,6 +1295,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '1786년(정조 10)에 지방 유림의 공의로 서유(徐愈)의 학문과 덕행을 추모하기 위해 귀산서사(龜山書社)를 창건하여 위패를 모셨다',
     open_hours: '상시 개방',
+    phone: '경주시청 문화유산과 054-779-6108',
     waiting_count: 0,
   },
   {
@@ -1236,6 +1312,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '경주월드에 있는 이국적인 풍경을 가진 물놀이 시설로 여름 시즌에만 운영한다',
     open_hours: '시즌 별로 상이함',
+    phone: '1544-8765',
     waiting_count: 0,
   },
   {
@@ -1252,6 +1329,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '경주 괘릉 안쪽 활성리라는 작은 마을 언덕에 있는 연지암은 일제강점기 말 김연지화 보살이 창건했다',
     open_hours: '상시 개방',
+    phone: '054-744-7314',
     waiting_count: 0,
   },
   {
@@ -1268,6 +1346,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '동서는 안압지로부터 교동까지 남북은 반월성 남쪽의 남천에서 고분공원 앞 첨성로에 이르는 광대한 지역이다',
     open_hours: '상시 개방',
+    phone: '054-772-3843',
     waiting_count: 0,
   },
   {
@@ -1284,6 +1363,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '인천광역시 동인천역에 위치한 삼강옥은 제1대 대표 박재황 대표가 개성에서 내려와 지금의 자리에 1946년 개업하였다',
     open_hours: '08:30~20:30 (마지막 주문 20:00)',
+    phone: '032-772-7885',
     waiting_count: 0,
   },
   {
@@ -1300,6 +1380,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '해장국집은 인천광역시에 위치하여 한자리에서만 30년이 넘도록 운영하고 있는 오래된 노포 느낌의 해장국 전문점이다',
     open_hours: '- 해장국 05:00~10:30 - 설렁탕 11:00~15:00',
+    phone: '032-766-0335',
     waiting_count: 0,
   },
   {
@@ -1316,6 +1397,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '인천국제공항터미널이 있는 곳 을왕리 해수욕장 인근에 있는 한정식집이다',
     open_hours: '[평일] - 09:20~20:30 - 마지막 주문 19:50 [주말] - 09:30~21:00 - 마지막 주문 20:20',
+    phone: '032-746-7781',
     waiting_count: 0,
   },
   {
@@ -1332,6 +1414,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '공화춘은 3층 규모의 대형 단독 건물로 눈에 띄는 간판과 건물 외관으로 쉽게 찾을 수 있는 인천광역시 차이나타운의 중식당이다',
     open_hours: '10:00~21:30',
+    phone: '0507-1363-0571',
     waiting_count: 0,
   },
   {
@@ -1348,6 +1431,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '양자강은 인천광역시 을왕리에 있는 중국 음식 전문점이다',
     open_hours: '- 11:00~21:00 - 마지막 주문 20:00',
+    phone: '032-746-2666',
     waiting_count: 0,
   },
   {
@@ -1364,6 +1448,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '남동공단 떡볶이는 가성비 좋은 분식집으로, 쫄볶이와 밀떡 떡볶이가 특히 인기 메뉴다',
     open_hours: '[평일] - 07:00~18:30 - 마지막 주문 18:00 [토요일] - 07:00~15:00 - 마지막 주문 14:30',
+    phone: '032-821-5566',
     waiting_count: 0,
   },
   {
@@ -1380,6 +1465,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '인천광역시에 자리한 보테가는 용유역 자기 부상철도 인근에 있다',
     open_hours: '- 평일 10:00~20:00 - 주말 09:00~21:00',
+    phone: '0507-1488-8891',
     waiting_count: 0,
   },
   {
@@ -1396,6 +1482,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '직접 만드는 맛있는 베이커리를 맛볼 수 있는 야외 정원이 예쁜 곳이다',
     open_hours: '10:00~21:00',
+    phone: '0507-1467-4040',
     waiting_count: 0,
   },
   {
@@ -1412,6 +1499,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '서원안길은 인천광역시 할미산 자락에 있는 베이커리 카페다',
     open_hours: '11:00~21:30 (마지막 주문 21:00)',
+    phone: '010-2458-0007',
     waiting_count: 0,
   },
   {
@@ -1428,6 +1516,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '마시랑 카페는 인천광역시 덕교동, 마시랑 해변에 있는 베이커리 카페이다',
     open_hours: '10:00~21:30',
+    phone: '032-747-1239',
     waiting_count: 0,
   },
   {
@@ -1444,6 +1533,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '인천광역시 영종동에 있는 베이커리 카페이다',
     open_hours: '10:00~21:00',
+    phone: '0507-1371-7870',
     waiting_count: 0,
   },
   {
@@ -1460,6 +1550,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '앤드아워는 인천광역시 화평동에 있는 대형 베이커리 카페다',
     open_hours: '10:00~22:00',
+    phone: '0507-1422-1945',
     waiting_count: 0,
   },
   {
@@ -1476,6 +1567,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '스타파이브 카페는 인천광역시에 있다',
     open_hours: '- 평일 10:30~19:30 - 주말 10:00~21:00',
+    phone: '0507-1409-1150',
     waiting_count: 0,
   },
   {
@@ -1492,6 +1584,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '을왕리 해수욕장으로 가는 길목에는 갖가지 기암괴석들이 많다',
     open_hours: '상시 개방',
+    phone: '032-760-6478',
     waiting_count: 0,
   },
   {
@@ -1508,6 +1601,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '무지개처럼 생긴 문이라는 뜻의 홍예문(虹霓門)은 철도 건설을 담당하고 있던 일본 공병대가 1906년 착공하여 1908년에 준공하였다',
     open_hours: '상시 개방',
+    phone: '032-760-6474',
     waiting_count: 0,
   },
   {
@@ -1524,6 +1618,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '인천광역시 관동에 위치한 인천 중구청 본관 건물은 인천의 주요 행정기관 청사로 활용되어 온 건물이다',
     open_hours: '09:00~18:00',
+    phone: '032-760-7114',
     waiting_count: 0,
   },
   {
@@ -1540,6 +1635,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '인천 제물포고등학교 강당은 일제강점기인 1935년 인천중학교의 강당으로 세워진 건물이다',
     open_hours: '09:00~18:00',
+    phone: '032-770-4801',
     waiting_count: 0,
   },
   {
@@ -1556,6 +1652,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '인천광역시 항동에 있는 인천우체국은 일제강점기 우편 업무를 담당하던 건물이다',
     open_hours: '09:00~18:00',
+    phone: '032-850-8180',
     waiting_count: 0,
   },
   {
@@ -1572,6 +1669,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '영종도 인천 중산고등학교 인근 하늘도시 체육공원이다',
     open_hours: '상시 개방',
+    phone: '032-760-7114',
     waiting_count: 0,
   },
   {
@@ -1588,6 +1686,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '무의도는 인천광역시에 위치한 섬이다',
     open_hours: '상시 개방',
+    phone: '도시공원과 산림팀 032-760-7770',
     waiting_count: 0,
   },
   {
@@ -1604,6 +1703,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '농민순대는 KBS 2TV 생생정보통 등 여러 방송에 출연한 바 있다',
     open_hours: '08:00~24:00',
+    phone: '042-256-1191',
     waiting_count: 0,
   },
   {
@@ -1620,6 +1720,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '30여 년 전통의 두루치기 전문점이다',
     open_hours: '- 10:30~21:30 - 준비시간 15:00~17:00 - 마지막 주문 20:30',
+    phone: '042-226-4751',
     waiting_count: 0,
   },
   {
@@ -1636,6 +1737,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '1969년에 개점한 40여 년 전통의 한식당 진로집은 대전광역시 중구 대흥동에 위치하였으며 2대째 이어온 두루치기 전문 식당이다',
     open_hours: '11:30~22:00 (준비 시간 15:00~16:30)',
+    phone: '042-226-0914',
     waiting_count: 0,
   },
   {
@@ -1652,6 +1754,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '1954년에 개업하여 60년 넘는 전통을 가진 중식당 태화장은 닭고기 육수에 해물을 넣고 끓인 삼선…',
     open_hours: '11:30~21:00 (준비시간 14:00~17:00)',
+    phone: '042-256-2407',
     waiting_count: 0,
   },
   {
@@ -1668,6 +1771,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '조기종의 향미각 본점은 짬뽕으로 유명한 곳이다',
     open_hours: '- 10:30~21:00 - 마지막 주문 20:20',
+    phone: '042-626-8252',
     waiting_count: 0,
   },
   {
@@ -1684,6 +1788,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '1956년에 대전역 앞 작은 찐빵집에서 시작된 성심당은, 대전시민의 자부심과 사랑으로 대한민국 제과업계를 대표하는 향토빵집이 되었다',
     open_hours: '08:00~22:00',
+    phone: '1588-8069',
     waiting_count: 0,
   },
   {
@@ -1700,6 +1805,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '꾸드뱅은 대전광역시 유성구 지족동에 있는 베이커리 카페다.앙버터와 크림브륄레 페스츄리, 망고 숲 미…',
     open_hours: '08:30~21:30',
+    phone: '0507-1493-3033',
     waiting_count: 0,
   },
   {
@@ -1716,6 +1822,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '한옥카페 예이제 448은 대전시 유성구 외삼동에 자리 잡고 있다',
     open_hours: '- 평일 10:00~18:00 - 주말 10:00~19:00',
+    phone: '0507-1314-1226',
     waiting_count: 0,
   },
   {
@@ -1732,6 +1839,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '커피가는 대전시 유성구 탑립동에 자리 잡고 있다',
     open_hours: '- 평일 07:30~18:00 - 주말 10:00~22:00',
+    phone: '070-8287-3317',
     waiting_count: 0,
   },
   {
@@ -1748,6 +1856,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '프리미엄 반려동물 복합문화공간으로 4층 애견 동반 카페, 5층 루프탑/애견 수영장, 3층 애견 호텔…',
     open_hours: '11:00~20:00',
+    phone: '0507-1448-6012',
     waiting_count: 0,
   },
   {
@@ -1764,6 +1873,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '몽뜨는 대전광역시 서구 도안동에 있다',
     open_hours: '[카페] - 10:00~16:00 - 마지막 주문 15:00 [브런치] - 10:30~16:00 - 마지막 주문 15:00',
+    phone: '0507-1474-2900',
     waiting_count: 0,
   },
   {
@@ -1780,6 +1890,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '하얀책상은 인스타 감성이 느낄 수 있는 공간이다',
     open_hours: '-평일 11:30~22:00 - 토요일 12:00~22:00 - 일요일 12:30~21:30',
+    phone: '0507-1342-2540',
     waiting_count: 0,
   },
   {
@@ -1796,6 +1907,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '자동차 카페 카레이지 히피스는 대전광역시 유성구 궁동에 있다',
     open_hours: '00:00~24:00',
+    phone: '0507-1427-3432',
     waiting_count: 0,
   },
   {
@@ -1812,6 +1924,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '뿌리공원은 대전광역시 중구 침산동 일원에 성씨를 상징하는 조형물 및 한국족보박물관, 각종 편의시설을…',
     open_hours: '[하절기(3월~10월)] 05:00~23:00 [동절기(11월~2월)] 06:00~22:00 ※ 자세한 사항은 홈페이지 참조',
+    phone: '042-288-8300',
     waiting_count: 0,
   },
   {
@@ -1828,6 +1941,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '대전교통문화연수원은 2016년 2월 12일 역사적인 개원을 하였다',
     open_hours: '10:00~17:00 ※ 자세한 사항은 홈페이지 참조',
+    phone: '042-865-1161',
     waiting_count: 0,
   },
   {
@@ -1844,6 +1958,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '상소동 산림욕장은 만인산과 식장산 자락 중간지점, 대전역에서 금산방향으로 약 10km 지점에 위치하고 있다',
     open_hours: '[산림욕장] - 하절기 09:00~20:00 - 동절기 09:00~19:00 [물놀이장] 09:00~17:00 ※ 단, 목요일은 16:00까지 운영 ※ 우천 등으로 물놀이장 운영이 어려울 경우 이용에 제한',
+    phone: '대전 동구청 산림자원팀 042-251-4773',
     waiting_count: 0,
   },
   {
@@ -1860,6 +1975,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '대전 스카이로드는 길이 214jm, 너비 13.3m, 높이 20m 규모의 초대형 LED 영상아케이드 구조물이 있는 거리이다',
     open_hours: '[하절기(4월~9월)] 19:00~23:00 [동절기(10월~3월)] 18:00~22:00 ※ 자세한 사항은 전화문의 요망',
+    phone: '스카이로드 관리사무소 042-252-7100',
     waiting_count: 0,
   },
   {
@@ -1876,6 +1992,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '갑천은 전라북도와 충청남도의 경계인 대둔산에서 발원하여 금강으로 흘러드는 하천이다',
     open_hours: '상시 개방',
+    phone: '042-611-2127',
     waiting_count: 0,
   },
   {
@@ -1892,6 +2009,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '대전광역시 유성구에 위치한 광수사는 대한불교천태종 사찰로 1995년 지어졌다',
     open_hours: '상시 개방',
+    phone: '042-823-0333',
     waiting_count: 0,
   },
   {
@@ -1908,6 +2026,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '동화울수변공원은 유성구의 관평천 하류에 위치한 반원 형태의 도심공원이다',
     open_hours: '상시 개방',
+    phone: '대전 유성구청 공원과 042-611-2469',
     waiting_count: 0,
   },
   {
@@ -1924,6 +2043,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '꼬밥은 대구 동구에 위치한 벌교 꼬막요리 전문점이다',
     open_hours: '[평일] -11:30~16:30 - 마지막 주문 16:00 [주말] -11:30~20:30 - 준비시간 15:30~17:00 - 마지막 주문 19:40',
+    phone: '053-981-9869',
     waiting_count: 0,
   },
   {
@@ -1940,6 +2060,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '신송자 신마산식당은 대구광역시 남구 대명동에 있다',
     open_hours: '-09:00~21:00 - 마지막 주문 20:30',
+    phone: '053-657-7733',
     waiting_count: 0,
   },
   {
@@ -1956,6 +2077,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '푸주옥설렁탕은 대구광역시 달서구 두류동에 있다',
     open_hours: '-10:00~21:30 - 마지막 주문 20:40',
+    phone: '053-628-8788',
     waiting_count: 0,
   },
   {
@@ -1972,6 +2094,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '서문시장 인근에 위치한 54년 된 돈가스 집이다',
     open_hours: '- 11:30~20:00 - 준비시간 16:30~17:30 - 마지막 주문 19:45',
+    phone: '0507-1417-6637',
     waiting_count: 0,
   },
   {
@@ -1988,6 +2111,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '홍구원은 2011년 어린이회관(현 어린이세상) 앞에서 시작하여 2017년에 현재 위치로 이전하여 지금까지 영업을 이어오고 있다',
     open_hours: '11:30~21:00 (마지막 주문 20:20)',
+    phone: '053-763-8868',
     waiting_count: 0,
   },
   {
@@ -2004,6 +2128,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '붐비네는 눈에 띄는 간판도 없는 초등학교 앞에 있는 작은 떡볶이집이다',
     open_hours: '11:00~19:00',
+    phone: '0507-1417-9591',
     waiting_count: 0,
   },
   {
@@ -2020,6 +2145,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '대구 중구에 위치하고 있는 햇님베이커리는 30년이 넘은 개인 제과점이다',
     open_hours: '월요일~토요일 06:30~22:00 일요일 08:00~21:00',
+    phone: '053-252-9447',
     waiting_count: 0,
   },
   {
@@ -2036,6 +2162,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '대화장은 1920년에 지어진 대화장여관을 개조하여 대구의 지난 100년을 담은 타임슬립 공간으로 재탄생한 공간이다',
     open_hours: '- 일요일~목요일 11:00~21:00 - 금요일~토요일 11:00~22:00',
+    phone: '053-291-2569',
     waiting_count: 0,
   },
   {
@@ -2052,6 +2179,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '퀸즈크라운베이커리카페는 대구시 서구 평리4동에 자리 잡고 있다',
     open_hours: '- 08:30~23:40 - 마지막 주문 23:20',
+    phone: '053-567-8080',
     waiting_count: 0,
   },
   {
@@ -2068,6 +2196,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '무화커피는 대구시 수성구 범어동에 자리 잡고 있다',
     open_hours: '- 10:30~24:00 - 마지막 주문 22:30',
+    phone: '0507-1437-9188',
     waiting_count: 0,
   },
   {
@@ -2084,6 +2213,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '산엘아르카는 대구시 달성군 유가읍에 자리 잡고 있다',
     open_hours: '- 10:00~21:00 - 마지막 주문 20:00',
+    phone: '0507-1339-4089',
     waiting_count: 0,
   },
   {
@@ -2100,6 +2230,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '아눅앞산은 대구시 남구 대명동에 자리 잡고 있다',
     open_hours: '- 10:00 ~ 22:00 - 마지막 주문 21:00',
+    phone: '0507-1422-1060',
     waiting_count: 0,
   },
   {
@@ -2116,6 +2247,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '김진수로스터리카페는 대구광역시 중구 대봉동에 있다',
     open_hours: '- 10:00~23:00 - 마지막 주문 22:00',
+    phone: '053-425-2478',
     waiting_count: 0,
   },
   {
@@ -2132,6 +2264,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '대구 중앙로역에서 도보 5분 거리에 위치한 경상감영공원은 조선 선조 때 경상감영이 있던 곳으로 그 터를 보전하기 위해 조성된 공원이다',
     open_hours: '상시 개방',
+    phone: '053-254-9404',
     waiting_count: 0,
   },
   {
@@ -2148,6 +2281,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '충혼탑은 한국전쟁 당시 조국 수호를 위해 산화한 대구 출신 호국영령의 영현을 모신 공간이다',
     open_hours: '상시 개방',
+    phone: '053-803-5467',
     waiting_count: 0,
   },
   {
@@ -2164,6 +2298,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '대명공연거리는 계명대학교 대명캠퍼스 주변 연극 극단, 음악가, 개인 화실, 게임 제작·배급 업소, …',
     open_hours: '상시 개방',
+    phone: '대구광역시 남구청 문화관광과 053-664-3264',
     waiting_count: 0,
   },
   {
@@ -2180,6 +2315,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '서울에서 대구를 거쳐 창원으로 가는 중부내륙 고속도로지선 하행선 현풍 휴게소에 위치한 현풍 500년…',
     open_hours: '상시 가능',
+    phone: '053-614-2436',
     waiting_count: 0,
   },
   {
@@ -2196,6 +2332,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '북지장사는 현재 대한불교조계종 제9교구 본사인 동화사의 말사로, 팔공산 맑은 계곡변에 위치하고 있다',
     open_hours: '상시 개방',
+    phone: '053-985-5217(5214)',
     waiting_count: 0,
   },
   {
@@ -2212,6 +2349,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '이월드는 1987년 10월, 타워 건립과 종합 테마파크 조성 공사의 재착공을 시작으로, 1993년 …',
     open_hours: '10:00~21:00',
+    phone: '070-7549-8112',
     waiting_count: 0,
   },
   {
@@ -2228,6 +2366,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '한밤마을은 대구 군위군 부계면에 자리한 곳으로 집집마다 야트막한 돌담들이 두런두런 옛이야기를 나누듯…',
     open_hours: '상시 개방',
+    phone: '054-383-0061',
     waiting_count: 0,
   },
   {
@@ -2244,6 +2383,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '금강한우전문식육식당은 전남광주통합특별시 서구에 위치한 한우 전문점이다',
     open_hours: '11:30~21:30 (마지막 주문 21:00)',
+    phone: '062-514-9111',
     waiting_count: 0,
   },
   {
@@ -2260,6 +2400,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '계림동잔치집은 광주역 인근에 위치한 잔치국수 전문점으로 가성비가 좋고 양이 푸짐하여 현지인들이 추천하는 곳이다',
     open_hours: '11:00~21:00 (라스트오더 20:30)',
+    phone: '062-511-9989',
     waiting_count: 0,
   },
   {
@@ -2276,6 +2417,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '전남광주통합특별시 서구에 위치한 김강심 칼국수는 버스정류장 바로 앞에 매장이 있어 대중교통 접근성도…',
     open_hours: '11:00~19:30 (준비시간 15:00~17:00)',
+    phone: '0507-1423-0804',
     waiting_count: 0,
   },
   {
@@ -2292,6 +2434,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '전남광주통합특별시의 제일반점은 충장로 거리에 있는 중국요리 전문점이다',
     open_hours: '10:30~20:30 (준비시간 15:00~16:30)',
+    phone: '062-224-6670',
     waiting_count: 0,
   },
   {
@@ -2308,6 +2451,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '금당은 전남광주통합특별시에 위치한 중식 전문점이다',
     open_hours: '- 11:30~21:30 - 준비시간 15:00~17:00 - 마지막 주문 20:30',
+    phone: '062-384-8808',
     waiting_count: 0,
   },
   {
@@ -2324,6 +2468,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '퍼니스 카페 & 라운지는 전남광주통합특별시 최대 규모의 복합문화공간으로 스크린 골프, 볼링 등 건물…',
     open_hours: '- 10:00~24:00 - 식사 준비시간 15:00~17:00 - 식사 마지막 주문 21:00 - 카페 마지막 주문 23:00',
+    phone: '062-374-8187',
     waiting_count: 0,
   },
   {
@@ -2340,6 +2485,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '세컨드원은 전남광주통합특별시 광산구 수완 지구에 위치한 대형카페다',
     open_hours: '11:00~22:00 (마지막 주문 21:30)',
+    phone: '0507-1429-0501',
     waiting_count: 0,
   },
   {
@@ -2356,6 +2502,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '문라이즈531은 전시장이 떠오르는 외관에 전면은 통유리로 되어 있어 뷰가 좋은 브런치 카페로 널리 알려져 있다',
     open_hours: '- 카페 10:00~22:00 - 식사 10:30~19:30',
+    phone: '062-573-5310',
     waiting_count: 0,
   },
   {
@@ -2372,6 +2519,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '전남광주통합특별시 상무지구의 핫플레이스로 통하는 유니크한 2층 건물의 카페다',
     open_hours: '10:30~22:30',
+    phone: '0507-1441-8862',
     waiting_count: 0,
   },
   {
@@ -2388,6 +2536,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '전남광주통합특별시에 있는 얼씨는 \'자연과 함께 힐링함\'을 모토로 운영하는 디저트 카페다',
     open_hours: '주중 11:00~19:00 (라스트오더 18:30) 주말 10:00~20:00 (라스트오더 19:30)',
+    phone: '0507-1395-2086',
     waiting_count: 0,
   },
   {
@@ -2404,6 +2553,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '빈드럭스는 전남광주통합특별시 지산동에 위치한 대형카페이다',
     open_hours: '- 평일 11:00~18:00 - 주말 11:00~21:00',
+    phone: '070-4400-2400',
     waiting_count: 0,
   },
   {
@@ -2420,6 +2570,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '전남광주통합특별시 충민사는 정묘호란 당시 안주성에서 청나라군과 싸우다 순절한 전상의 장군의 영정과 위패를 모신 사당이다',
     open_hours: '- 하절기 09:00~18:00 - 동절기 09:00~17:00',
+    phone: '062-266-0718',
     waiting_count: 0,
   },
   {
@@ -2436,6 +2587,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '조선 후기의 효자 정엄의 석조로 된 정려비와 정려각이다',
     open_hours: '상시 개방',
+    phone: '062-607-2332',
     waiting_count: 0,
   },
   {
@@ -2452,6 +2604,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '부용정은 고려말 조선초에 활동한 김문발(金文發, 1359∼1418)이 지은 정자로 평야가 펼쳐져 있…',
     open_hours: '상시 개방',
+    phone: '전남광주통합특별시 남구 문화관광과 062-607-2332',
     waiting_count: 0,
   },
   {
@@ -2468,6 +2621,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '양과동정은 향약의 시행처로 사용되었으며, 간원대라고도 불린다',
     open_hours: '상시 개방',
+    phone: '전남광주통합특별시 남구 문화관광과 062-607-2333',
     waiting_count: 0,
   },
   {
@@ -2484,6 +2638,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '무등산 주상절리대는 용연동 일대 무등산에 있는 육각형 모양의 기둥 바위가 늘어선 것이다',
     open_hours: '- 동절기 (11월~3월) 04:00~16:00 - 하절기 (4월~10월) 04:00~17:00',
+    phone: '062-227-1187',
     waiting_count: 0,
   },
   {
@@ -2500,6 +2655,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '서울에 명동이 있다면 전남광주통합특별시에는 충장로가 있다',
     open_hours: '상가별 상이',
+    phone: '전남광주통합특별시 동구청 일자리경제과 062-608-2713',
     waiting_count: 0,
   },
   {
@@ -2516,6 +2672,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '서구 치평동 상무 신도심 아파트 단지 내에 자리한 아름다운 공원이다',
     open_hours: '상시 개방',
+    phone: '062-360-7513',
     waiting_count: 0,
   },
   {
@@ -2532,6 +2689,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '울산 언양불고기 맛집 한마당한우촌은 30년 경력의 장인이 한우를 길천농장에서 직접 키운 최고급 한우…',
     open_hours: '10:30~21:00',
+    phone: '052-262-2047',
     waiting_count: 0,
   },
   {
@@ -2548,6 +2706,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '봉계참솔한우는 신선하고 질이 좋은 한우와 정성이 담긴 메뉴를 제공하는 곳이다',
     open_hours: '11:00~21:00',
+    phone: '0507-1411-1032',
     waiting_count: 0,
   },
   {
@@ -2564,6 +2723,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '울산광역시 남구에 위치한 장어구이 전문점이다',
     open_hours: '- 11:30~21:30 - 준비시간 14:30~16:30 - 마지막 주문 20:30',
+    phone: '052-258-9000',
     waiting_count: 0,
   },
   {
@@ -2580,6 +2740,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '울산 중구에 위치한 복산돈까스는 돈가스 맛집으로, 흑돼지 특유의 풍미가 살아있는 돈까스와 깔끔한 맛의 소바가 조화롭다',
     open_hours: '- 11:00~20:00 - 준비시간 14:30~17:00 - 마지막 주문 19:30',
+    phone: '052-298-4623',
     waiting_count: 0,
   },
   {
@@ -2596,6 +2757,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '울산 삼산동 업스퀘어 근처 헤이다이닝은 깔끔하고 모던한 장소에서 식사를 즐길 수 있는 이탈리안 레스토랑이다',
     open_hours: '- 11:30~21:30 - 준비시간(평일) 15:00~17:00',
+    phone: '0507-1370-7857',
     waiting_count: 0,
   },
   {
@@ -2612,6 +2774,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '울주군 언양에 있는 칼국수 맛집 동부분식이다',
     open_hours: '- 11:00~19:00 - 마지막 주문 18:50',
+    phone: '0507-1404-0478',
     waiting_count: 0,
   },
   {
@@ -2628,6 +2791,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '울산광역시 울주군 두동면 치술령 자락에 위치한 오계절은 꽃차전문점으로 다양하고 아름다운 꽃차를 구비하고 있다',
     open_hours: '정보 없음',
+    phone: '0507-1410-2859',
     waiting_count: 0,
   },
   {
@@ -2644,6 +2808,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '울산시 울주군 서생면에 위치해 있는 히든 블루는 커피와 디저트, 브런치까지 즐길 수 있는 바다가 보이는 카페이다',
     open_hours: '- 11:00~21:00 - 마지막 주문 20:00',
+    phone: '0507-1333-2658',
     waiting_count: 0,
   },
   {
@@ -2660,6 +2825,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '사람이 느끼는 가장 편하고 안전한 주파수를 뜻하는 60헤르츠는 울산광역시 동구 동해안로에 있는 베이커리 카페이다',
     open_hours: '09:00~22:00',
+    phone: '052-201-9800',
     waiting_count: 0,
   },
   {
@@ -2676,6 +2842,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '주전 해안가에 있는 카페벼리는 오션뷰에 루프탑까지 갖춘 베이커리 카페이다',
     open_hours: '- 월요일~목요일 09:00~22:30 - 금요일~일요일 09:00~23:00',
+    phone: '0507-1339-0826',
     waiting_count: 0,
   },
   {
@@ -2692,6 +2859,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '벚꽃이 아름다운 언양 작천정 입구에 있는 400평 규모의 대형 카페 이너리트는 전문 파티시에가 직접 만드는 수제 디저트로 유명하다',
     open_hours: '08:30~21:00',
+    phone: '052-254-7677',
     waiting_count: 0,
   },
   {
@@ -2708,6 +2876,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '울주군 간절곶에서 3분 거리에 있는 에이오피(AOP)는 커피를 제조한 노하우로 만든 브랜드이다',
     open_hours: '- 10:00~22:00 - 마지막 주문 21:00',
+    phone: '052-238-1100',
     waiting_count: 0,
   },
   {
@@ -2724,6 +2893,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '자수정 동굴나라는 울산 울주군 언양읍에서 남동쪽 약 3㎞, 작천정계곡 입구이자 신불산 자락에 자리한 동굴 테마파크다',
     open_hours: '- 평일 09:15~17:00 - 주말 09:15~17:30 ※ 운영시간은 발권시간을 기준으로 함',
+    phone: '052-254-1515',
     waiting_count: 0,
   },
   {
@@ -2740,6 +2910,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '대왕암 공원은 우리나라에서 울주군 간절곶과 함께 해가 가장 빨리 뜨는 대왕암이 있는 곳이다',
     open_hours: '상시 개방',
+    phone: '052-209-3738',
     waiting_count: 0,
   },
   {
@@ -2756,6 +2927,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '대왕암공원 출렁다리는 울산 최초의 출렁다리이자 동구 최초의 대규모 상업관광시설이다',
     open_hours: '09:00~18:00 (입장마감 17:40)',
+    phone: '052-209-3738',
     waiting_count: 0,
   },
   {
@@ -2772,6 +2944,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '울산 울주군에 위치한 간절곶은 한반도에서 해가 가장 먼저 떠오르는 곳으로, 매년 새해 첫날이면 해맞…',
     open_hours: '상시 개방',
+    phone: '울주군 산림공원과 공원팀 052-204-1751~6',
     waiting_count: 0,
   },
   {
@@ -2788,6 +2961,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '예술가와 시민들의 소통, 힐링의 공간 울산 중구의 커뮤니티 센터로 문화의 거리 활동 작가들의 창작 …',
     open_hours: '- 평일 10:00~21:00 - 주말 10:00~18:00',
+    phone: '052-290-4843',
     waiting_count: 0,
   },
   {
@@ -2804,6 +2978,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '울산 큰애기집은 울산 중구의 브랜드 울산큰애기의 플래그십 스토어이자 다양한 지역 정보를 제공하는 관광안내소이다',
     open_hours: '10:00~19:00 (입장 마감 18:30)',
+    phone: '052-296-9191',
     waiting_count: 0,
   },
   {
@@ -2820,6 +2995,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '1936년 울산지역 최초로 건립된 언양성당은 13개의 성지 및 천주교 사적지와 16개의 공소가 있는…',
     open_hours: '상시 개방 ※ 자세한 사항은 전화문의 요망',
+    phone: '052-262-5312',
     waiting_count: 0,
   },
   {
@@ -2836,6 +3012,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '진주냉면 남가옥은 세종특별자치시 어진동에 있다',
     open_hours: '[평일] - 11:00~20:10 - 준비시간 16:00~17:00 - 마지막 주문 19:40 [주말] - 11:00~20:40 - 마지막 주문 20:10',
+    phone: '070-7604-7381',
     waiting_count: 0,
   },
   {
@@ -2852,6 +3029,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '꺼먹지명태조림 세종본점은 세종특별자치시 고운동에 있다',
     open_hours: '- 10:30~21:00 - 점심 마지막 주문 14:30 - 준비시간 15:00~17:00 - 저녁 마지막 주문 20:30',
+    phone: '0507-1419-9203',
     waiting_count: 0,
   },
   {
@@ -2868,6 +3046,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '보재기손두부는 좋은 재료와 건강한 재료로 만드는 두부요리 전문점이다',
     open_hours: '11:00~15:00 (마지막 주문 14:50)',
+    phone: '044-868-0282',
     waiting_count: 0,
   },
   {
@@ -2884,6 +3063,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '에이트는 세종시에 위치한 레스토랑이다',
     open_hours: '- 11:30~21:30 - 준비시간 15:00~15:00 - 마지막 주문 20:30',
+    phone: '044-862-7008',
     waiting_count: 0,
   },
   {
@@ -2900,6 +3080,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '올진스시는 세종특별자치시 어진동에 있다',
     open_hours: '- 11:30~21:00 - 점심 마지막 주문 13:45 - 준비시간 15:00~17:00 - 마지막 주문 19:45',
+    phone: '0507-1370-5205',
     waiting_count: 0,
   },
   {
@@ -2916,6 +3097,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '180도씨는 세종특별자치시 고운동에 있는 분식 전문점이다',
     open_hours: '- 평일 10:20~19:40 - 토요일 10:20~15:30',
+    phone: '044-867-0180',
     waiting_count: 0,
   },
   {
@@ -2932,6 +3114,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '카페리즌은 세종시 금남면 도남리에 자리 잡고 있다',
     open_hours: '- 평일 11:00~18:00 - 토요일 11:00~19:00 - 일요일 14:00~19:00',
+    phone: '0507-1346-4026',
     waiting_count: 0,
   },
   {
@@ -2948,6 +3131,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '아리에떼는 세종시 장군면 남평읍 대교리에 자리 잡고 있다',
     open_hours: '- 10:30~18:00 - 마지막 주문 17:30',
+    phone: '0507-1340-0684',
     waiting_count: 0,
   },
   {
@@ -2964,6 +3148,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '헤이믈은 세종시에 위치한 한옥카페로, 전통 한옥의 고풍스러운 외관과 세련되고 차분한 현대식 내부 인테리어가 조화를 이루는 공간이다',
     open_hours: '11:00~21:30 (마지막 주문 21:00)',
+    phone: '070-8825-1004',
     waiting_count: 0,
   },
   {
@@ -2980,6 +3165,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '세종시 전동면에 위치한 넘버트웰브는 자연 속에서 여유로운 시간을 보낼 수 있는 감성적인 대형 카페이다',
     open_hours: '- 평일, 일요일 10:00~18:00 - 토요일 10:00~19:00',
+    phone: '0507-1319-1825',
     waiting_count: 0,
   },
   {
@@ -2996,6 +3182,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '아크커피는 세종특별자치시 장군면 봉안리에 위치해 있는 카페이다',
     open_hours: '11:00~21:00',
+    phone: '044-862-3815',
     waiting_count: 0,
   },
   {
@@ -3012,6 +3199,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '소소루는 세종특별자치시 금남면 영대리에 위치해 있는 브런치 카페이다',
     open_hours: '10:00~19:00 (마지막 주문 18:00)',
+    phone: '044-862-6117',
     waiting_count: 0,
   },
   {
@@ -3028,6 +3216,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '아람달 체험 마을은 세종특별자치시 전동면에 위치한 마을이다',
     open_hours: '[숙박시설] - 입실 : 12:00 - 퇴실 : 익일 11:00',
+    phone: '044-868-1055',
     waiting_count: 0,
   },
   {
@@ -3044,6 +3233,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '금남면 백로 서식지는 1만여 평의 야산에 백로가 서식하고 있는 곳을 일컫는다',
     open_hours: '상시 개방',
+    phone: '세종특별자치시청 문화유산과 044-300-4513',
     waiting_count: 0,
   },
   {
@@ -3060,6 +3250,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '숲뜰근린공원은 세종시 대평동에 위치하고 있다',
     open_hours: '상시 개방',
+    phone: '세종시 정원도시과 044-300-6861',
     waiting_count: 0,
   },
   {
@@ -3076,6 +3267,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '연화사의 창건 시기는 알 수 없으나, 1988년에 전통 사찰로 지정되었으며, 1897년 보호각을 건…',
     open_hours: '09:30~17:00',
+    phone: '044-862-8620',
     waiting_count: 0,
   },
   {
@@ -3092,6 +3284,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '신광사는 세종특별자치시 조치원읍에 있는 노적산에 자리한 사찰이다',
     open_hours: '상시 개방',
+    phone: '044-865-5601',
     waiting_count: 0,
   },
   {
@@ -3108,6 +3301,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '세종시 청안사는 1900년경 창건된 것으로 전한다',
     open_hours: '상시 개방',
+    phone: '044-867-3407',
     waiting_count: 0,
   },
   {
@@ -3124,6 +3318,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '세종특별자치시에 위치한 비암사 도깨비 도로는 내리막 길이지만 마치 올라가는 것과 같은 착시현상을 일으키는 구간을 말한다',
     open_hours: '상시 개방',
+    phone: '세종시청 관광문화재과 044-300-5814',
     waiting_count: 0,
   },
   {
@@ -3140,6 +3335,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '안양 삼막사 부근의 쌈도둑은 쌈밥 전문 요리점이지만 반찬이 정갈하고 맛이 좋아 한정식집이라는 착각이 든다',
     open_hours: '11:00~21:00 (마지막 주문 20:15)',
+    phone: '031-471-7676',
     waiting_count: 0,
   },
   {
@@ -3156,6 +3352,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '옛날시골밥상은 시골의 푸근한 인심과 맛을 느낄 수 있는 한정식 전문점으로, 경기도 음식문화 시범거리…',
     open_hours: '10:00~21:00',
+    phone: '0507-1373-5957',
     waiting_count: 0,
   },
   {
@@ -3172,6 +3369,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '한채당은 우리나라 전통의 색채와 무늬를 가진 대표 전통 궁중음식점이다',
     open_hours: '- 11:30~21:30 - 준비시간 15:00~17:30 - 마지막 주문 20:30',
+    phone: '0507-1363-8973',
     waiting_count: 0,
   },
   {
@@ -3188,6 +3386,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '화림은 일산 중산동 풍산지하철 역에서 가까운 중식당이다',
     open_hours: '11:00~21:30',
+    phone: '031-975-2332',
     waiting_count: 0,
   },
   {
@@ -3204,6 +3403,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '무화과식당은 사진작가 부부가 운영하는 아담한 식당이다',
     open_hours: '목요일~일요일 09:00~14:30',
+    phone: '0507-1320-0128',
     waiting_count: 0,
   },
   {
@@ -3220,6 +3420,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '평택 미군 부대 앞에 있는 미스진햄버거는 방송에도 여러 번 소개된 햄버거 맛집이다',
     open_hours: '11:00~02:00',
+    phone: '031-667-0656',
     waiting_count: 0,
   },
   {
@@ -3236,6 +3437,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '엘리제과자점은 경기도 고양시 삼송역 근처에 있는 대형 베이커리 카페이다',
     open_hours: '09:00~22:00',
+    phone: '02-936-2734',
     waiting_count: 0,
   },
   {
@@ -3252,6 +3454,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '안성시 보개면에 위치한 보개바람은 노후화된 기존 양곡창고를 리모델링하여 변신한 로컬 베이커리 카페이다',
     open_hours: '정보 없음',
+    phone: '070-7787-9653',
     waiting_count: 0,
   },
   {
@@ -3268,6 +3471,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '설문커피는 고양시 설문동에 있는 야외정원이 카페다',
     open_hours: '- 10:00~21:30 - 마지막 주문 21:00',
+    phone: '031-975-5078',
     waiting_count: 0,
   },
   {
@@ -3284,6 +3488,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '경기 파주시 마장호수 부근에 위치한 베이커리 카페다',
     open_hours: '09:00~19:00',
+    phone: '070-8880-5555',
     waiting_count: 0,
   },
   {
@@ -3300,6 +3505,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '경기도 남양주시 화도읍 금남리에 있는 아쿠아리움 카페이다',
     open_hours: '10:00~02:00',
+    phone: '0507-1422-1197',
     waiting_count: 0,
   },
   {
@@ -3316,6 +3522,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '새소리 물소리 건물은 크게 본채와 별채로 이루어져 있다',
     open_hours: '11:00~19:00 (마지막 주문 18:10)',
+    phone: '031-723-7541',
     waiting_count: 0,
   },
   {
@@ -3332,6 +3539,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '경기도 파주시 운정로에 위치한 창고형 브런치 카페로 매장이 넓고 천장이 높아 이국적인 분위기를 즐길 수 있다',
     open_hours: '- 10:00~21:50 - 음식 마지막 주문 20:00 - 음료 마지막 주문 21:00',
+    phone: '031-949-6020',
     waiting_count: 0,
   },
   {
@@ -3348,6 +3556,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '서운동산은 1969년부터 조경을 준비하여 1987년 대한민국 관광농원 1호로 개관되었다',
     open_hours: '09:00~17:00',
+    phone: '031-533-9090',
     waiting_count: 0,
   },
   {
@@ -3364,6 +3573,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '안성향교는 1532년 창건된 된 향교로, 1932년과 1986년, 1988년 총 3차례 중수하였다',
     open_hours: '상시 개방',
+    phone: '안성시 문화관광과 031-678-2504',
     waiting_count: 0,
   },
   {
@@ -3380,6 +3590,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '지평향교는 양평군을 대표하는 조선시대 지방 교육기관 3곳 중의 하나이다',
     open_hours: '전화 문의',
+    phone: '031-774-1530',
     waiting_count: 0,
   },
   {
@@ -3396,6 +3607,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '명달리는 경기도 양평군 서종면에 자리 잡은 두메산골마을의 지명이다',
     open_hours: '상시 개방',
+    phone: '양평 관광안내소 031-770-1001~2',
     waiting_count: 0,
   },
   {
@@ -3412,6 +3624,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '양평과 홍천군의 경계 지점인 단월면에는 봉미산에서 시작되어 홍천강으로 흘러가는 물줄기가 소리산을 휘…',
     open_hours: '상시 개방',
+    phone: '양평 관광안내소 031-770-1001~2',
     waiting_count: 0,
   },
   {
@@ -3428,6 +3641,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '양평군 옥천면에 위치한 사나사는 대한불교조계종 제25교구 본사인 봉선사(奉先寺)에 속해 있다',
     open_hours: '09:00~18:00',
+    phone: '031-772-5182',
     waiting_count: 0,
   },
   {
@@ -3444,6 +3658,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '덕우저수지는 기천저수지의 물이 흘러들어 이루어진 저수지이다',
     open_hours: '상시 개방',
+    phone: '031-370-3900',
     waiting_count: 0,
   },
   {
@@ -3460,6 +3675,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '명동산골닭갈비는 춘천 지역에서 약 40년간 운영되고 있는 닭갈비 전문 음식점이다',
     open_hours: '10:00~22:00',
+    phone: '033-257-9775',
     waiting_count: 0,
   },
   {
@@ -3476,6 +3692,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '강원특별자치도 원주시에 위치한 방가네는 한식 전문점이다',
     open_hours: '11:00~22:00',
+    phone: '033-731-3178',
     waiting_count: 0,
   },
   {
@@ -3492,6 +3709,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '청산회관은 평창군 진부면에 위치한 고기 전문 식당이다',
     open_hours: '-12:00~21:30 -준비 시간 16:00~17:00 -마지막 주문 20:30',
+    phone: '033-336-7809',
     waiting_count: 0,
   },
   {
@@ -3508,6 +3726,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '프로스트는 강원도 원주시 원주 감영 근처에 있는 레스토랑이다',
     open_hours: '12:00~22:00 (준비시간 15:00~17:00)',
+    phone: '010-8384-9010',
     waiting_count: 0,
   },
   {
@@ -3524,6 +3743,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '하조대반점은 강원도 양양군에 있는 중식당이다',
     open_hours: '11:00~14:00',
+    phone: '033-672-8818',
     waiting_count: 0,
   },
   {
@@ -3540,6 +3760,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '만동제과는 강원도 강릉시 강릉중앙시장 근처에 있는 줄을 서서 먹는 빵집이다',
     open_hours: '11:00~18:00',
+    phone: '0507-1317-6387',
     waiting_count: 0,
   },
   {
@@ -3556,6 +3777,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '\'강릉 빵다방\'은 빵 덕후라면 한 번쯤은 들어봤을 정도로 유명한 강릉 베이커리 맛집이다',
     open_hours: '12:00-20:00',
+    phone: '033-642-8807',
     waiting_count: 0,
   },
   {
@@ -3572,6 +3794,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '테일은 강원특별자치도 고성군 가진해변에 위치한 카페이다',
     open_hours: '10:00~18:00',
+    phone: '070-7585-8080',
     waiting_count: 0,
   },
   {
@@ -3588,6 +3811,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '대한민국 1호 바리스타 박이추 명사가 운영하고 있는 보헤미안 박이추커피는 강릉 사천 앞바다를 바라보…',
     open_hours: '정보 없음',
+    phone: '033-642-6688',
     waiting_count: 0,
   },
   {
@@ -3604,6 +3828,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '강원특별자치도 원주시 신림면에 위치한 들꽃이야기는 25년간 가꾼 600여 종의 야생화가 있는 정원 카페이다',
     open_hours: '11:00~18:00 (마지막 주문 17:30)',
+    phone: '033-762-2823',
     waiting_count: 0,
   },
   {
@@ -3620,6 +3845,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '강원도 강릉시 구정면에 위치한 테라로사 커피공장 강릉본점은 단순한 카페를 넘어, 커피 생산의 전 과…',
     open_hours: '09:00~19:00 (마지막 주문 18:30)',
+    phone: '033-648-2760',
     waiting_count: 0,
   },
   {
@@ -3636,6 +3862,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '러스틱라이프는 2020년, 강원도 홍천의 생태 자연 속에서 시작된 공간이다',
     open_hours: '- 월요일 / 목요일 / 금요일 / 토요일 / 일요일 11:00~18:30 (마지막 주문 17:30) - 수요일 11:00~17:00 (마지막 주문 16:00)',
+    phone: '0507-1432-5058',
     waiting_count: 0,
   },
   {
@@ -3652,6 +3879,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '강원특별자치도 원주시 행구동에 위치한 길카페는 치악산 자락의 자판기 몇 대로 시작된 카페다',
     open_hours: '10:30~22:00 (마지막 주문 20:50)',
+    phone: '033-734-4345',
     waiting_count: 0,
   },
   {
@@ -3668,6 +3896,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '동해시 삼화동에 위치한 ‘금란정’은 무릉계곡 매표소 출발점을 지나자마자 우측에서 보이는 정자이다',
     open_hours: '상시 개방',
+    phone: '무릉계곡관광안내소 033-530-2802',
     waiting_count: 0,
   },
   {
@@ -3684,6 +3913,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '소이산은 362m의 작은 산으로 때 묻지 않은 자연과 넓은 평야를 내려다보는 정상 전망은 그 위용을 자랑한다',
     open_hours: '상시 개방',
+    phone: '033-450-5558',
     waiting_count: 0,
   },
   {
@@ -3700,6 +3930,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '강원특별자치도 고성군에 위치한 초도 해변은 화진포 해변과 인접한 해수욕장이다',
     open_hours: '상시 개방',
+    phone: null,
     waiting_count: 0,
   },
   {
@@ -3716,6 +3947,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '설악 워터피아는 천연 온천수를 이용한 온천욕과 워터파크를 갖춘 종합 온천 테마파크이다',
     open_hours: '시즌별 상이 ※ 홈페이지 \'워터피아 이용팁스\' 참조',
+    phone: '033-630-5800',
     waiting_count: 0,
   },
   {
@@ -3732,6 +3964,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '1975년 2월 우리나라의 11번째 국립공원으로 지정된 오대산국립공원은 우리나라의 가장 크고 긴 산…',
     open_hours: '- 하절기(4월~10월) 04:00~16:00 - 동절기(11월~3월) 05:00~15:00 ※ 구간 별로 상이하므로 자세한 사항은 홈페이지 참조 ※ 기상여건에 따라 통제 가능',
+    phone: '오대산국립공원사무소 033-332-6417',
     waiting_count: 0,
   },
   {
@@ -3748,6 +3981,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '태백산은 백두대간의 중앙부에 솟아 있는 민족의 영산이며, 한강과 낙동강, 삼척의 오십천이 발원하는 한반도 이남의 젖줄이 되는 뿌리산이다',
     open_hours: '※ 구간 별로 상이하므로 자세한 사항은 홈페이지 참조',
+    phone: '033-550-0000',
     waiting_count: 0,
   },
   {
@@ -3764,6 +3998,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '고랭길은 표고 600m 이상의 높고 한랭한 고랭지인 평창의 특성을 살려 부르는 이름이다',
     open_hours: '상시 개방',
+    phone: '평창군 관광안내소 033-330-2771',
     waiting_count: 0,
   },
   {
@@ -3780,6 +4015,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '충주 IC와 가까워 접근성이 좋은 탄금한우타운은 한우를 합리적인 가격으로 맛볼 수 있는 곳이다',
     open_hours: '11:00~21:00 (준비시간 15:00~17:00)',
+    phone: '043-843-0092',
     waiting_count: 0,
   },
   {
@@ -3796,6 +4032,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '충청북도 보은에 위치한 신토불이약초식당은 신토불이약초식당은 약초산채버섯정식, 더덕구이정식, 버섯전골…',
     open_hours: '08:30~21:00',
+    phone: '043-543-0433',
     waiting_count: 0,
   },
   {
@@ -3812,6 +4049,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '충청북도 충주시 수안보면에 위치한 언덕넘어는 수안보 지역의 향토음식을 제대로 맛볼 수 있는 한식당으…',
     open_hours: '09:00~22:00',
+    phone: '043-845-7791',
     waiting_count: 0,
   },
   {
@@ -3828,6 +4066,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '수제돈가스는 충청북도 제천시 화산동에 위치해 있다',
     open_hours: '11:10~15:00 (마지막 주문 14:00)',
+    phone: '043-645-3939',
     waiting_count: 0,
   },
   {
@@ -3844,6 +4083,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '경화대반점은 충청남도 청주시 서원구 산남동에 있다',
     open_hours: '[평일] - 11:30~21:00 - 준비시간 14:30~17:00 - 마지막 주문 20:30 [토요일] - 11:30~19:30 - 준비시간 14:00~16:30 - 마지막 주문 19:00',
+    phone: '0507-1389-8976',
     waiting_count: 0,
   },
   {
@@ -3860,6 +4100,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '충북 제천에 위치한 덩실분식은 1965년부터 3대째 국산 찹쌀과 국산 팥으로 정성을 들여 빚여내는 …',
     open_hours: '08:30~18:00',
+    phone: '043-643-2133',
     waiting_count: 0,
   },
   {
@@ -3876,6 +4117,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '옥수찐빵만두는 충청북도 청주시 청원구 북이면 옥수리에 있다',
     open_hours: '06:30~19:00',
+    phone: '043-212-7173',
     waiting_count: 0,
   },
   {
@@ -3892,6 +4134,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '구경당은 구경 시장 입구에 있는 고객 쉼터이자 디저트 카페이다',
     open_hours: '10:00~19:00',
+    phone: '043-422-1706',
     waiting_count: 0,
   },
   {
@@ -3908,6 +4151,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '미몽은 충청북도 증평군 증평읍 미암리에 자리 잡고 있다',
     open_hours: '10:30~21:00 (마지막 주문 20:30)',
+    phone: '0507-1339-6411',
     waiting_count: 0,
   },
   {
@@ -3924,6 +4168,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '엔트라포레는 충청북도 청주시 상당구 남일면에 자리 잡은 카페로 대표 메뉴는 커피다',
     open_hours: '[평일] - 12:00~21:00 - 마지막 주문 20:30 [주말] - 11:00~21:50 - 마지막 주문 21:20',
+    phone: '0507-1353-7449',
     waiting_count: 0,
   },
   {
@@ -3940,6 +4185,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '유리원은 충청북도 음성군에 위치한 카페로, 자연과 어우러진 아름다운 환경 속에서 여유로운 시간을 보낼 수 있는 공간이다',
     open_hours: '매일 10:30 - 9:00 (8:30 라스트오더)',
+    phone: '0507-1340-1157',
     waiting_count: 0,
   },
   {
@@ -3956,6 +4202,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '전통 한옥의 고즈넉한 분위기 속에서 다양한 커피와 베이커리류를 즐길 수 있으며, 넓은 주차 공간과…',
     open_hours: '10:00 - 22:00 / 라스트오더 21:30',
+    phone: '043-537-0369',
     waiting_count: 0,
   },
   {
@@ -3972,6 +4219,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '단양팔경 중 네 곳의 경승지가 나란히 붙어 있는 선암계곡 아래쪽 산 위에 있는 이색 레스토랑 겸 카페다',
     open_hours: '11:00~21:00',
+    phone: '043-422-1577',
     waiting_count: 0,
   },
   {
@@ -3988,6 +4236,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '2020년 개장한 말티재 전망대는 전망대 및 조형물로 열두굽이의 말티고개를 한눈에 볼 수 있는 곳이다',
     open_hours: '[11월~2월] - 09:00~18:00 - 입장 마감 17:30 [5월~8월] - 09:00~20:00 - 입장 마감 19:30 [3월~4월/9월~10월] - 09:00~19:00 - 입장 마감 18:30 ※ 우천 및 강풍 등 기상 악화 시 전망대 출입 제한 ※ 비가 그친 후 전망대 노면이 다 마를 때까지 전망대 출입 제한',
+    phone: '043-540-4432',
     waiting_count: 0,
   },
   {
@@ -4004,6 +4253,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '괴산군 연풍면 소재지에 있는 조선시대의 건축물이다',
     open_hours: '상시 개방',
+    phone: '괴산군청 문화유산팀 043-830-3432',
     waiting_count: 0,
   },
   {
@@ -4020,6 +4270,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '옥화자연휴양림은 충청북도 청주시 상당구 미원면에 위치한 자연휴양림으로, 청주시시설관리공단에서 운영하고 있다',
     open_hours: '옥화자연휴양림 09:00~18:00 숙박시설 및 캠핑장 15:00~익일 11:00 (단, 무궁화 2호, 민들레 3호는 18:00~익일15:00)',
+    phone: '043-270-7384~5',
     waiting_count: 0,
   },
   {
@@ -4036,6 +4287,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '월악산 미륵리 3층석탑을 조금 지난 왼쪽으로 작은 오솔길이 하나 있다',
     open_hours: '상시 개방',
+    phone: '월악산국립공원사무소 043-653-3250',
     waiting_count: 0,
   },
   {
@@ -4052,6 +4304,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '제천시 한수면 월악산 자락의 고찰인 덕주사에 있는 불상이다',
     open_hours: '상시 개방',
+    phone: '덕주사 043-653-1773',
     waiting_count: 0,
   },
   {
@@ -4068,6 +4321,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '구읍은 옥천의 옛 중심지로, 지금의 옥천읍 죽향리와 상계리, 하계리, 교동리, 문정리 일부를 가리키는 주민들 사이의 고유명사다',
     open_hours: '상시 개방',
+    phone: '043-730-3413',
     waiting_count: 0,
   },
   {
@@ -4084,6 +4338,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '반기문 유엔사무총장 생가마을인 행치마을은 보덕산이 좌우에서 감싸안고 있으며, 온화하고 정겨운 느낌을…',
     open_hours: '상시 개방',
+    phone: '음성군 문화홍보과 043-871-3401',
     waiting_count: 0,
   },
   {
@@ -4100,6 +4355,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '이민물장어 하우스는 직영 양식장에서 생산하는 무항생 장어만을 사용하는 장어구이 전문점이다',
     open_hours: '11:30~21:00',
+    phone: '041-833-3900',
     waiting_count: 0,
   },
   {
@@ -4116,6 +4372,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '1950년대 초반 아우내 장터에서 간판없이 순대를 만들어 팔면서 문을 연 청화집은 세금신고를 하려면…',
     open_hours: '- 평일 09:00~17:00 - 주말 08:30~17:00',
+    phone: '041-564-1558',
     waiting_count: 0,
   },
   {
@@ -4132,6 +4389,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '이화식당은 충청남도 아산시 영인면 신현리에 있다',
     open_hours: '- 05:20~20:00 - 마지막 주문 19:00',
+    phone: '0507-1355-3587',
     waiting_count: 0,
   },
   {
@@ -4148,6 +4406,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '재벌짬뽕은 충청남도 아산시 온천동에 있다',
     open_hours: '[평일] - 11:00~20:00 - 준비 시간 15:00~17:00 [주말] - 11:00~20:00 - 준비 시간 16:00~17:00',
+    phone: '041-545-7413',
     waiting_count: 0,
   },
   {
@@ -4164,6 +4423,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '하루 딱 4시간만 맛볼 수 있는 동해원의 짬뽕은 전국 5대 짬뽕으로 꼽힐 만큼 유명하다',
     open_hours: '- 평일 11:00~15:00 - 토요일, 공휴일 11:00~15:30',
+    phone: '041-852-3624',
     waiting_count: 0,
   },
   {
@@ -4180,6 +4440,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '[중소벤처기업부 2019년도 ‘백년가게’로 선정] 마방(마일드치킨)은 33년간 같은 레시피의 전통…',
     open_hours: '16:00~23:30 라스트 오더 22:00',
+    phone: '041-665-5369',
     waiting_count: 0,
   },
   {
@@ -4196,6 +4457,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '광명만두는 충청남도 천안시 서북구 두정동에 있는 수제 만두 전문 음식점이다',
     open_hours: '10:30~21:00',
+    phone: '041-552-2289',
     waiting_count: 0,
   },
   {
@@ -4212,6 +4474,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '인주 한옥점은 충남 아산시 인주면 문방리에 자리 잡고 있다',
     open_hours: '- 10:00~22:00 - 마지막 주문 21:00',
+    phone: '0507-1380-1356',
     waiting_count: 0,
   },
   {
@@ -4228,6 +4491,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '카페 피어라는 충남 당진시에 위치한 카페로 보리밭을 볼 수 있는 풍경으로 유명해진 곳이다',
     open_hours: '10:30~18:30 (마지막 주문 18:00)',
+    phone: '041-362-9900',
     waiting_count: 0,
   },
   {
@@ -4244,6 +4508,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '보령 리리스 카페는 오랜된 찜질방을 정교하게 재해석해 탄생한 플라워 카페이다',
     open_hours: '09:00~18:00',
+    phone: '010-4118-8600',
     waiting_count: 0,
   },
   {
@@ -4260,6 +4525,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '광덕산 자락에 자리를 잡아, 푸른 광덕산과 시원한 수영장 뷰로 유명한 카페다',
     open_hours: '10:00~19:30 (마지막 주문 19:00)',
+    phone: '041-841-6633',
     waiting_count: 0,
   },
   {
@@ -4276,6 +4542,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '\'포레스트\'는 언덕 위에 자리한 카페로, 충청남도 당진시 대덕동에 자리 잡고 있다',
     open_hours: '10:00~22:00 - 마지막 주문 21:30',
+    phone: '041-430-7133',
     waiting_count: 0,
   },
   {
@@ -4292,6 +4559,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '에이게이트카페는 충청남도 천안시 동남구 목천읍 동리에 위치한 디저트 카페이다',
     open_hours: '10:00~22:00',
+    phone: '0507-1440-2207',
     waiting_count: 0,
   },
   {
@@ -4308,6 +4576,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '백제 말기 성충[成忠]·흥수[興首]와 더불어 백제 3 충신으로 꼽히는 계백의 유허지로 최후의 결전장이던 황산벌과 가까운 곳에 있다',
     open_hours: '상시 개방',
+    phone: '041-746-8432',
     waiting_count: 0,
   },
   {
@@ -4324,6 +4593,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '영인산자연휴양림은 충남 아산시 영인면에 위치한 영인산에 조성되어 있다',
     open_hours: '- 휴양림 08:00~18:00 - 숲속의 집 15:00~익일 11:00 - 숲속야영장 15:00~익일 12:00 - 레저스포츠 09:30~17:30 - 물놀이터 10:00~17:00 ※ 레저스포츠 매년 4월 초~11월 중순에만 운영 (홈페이지 참조) ※ 물놀이터는 하절기(7월~8월)에만 운영',
+    phone: '041-538-1958~9',
     waiting_count: 0,
   },
   {
@@ -4340,6 +4610,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '공주 우금치 전적은 1894년 동학농민군이 관군과 일본군의 연합군을 상대로 최후의 격전을 벌인 장소이다',
     open_hours: '[우금치전적] - 상시 개방 [우금티전적알림터] - 09:00~18:00 - 입장 마감 17:30',
+    phone: '041-854-4347',
     waiting_count: 0,
   },
   {
@@ -4356,6 +4627,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '칠갑산자연휴양림은 73㏊의 울창한 천연림의 아름다운 경관을 살려 1990년도에 조성하여 1993. 9. 12일에 준공했다',
     open_hours: '- 일일개장 09:00~18:00 - 숙박 14:00~익일 11:00',
+    phone: '041-940-2428',
     waiting_count: 0,
   },
   {
@@ -4372,6 +4644,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '봉수산자연휴양림은 예산 예당저수지(예당관광지) 남서쪽 인근에 솟은 봉수산(483m)에 조성된 자연휴양림이다',
     open_hours: '[일일개장] 09:00~18:00 [숙박시설] 15:00~익일 12:00',
+    phone: '041-339-8936',
     waiting_count: 0,
   },
   {
@@ -4388,6 +4661,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '논산 명재고택은 윤증선생고택이라고도 하며 마을을 향해 활짝 열려있다',
     open_hours: '[하절기] - 10:00~17:00 [동절기] - 10:00~16:00',
+    phone: '041-735-1215',
     waiting_count: 0,
   },
   {
@@ -4404,6 +4678,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '서동요 테마파크는 약 1만여 평 백제왕궁, 왕궁마을, 왕비처의 대지 위에 조성된 오픈세트장에 오늘날…',
     open_hours: '- 하절기(3월~10월) 09:00~18:00 - 동절기(11월~2월) 09:00~17:00 ※ 촬영중에는 관람이 제한될 수 있음',
+    phone: '041-832-9913',
     waiting_count: 0,
   },
   {
@@ -4420,6 +4695,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '고려 팔만대장경으로 유명한 경남 합천의 해인사로 가는 길에 해인사 산채한정식거리가 조성되어 있으며,…',
     open_hours: '10:00~22:00',
+    phone: '055-932-7358',
     waiting_count: 0,
   },
   {
@@ -4436,6 +4712,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '흑진주 몽돌해변에서 걸어서 2분 거리에 있는 학동 1박2일 맛있는 집은 싱싱한 해산물 요리 전문점이다',
     open_hours: '08:30~20:00 ※ 계절에 따라 영업시간 변동',
+    phone: '055-637-1472',
     waiting_count: 0,
   },
   {
@@ -4452,6 +4729,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '거제 예구선착장 바로 앞에 있는 유경식당은 현지인들이 자주 찾는 식당이다',
     open_hours: '10:00~22:00',
+    phone: '055-633-0008',
     waiting_count: 0,
   },
   {
@@ -4468,6 +4746,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '양산에 있는 탄탄멘과 돈코츠 라멘이 맛있는 일본라멘 맛집 무라는 요비모도시 기법을 사용하여 10가지…',
     open_hours: '- 11:00~21:00 - 준비시간 15:00~17:00 - 점심 마지막 주문 14:50 - 저녁 마지막 주문 20:50',
+    phone: '0507-1461-2779',
     waiting_count: 0,
   },
   {
@@ -4484,6 +4763,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '경남 양산 서리단길에 있는 로얄경양식&스테이크는 양식당에 대한 편견을 깬 개성 넘치는 공간이다',
     open_hours: '11:00~21:00 (준비시간 14:40~17:00 / 마지막 주문 20:00)',
+    phone: '0507-1345-2042',
     waiting_count: 0,
   },
   {
@@ -4500,6 +4780,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '세계 3대 제빵왕 대회 독일 이바컵 대회에서 우리나라 대표로 출전해 대한민국 최초 금메달을 획득한 …',
     open_hours: '08:00~22:00',
+    phone: '055-277-5240',
     waiting_count: 0,
   },
   {
@@ -4516,6 +4797,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '거제 고현에 있는 장원분식은 오래된 현지인 맛집이다',
     open_hours: '11:00~19:00',
+    phone: '055-637-2902',
     waiting_count: 0,
   },
   {
@@ -4532,6 +4814,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '하동군에서 직접 운영하는 하동야생차치유관 티카페하동이다',
     open_hours: '[하절기(3월~10월)] - 10:00~19:00 [동절기(11월~2월)] - 09:00~18:00 - 마지막 주문 17:20',
+    phone: '070-4171-8873',
     waiting_count: 0,
   },
   {
@@ -4548,6 +4831,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '양산 원동면에 있는 카페 가마등은 자연 그대로의 풍경과 잘 어우러진 야외 테라스로 유명하다',
     open_hours: '[평일] 11:00~18:45 (마지막 주문 18:15) [주말] 11:00~19:30 (마지막 주문 19:00)',
+    phone: '010-2586-4437',
     waiting_count: 0,
   },
   {
@@ -4564,6 +4848,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '지세포항 근처에 있는 동네오빠커피는 수제 쿠키, 와플, 샌드위치 등 다양한 메뉴가 있는 브런치 카페이다',
     open_hours: '10:00~19:00 (마지막 주문 18:00)',
+    phone: '0507-1309-1569',
     waiting_count: 0,
   },
   {
@@ -4580,6 +4865,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '무타블랑은 ‘차가 없는 곳은 즐거움이 없는 것과 같다’라는 의미이다',
     open_hours: '11:00~21:00',
+    phone: '055-374-0221',
     waiting_count: 0,
   },
   {
@@ -4596,6 +4882,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '경남 진주시 중앙시장 인근에 위치한 \'수복빵집\'은 팥물을 부어 먹는 단팥빵으로 알려진 오래된 찐빵 전문점이다',
     open_hours: '12:00~17:00 ※ 재료 소진 시 마감',
+    phone: '055-741-0520',
     waiting_count: 0,
   },
   {
@@ -4612,6 +4899,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '최고령의 차나무 도심다원은 지리산 남향 깊은 화개에 자리 잡고 있으며, 남으로는 남해바다까지 섬진강…',
     open_hours: '정보 없음',
+    phone: '0507-1401-0140',
     waiting_count: 0,
   },
   {
@@ -4628,6 +4916,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '1930년에 창원특례시 진해구 화천동에 시중 포교당으로 출발하였다',
     open_hours: '상시 개방',
+    phone: '055-545-9595',
     waiting_count: 0,
   },
   {
@@ -4644,6 +4933,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '신라 49대 헌강왕 5년(879년) 풍수지리학 개산조이신 도선국사께서 백두산의 정기는 동해를 끼고 …',
     open_hours: '상시 개방',
+    phone: '055-754-7056',
     waiting_count: 0,
   },
   {
@@ -4660,6 +4950,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '금대암은 대한불교 조계종 제12교구 해인사의 말사로서 금대사라고도 한다',
     open_hours: '상시 개방',
+    phone: '055-962-5500',
     waiting_count: 0,
   },
   {
@@ -4676,6 +4967,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '대한불교조계종 제15교구 본사인 통도사에는 19개의 크고 작은 암자가 있다',
     open_hours: '06:30~17:30 ※ 자세한 사항은 전화문의 요망',
+    phone: '055-382-7081',
     waiting_count: 0,
   },
   {
@@ -4692,6 +4984,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '용추사는 신라 소지왕 9년(487년)에 각연대사가 창건한 옛 장수사와 4대 부속 암자 중에서 현존하…',
     open_hours: '상시 개방',
+    phone: '055-962-4638',
     waiting_count: 0,
   },
   {
@@ -4708,6 +5001,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '창원광장은 경상남도 창원시청 앞에 자리한 원형 광장으로, 창원의 대표 랜드마크다',
     open_hours: '상시 개방',
+    phone: '055-272-4516',
     waiting_count: 0,
   },
   {
@@ -4724,6 +5018,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '우리나라 3대 계곡 중 하나인 아름답고 웅장하기로 유명한 칠선계곡의 초입에 있는 서암정사는 천연의 암석과 조화를 이루고 있는 사찰이다',
     open_hours: '상시 개방',
+    phone: '055-962-5662',
     waiting_count: 0,
   },
   {
@@ -4740,6 +5035,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '군산 현지인이 추천하는 간장게장 맛집이다',
     open_hours: '11:00~20:30 (마지막 주문 20:00)',
+    phone: '063-453-0608',
     waiting_count: 0,
   },
   {
@@ -4756,6 +5052,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '무진장갈비촌은 전북특별자치도 익산시에 위치하고 있다. 신선한 암소한우를 부위별로 맛볼 수 있다',
     open_hours: '11:00~21:30 (준비시간 14:30~16:00)',
+    phone: '063-843-3070',
     waiting_count: 0,
   },
   {
@@ -4772,6 +5069,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '뚜부카페는 전북특별자치도 익산시에 위치한 두부요리 전문점이다',
     open_hours: '11:00~20:00',
+    phone: '063-833-1088',
     waiting_count: 0,
   },
   {
@@ -4788,6 +5086,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '마리서사는 전북특별자치도 정읍에 위치한 경양식 레스토랑이다',
     open_hours: '11:00~22:00 (마지막 주문 21:00)',
+    phone: '063-538-6781',
     waiting_count: 0,
   },
   {
@@ -4804,6 +5103,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '지역 특산물인 천마를 이용해서 면을 뽑고 그 면으로 요리한 해물갈비짬뽕이 유명한 중식전문 식당이다',
     open_hours: '[월요일~목요일] - 10:30~17:00 - 마지막 주문 16:30 [금요일~일요일] - 10:00~21:00 - 마지막 주문 20:30',
+    phone: '063-322-0433',
     waiting_count: 0,
   },
   {
@@ -4820,6 +5120,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '군산시 수송동에 있는 ‘홍윤 베이커리’는 수입 밀을 사용하지 않고 우리 땅에서 자란 쌀로 만드는 40여 가지의 빵이 있는 곳이다',
     open_hours: '- 월요일~토요일 10:00~21:00 - 일요일 10:00~17:00',
+    phone: '0507-1380-0445',
     waiting_count: 0,
   },
   {
@@ -4836,6 +5137,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '명문제과는 백종원의 3대 천왕에 소개되면서 더욱 유명해진 베이커리다',
     open_hours: '10:00~20:00',
+    phone: '063-632-0933',
     waiting_count: 0,
   },
   {
@@ -4852,6 +5154,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '카페 프라나는 2020년 7월 지리산 북부 지역에서 처음으로 오픈한 대형 카페이다',
     open_hours: '11:00~20:00',
+    phone: '063-633-1237',
     waiting_count: 0,
   },
   {
@@ -4868,6 +5171,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '마시랑게는 전북특별자치도 전주 한옥마을에 위치한 이색카페이다',
     open_hours: '10:30~21:00',
+    phone: '0507-1477-1739',
     waiting_count: 0,
   },
   {
@@ -4884,6 +5188,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '정읍 현지 주민들 사이에 쌍화차 맛집으로 알려진 전통찻집이다',
     open_hours: '[월요일~토요일] - 10:30~22:00 - 마지막 주문 21:00 [일요일] - 12:00~22:00 - 마지막 주문 21:00',
+    phone: '063-538-7887',
     waiting_count: 0,
   },
   {
@@ -4900,6 +5205,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '무주창고는 전라북도 무주군 적상면 사산리에 있는 창고형 베이커리 카페이다',
     open_hours: '11:00~21:00 (마지막 주문 20:30)',
+    phone: '010-4125-3923',
     waiting_count: 0,
   },
   {
@@ -4916,6 +5222,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '덕유산 아래 조용하고 풍경 좋은 카페다',
     open_hours: '[평일] 10:00~19:00 [주말] 09:00~20:00',
+    phone: '0507-1446-3883',
     waiting_count: 0,
   },
   {
@@ -4932,6 +5239,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '모정엔틱카페는 유럽 분위기의 엔틱카페이다',
     open_hours: '10:00~21:30',
+    phone: '0507-1426-4589',
     waiting_count: 0,
   },
   {
@@ -4948,6 +5256,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '회문산은 북서쪽의 장군봉(투구봉, 해발 780m)과 북쪽 중앙의 회문봉 (큰지붕, 해발 837m)을…',
     open_hours: '09:00~18:00',
+    phone: '063-653-4779',
     waiting_count: 0,
   },
   {
@@ -4964,6 +5273,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '조선 중기 주택의 면모를 잘 갖추고 있는 이 집은 흔히 아흔아홉 칸 집이라고 부르는 전형적인 상류층…',
     open_hours: '09:00~18:00 ※ 소유주의 개인 사정으로 관람이 제한될 수 있음',
+    phone: '063-536-6776',
     waiting_count: 0,
   },
   {
@@ -4980,6 +5290,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '일제강점기에 일본이 전주팔경의 하나였던 한벽당의 정기를 자르고자 철길을 만들었고, 한벽굴은 그때 만들어진 전라선 터널이다',
     open_hours: '상시 개방',
+    phone: '비짓전주 063-222-1000',
     waiting_count: 0,
   },
   {
@@ -4996,6 +5307,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '노치마을은 해발 500m의 고원지대에 있는 산간마을로 조선 초 경주 정(鄭)씨가 머물러 살고 이어 …',
     open_hours: '상시 개방',
+    phone: '주천면사무소 063-620-3832',
     waiting_count: 0,
   },
   {
@@ -5012,6 +5324,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '조해영가옥은 익산 김병순 고택, 이배원 가옥과 함께 ‘함라마을 삼부잣집’이라 불린다',
     open_hours: '상시 개방',
+    phone: '063-856-0222',
     waiting_count: 0,
   },
   {
@@ -5028,6 +5341,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '이배원 가옥은 전라북도 익산시 함라면에 있는 오래된 전통 가옥으로 인근에 조해영 가옥과 김병순 고택…',
     open_hours: '상시 개방',
+    phone: '063-859-5797',
     waiting_count: 0,
   },
   {
@@ -5044,6 +5358,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '이 집은 조선 선조대 문인 표옹 송영구(瓢翁 宋英耉)선생이 선조 38년(1605) 선친을 여의고 지…',
     open_hours: '상시 개방',
+    phone: '063-859-5875',
     waiting_count: 0,
   },
   {
@@ -5060,6 +5375,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '진도 서천의 청룡에서 갓 잡아온 신선하고 통통한 간재미와 바지락을 회를 쳐 향긋한 미나리와 버무린 …',
     open_hours: '12:00~21:00',
+    phone: '061-544-4117',
     waiting_count: 0,
   },
   {
@@ -5076,6 +5392,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '화순시 한천자연휴양림 근처에 위치한 황토와참숯은 국내산 생고기만 취급하고 있어 다른 식당에 비해 고…',
     open_hours: '11:00~20:00 (준비시간 14:30~17:00)',
+    phone: '061-373-5054',
     waiting_count: 0,
   },
   {
@@ -5092,6 +5409,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '중소벤처기업부 2018년도 ‘백년가게’로 선정된 가게이다',
     open_hours: '11:00~24:00',
+    phone: '0507-1324-7041',
     waiting_count: 0,
   },
   {
@@ -5108,6 +5426,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '태동반점은 전남광주통합특별시 목포시 죽동에 있는 중식당이다',
     open_hours: '- 11:00~19:00 - 준비시간 14:20~15:40 - 마지막 주문 18:30',
+    phone: '061-243-3351',
     waiting_count: 0,
   },
   {
@@ -5124,6 +5443,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '시드니의 오페라하우스를 닮은 전남광주통합특별시 담양군의 오페라하우스는 패밀리 레스토랑이다',
     open_hours: '11:20~20:30 (준비시간 15:00~16:30)',
+    phone: '0507-1360-6162',
     waiting_count: 0,
   },
   {
@@ -5140,6 +5460,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '전남광주통합특별시 해남군 번화가 골목 안에 있는 해남고구마빵 피낭시에는 유럽풍의 파란색 건물로 멀리서도 한눈에 띈다',
     open_hours: '09:30~20:00 ※ 해남고구마빵 매진 시 조기 마감',
+    phone: '0507-1393-6262',
     waiting_count: 0,
   },
   {
@@ -5156,6 +5477,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '신안 천사대교 근처 압해도에 있는 농부애빵 마시쿠만 카페는 도로 바로 옆으로 주차장이 있어 여유롭게 주차할 수 있다',
     open_hours: '09:00~18:00',
+    phone: '061-246-4662',
     waiting_count: 0,
   },
   {
@@ -5172,6 +5494,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '따뜻한 섬 온도는 기와지붕과 통유리가 멋지게 조화를 이루고 있는 한옥카페로 전남광주통합특별시 장성군 황룡면에 있다',
     open_hours: '10:30~21:00 (마지막 주문 20:30)',
+    phone: '061-393-1333',
     waiting_count: 0,
   },
   {
@@ -5188,6 +5511,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '전남광주통합특별시 강진군 마량면 마량리에 있는 벙커는 마량놀토수산시장 가는 길목에 있으며 바다 전망의 전경이 예쁜 카페이다',
     open_hours: '10:30~19:00',
+    phone: '0507-1356-6556',
     waiting_count: 0,
   },
   {
@@ -5204,6 +5528,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '트윈브릿지는 진도대교와 울돌목 바로 옆 해남과 진도를 잇는 자리에 있다',
     open_hours: '10:00~21:00 (마지막 주문 20:30)',
+    phone: '0507-1381-5337',
     waiting_count: 0,
   },
   {
@@ -5220,6 +5545,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '넓고 쾌적한 카페로 알려진 아트리움은 전남광주통합특별시 장성군 진원면에 있는 디저트 카페다',
     open_hours: '10:30~21:00 (마지막 주문 20:30)',
+    phone: '0507-1341-6861',
     waiting_count: 0,
   },
   {
@@ -5236,6 +5562,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '사계절 다른 매력을 뽐내는 오데온은 전남광주통합특별시 장성군 진원면에 있는 대형 디저트 카페다',
     open_hours: '11:00~21:00 (마지막 주문 20:15)',
+    phone: '0507-1458-7021',
     waiting_count: 0,
   },
   {
@@ -5252,6 +5579,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '카페잇다는 전남광주통합특별시 장성군 진원면에 있는 베이커리 카페다',
     open_hours: '매일 11:00 ~ 21:00 (20:20 라스트오더)',
+    phone: '061-395-7991',
     waiting_count: 0,
   },
   {
@@ -5268,6 +5596,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '호남 5대 명산 중의 하나인 천관산은 관산읍과 대덕읍 경계에 있는 723m의 산으로 온 산이 바위로…',
     open_hours: '- 숙박 15:00~익일 11:00 - 일일개장 09:00~18:00',
+    phone: '061-867-6974',
     waiting_count: 0,
   },
   {
@@ -5284,6 +5613,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '선암사와 송광사라는 두 거찰을 끼고 있는 조계산(884.3m)은 순천시 송광면, 주암면 일대에 걸쳐…',
     open_hours: '[동절기] 06:00~18:00 [하절기] 06:00~17:00',
+    phone: '1577-2013',
     waiting_count: 0,
   },
   {
@@ -5300,6 +5630,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '두륜산은 사찰, 유적지 등이 많고 자연경관이 뛰어난 관광지로 한반도의 가장 남쪽 끝에 있는 높이 700m의 산이다',
     open_hours: '상시 개방 (일몰 2시간 전 입산 주의)',
+    phone: '061-530-5957',
     waiting_count: 0,
   },
   {
@@ -5316,6 +5647,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '높이 약 654m의 입암산 기슭에 위치한 남창골은 국립공원 내장산 남부(남창 지구)에 속한다',
     open_hours: '상시이용',
+    phone: '061-390-7240',
     waiting_count: 0,
   },
   {
@@ -5332,6 +5664,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '중흥사는 옥룡사의 남쪽 약 2.5㎞ 떨어진 곳에 위치하고 있는데 중흥산성안에 자리 잡고 있어서 중흥사로 부르게 되었다',
     open_hours: '상시 개방',
+    phone: '061-763-6655',
     waiting_count: 0,
   },
   {
@@ -5348,6 +5681,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '흥양읍성터는 1441년 흥양현이 생긴 이래 1914년에 행정명이 고흥군으로 개칭되기까지 흥양현이 있…',
     open_hours: '상시 개방',
+    phone: '061-285-9045',
     waiting_count: 0,
   },
   {
@@ -5364,6 +5698,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '대화사는 신라 지증왕 때에 아도화상이 창건했으며, 그 후로 고려시대 조계 제5세 원오국사가 중건하였다',
     open_hours: '10:00~19:00',
+    phone: '061-853-1755',
     waiting_count: 0,
   },
   {
@@ -5380,6 +5715,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '더더 수육튀김 송도타임스페이스본점은 인천광역시 연수구에 위치한 수육튀김 전문점이다',
     open_hours: '월~토 17:00 - 02:00',
+    phone: '0507-1385-6661',
     waiting_count: 0,
   },
   {
@@ -5396,6 +5732,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '이태원에 위치한 여인숙은 와인바로 기버터 스테이크가 유명한 곳이다',
     open_hours: '- 11:30~23:00- 준비시간 15:00~17:00- 마지막 주문 22:00',
+    phone: '010-4194-4588',
     waiting_count: 0,
   },
   {
@@ -5412,6 +5749,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '쿤스트라운지는 남해 독일 마을에 있는 브런치 카페다',
     open_hours: '10:00~21:00 (마지막 주문 20:00)',
+    phone: '0507-1401-4058',
     waiting_count: 0,
   },
   {
@@ -5428,6 +5766,7 @@ export const SEED_PLACES: Place[] = [
     tags: [],
     summary: '태양상회는 제주 탑동해변공연장 근처에 있다',
     open_hours: '18:00 ~01:00 (마지막 주문 00:00)',
+    phone: null,
     waiting_count: 0,
   },
 ]

@@ -60,6 +60,7 @@ create table public.places (
   tags          text[] not null default '{}',
   summary       text not null default '',
   open_hours    text not null default '',
+  phone         text,
   -- 실시간 대기 팀 수 (RSV-05-02 현황판 소스)
   waiting_count integer not null default 0
 );

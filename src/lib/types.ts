@@ -70,6 +70,8 @@ export interface Place {
   tags: string[]
   summary: string
   open_hours: string
+  /** 전화번호 — TourAPI 가 제공하지 않으면 null */
+  phone: string | null
   /** 실시간 대기 인원 현황 (RSV-05-02) */
   waiting_count: number
 }

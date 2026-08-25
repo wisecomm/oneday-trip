@@ -177,6 +177,14 @@ export function PlaceDetailPage() {
             <span className="text-ink-300">|</span>
             <span>{place.open_hours}</span>
           </div>
+          {place.phone && (
+            <a
+              href={`tel:${place.phone}`}
+              className="mt-2 inline-flex items-center gap-1 text-[13px] font-semibold text-babzip"
+            >
+              📞 {place.phone}
+            </a>
+          )}
         </div>
 
         <p className="mb-4 text-[14px] leading-relaxed text-ink-700">{place.summary}</p>
