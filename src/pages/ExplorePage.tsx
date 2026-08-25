@@ -37,6 +37,7 @@ export function ExplorePage() {
   const [trip, setTrip] = useState<Trip | null>(null)
   const [pickedCount, setPickedCount] = useState(0)
   const [toast, setToast] = useState<string | null>(null)
+  const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -121,10 +122,21 @@ export function ExplorePage() {
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         const me = { lat: coords.latitude, lng: coords.longitude }
+        setMyLocation(me)
         setList((prev) =>
           [...prev].sort((a, b) => distanceKm(me, a) - distanceKm(me, b)),
         )
-        setToast('내 위치에서 가까운 순으로 정렬했습니다.')
+        // 실제 행정구역 조회 없이도, 이미 들고 있는 시/도 중심 좌표에서 가장 가까운
+        // 곳을 '대략 어느 도시인지'로 보여준다 — 정확한 행정동보다는 감을 잡는 용도
+        const nearestGroup = groups.reduce<{ name: string; d: number } | null>((best, g) => {
+          const d = distanceKm(me, g)
+          return !best || d < best.d ? { name: g.name, d } : best
+        }, null)
+        setToast(
+          nearestGroup
+            ? `내 위치(${nearestGroup.name} 인근)에서 가까운 순으로 정렬했습니다.`
+            : '내 위치에서 가까운 순으로 정렬했습니다.',
+        )
       },
       (err) => {
         if (err.code === err.PERMISSION_DENIED) {
@@ -161,6 +173,7 @@ export function ExplorePage() {
         onSelect={setSelected}
         className="h-full w-full bg-ink-100"
         safeInsets={{ top: 100, bottom: 120 }}
+        userLocation={myLocation}
       />
 
       {/* 상단 필터 */}

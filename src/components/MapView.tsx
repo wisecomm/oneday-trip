@@ -5,7 +5,7 @@ import {
   loadNaverMaps,
   onNaverAuthFailure,
 } from '@/lib/naver'
-import { projectToViewport } from '@/lib/geo'
+import { projectToViewport, type LatLng } from '@/lib/geo'
 import { CATEGORY_COLOR, type Place } from '@/lib/types'
 
 interface MapViewProps {
@@ -17,6 +17,8 @@ interface MapViewProps {
   selectedId?: string | null
   onSelect?: (place: Place) => void
   className?: string
+  /** '내 위치 주변 재탐색' 등으로 확보한 사용자 위치 — 있으면 파란 점으로 표시하고 뷰에 포함시킨다 */
+  userLocation?: LatLng | null
 }
 
 /**
@@ -31,6 +33,7 @@ export function MapView({
   onSelect,
   className,
   safeInsets,
+  userLocation,
 }: MapViewProps) {
   // 다른 화면에서 이미 인증 실패가 확인됐다면 처음부터 폴백으로 간다
   const [naverFailed, setNaverFailed] = useState(hasNaverAuthFailed)
@@ -47,6 +50,7 @@ export function MapView({
         selectedId={selectedId}
         onSelect={onSelect}
         className={className}
+        userLocation={userLocation}
         onFail={() => setNaverFailed(true)}
       />
     )
@@ -60,6 +64,7 @@ export function MapView({
       onSelect={onSelect}
       className={className}
       safeInsets={safeInsets}
+      userLocation={userLocation}
     />
   )
 }
@@ -72,11 +77,13 @@ function NaverMap({
   selectedId,
   onSelect,
   className,
+  userLocation,
   onFail,
 }: MapViewProps & { onFail: () => void }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
+  const userMarkerRef = useRef<any>(null)
   const polylineRef = useRef<any>(null)
   const [ready, setReady] = useState(false)
 
@@ -116,10 +123,26 @@ function NaverMap({
       m.setMap(null)
     })
     markersRef.current = []
+    userMarkerRef.current?.setMap(null)
+    userMarkerRef.current = null
     polylineRef.current?.setMap(null)
 
     const orderIndex = new Map(route?.map((p, i) => [p.id, i + 1]) ?? [])
     const bounds = new naver.maps.LatLngBounds()
+
+    if (userLocation) {
+      const pos = new naver.maps.LatLng(userLocation.lat, userLocation.lng)
+      bounds.extend(pos)
+      userMarkerRef.current = new naver.maps.Marker({
+        position: pos,
+        map,
+        zIndex: 20,
+        icon: {
+          content: myLocationMarkerHtml(),
+          anchor: new naver.maps.Point(11, 11),
+        },
+      })
+    }
 
     places.forEach((place) => {
       const pos = new naver.maps.LatLng(place.lat, place.lng)
@@ -156,13 +179,22 @@ function NaverMap({
       })
     }
 
-    if (places.length === 1) {
+    if (userLocation) {
+      // 내 위치를 확보했을 때는 그 지점을 기준으로 뷰를 옮긴다 — 장소가 없거나
+      // 하나뿐이면 내 위치에 바로 확대, 여러 곳이면 내 위치를 포함해 전부 보이게 맞춘다
+      if (places.length === 0) {
+        map.setCenter(new naver.maps.LatLng(userLocation.lat, userLocation.lng))
+        map.setZoom(14)
+      } else {
+        map.fitBounds(bounds, { top: 56, right: 48, bottom: 56, left: 48 })
+      }
+    } else if (places.length === 1) {
       map.setCenter(new naver.maps.LatLng(places[0].lat, places[0].lng))
       map.setZoom(15)
     } else if (places.length > 1) {
       map.fitBounds(bounds, { top: 56, right: 48, bottom: 56, left: 48 })
     }
-  }, [places, route, selectedId, onSelect, ready])
+  }, [places, route, selectedId, onSelect, userLocation, ready])
 
   return <div ref={containerRef} className={className} />
 }
@@ -182,9 +214,23 @@ function markerHtml(place: Place, order: number | undefined, selected: boolean):
     box-shadow:0 4px 12px rgba(0,0,0,.28);border:2.5px solid #fff">${label}</div>`
 }
 
+/** 내 위치 마커 — 장소 마커(핀 모양)와 구분되도록 파란 점 + 후광으로 그린다 */
+function myLocationMarkerHtml(): string {
+  return `<div style="width:22px;height:22px;border-radius:999px;background:#3282f6;
+    border:3px solid #fff;box-shadow:0 0 0 5px rgba(50,130,246,.25),0 4px 10px rgba(0,0,0,.25)"></div>`
+}
+
 /* ───────────────────── 폴백 지도 (키 미설정 시) ───────────────────── */
 
-function FallbackMap({ places, route, selectedId, onSelect, className, safeInsets }: MapViewProps) {
+function FallbackMap({
+  places,
+  route,
+  selectedId,
+  onSelect,
+  className,
+  safeInsets,
+  userLocation,
+}: MapViewProps) {
   const boxRef = useRef<HTMLDivElement>(null)
   // 뷰박스를 컨테이너 픽셀 크기와 1:1로 맞춰야 마커가 왜곡되거나 잘리지 않는다
   const [{ W, H }, setSize] = useState({ W: 375, H: 480 })
@@ -200,18 +246,19 @@ function FallbackMap({ places, route, selectedId, onSelect, className, safeInset
     return () => observer.disconnect()
   }, [])
 
-  const points = projectToViewport(
-    places.map((p) => ({ lat: p.lat, lng: p.lng })),
-    W,
-    H,
-    {
-      // 상단 필터·하단 내비게이션 UI 와 겹치지 않도록 여백을 확보한다
-      top: (safeInsets?.top ?? 0) + 40,
-      bottom: (safeInsets?.bottom ?? 0) + 40,
-      right: 44,
-      left: 44,
-    },
-  )
+  // 내 위치도 좌표 범위 계산에 포함시켜야 뷰가 실제로 그쪽으로 옮겨간다
+  const allLatLng = places.map((p) => ({ lat: p.lat, lng: p.lng }))
+  if (userLocation) allLatLng.push(userLocation)
+
+  const allPoints = projectToViewport(allLatLng, W, H, {
+    // 상단 필터·하단 내비게이션 UI 와 겹치지 않도록 여백을 확보한다
+    top: (safeInsets?.top ?? 0) + 40,
+    bottom: (safeInsets?.bottom ?? 0) + 40,
+    right: 44,
+    left: 44,
+  })
+  const points = allPoints.slice(0, places.length)
+  const userPoint = userLocation ? allPoints[allPoints.length - 1] : null
   const byId = new Map(places.map((p, i) => [p.id, points[i]]))
   const orderIndex = new Map(route?.map((p, i) => [p.id, i + 1]) ?? [])
   const routePoints = (route ?? []).map((p) => byId.get(p.id)).filter(Boolean) as Array<{
@@ -289,6 +336,13 @@ function FallbackMap({ places, route, selectedId, onSelect, className, safeInset
             </g>
           )
         })}
+
+        {userPoint && (
+          <g transform={`translate(${userPoint.x} ${userPoint.y})`}>
+            <circle r={12} fill="#3282f6" opacity="0.22" />
+            <circle r={7} fill="#3282f6" stroke="#fff" strokeWidth="2.5" />
+          </g>
+        )}
       </svg>
     </div>
   )
