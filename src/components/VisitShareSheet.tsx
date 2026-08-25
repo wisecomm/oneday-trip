@@ -69,6 +69,8 @@ export function VisitShareSheet({
       if (canShareFiles(photo)) {
         // 모바일에서는 이 시트에 인스타그램이 함께 뜬다
         await navigator.share({ files: [photo], text: caption, title: input!.place.name })
+        // 공유가 실제로 끝난 경우에만 닫는다 — 취소(AbortError)는 catch 에서 걸러진다
+        onClose()
         return
       }
       // 데스크톱 등 파일 공유를 지원하지 않는 환경 — 저장과 캡션 복사로 대신한다
