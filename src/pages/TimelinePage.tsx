@@ -28,7 +28,7 @@ import type { VisitCardInput } from '@/lib/share-card'
 import { formatTripDate } from './TripCreatePage'
 
 /**
- * TRIP-03-01 · 03. 마이 트립 > 3.1 타임라인 관리 > 여행 리스트
+ * TRIP-03-01 · 03. 나의 여행 > 3.1 타임라인 관리 > 여행 리스트
  * 당일치기 서비스이므로 일자 구분 없이 하나의 방문 순서만 관리한다.
  * 드래그로 순서를 바꾸면 하단 동선 요약이 즉시 재계산되고,
  * 예약 상태는 카드 배지에 자동 바인딩된다.

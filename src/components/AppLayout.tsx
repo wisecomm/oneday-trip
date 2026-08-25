@@ -5,7 +5,7 @@ const NAV = [
   { to: '/', label: '홈', icon: 'home' },
   { to: '/map', label: '여행 지도', icon: 'map' },
   { to: '/recommend', label: 'AI 추천', icon: 'sparkle' },
-  { to: '/trips', label: '마이 트립', icon: 'route' },
+  { to: '/trips', label: '나의 여행', icon: 'route' },
   { to: '/me', label: 'MY', icon: 'user' },
 ] as const
 

@@ -42,7 +42,7 @@ export function TripListPage() {
   return (
     <>
       <PageHeader
-        title="마이 트립"
+        title="나의 여행"
         right={
           <Link to="/trips/new" className="btn-primary !px-3 !py-1.5 text-[13px]">
             + 새 여행

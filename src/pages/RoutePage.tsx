@@ -8,7 +8,7 @@ import { EmptyState, Loading, PageHeader } from '@/components/ui'
 import { CategoryDot } from '@/components/PlaceCard'
 
 /**
- * TRIP-03-02 · 03. 마이 트립 > 3.2 경로 최적화 > 동선 최적화 지도
+ * TRIP-03-02 · 03. 나의 여행 > 3.2 경로 최적화 > 동선 최적화 지도
  * 등록 장소의 위경도를 배열로 모아 Polyline 으로 잇고,
  * [경로 최적화] 클릭 시 최단 거리 기준으로 방문 순서를 자동 재정렬한다.
  */

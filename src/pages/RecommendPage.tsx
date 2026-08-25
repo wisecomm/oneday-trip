@@ -15,7 +15,7 @@ const ALL_LEAF = '전체'
 /**
  * MAP-04-02 · 04. 로컬 장소 탐색 > 4.2 AI 추천 > 맥락 인지 추천 피드
  * 실시간 날씨 API + 회원 프로필 취향 태그를 결합해 초개인화 카드를 구성하고,
- * [저장하기]로 마이 트립 방문 리스트(3.1)에 다이렉트 추가한다.
+ * [저장하기]로 나의 여행 방문 리스트(3.1)에 다이렉트 추가한다.
  */
 export function RecommendPage() {
   const { user, profile } = useAuth()
@@ -28,7 +28,7 @@ export function RecommendPage() {
   const [feed, setFeed] = useState<Scored[]>([])
   const [loading, setLoading] = useState(true)
   const [myTrips, setMyTrips] = useState<Trip[]>([])
-  // 로그인하지 않았거나 마이 트립 로딩이 끝나야 '다가오는 여행 목적지' 기본값을 확정할 수 있다
+  // 로그인하지 않았거나 나의 여행 로딩이 끝나야 '다가오는 여행 목적지' 기본값을 확정할 수 있다
   const [myTripsLoaded, setMyTripsLoaded] = useState(false)
   const [saveTarget, setSaveTarget] = useState<Scored | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -59,7 +59,7 @@ export function RecommendPage() {
     }
   }, [region, group, regions, groups, profile])
 
-  // 지역 목록·마이 트립이 모두 준비되면 기본 지역을 정한다 — 오늘 이후로 예정된
+  // 지역 목록·나의 여행이 모두 준비되면 기본 지역을 정한다 — 오늘 이후로 예정된
   // 여행이 있으면 그중 가장 빠른 여행의 목적지로, 없으면 첫 상위 지역으로 맞춘다
   useEffect(() => {
     if (region || groups.length === 0 || regions.length === 0 || !myTripsLoaded) return
@@ -243,7 +243,7 @@ export function RecommendPage() {
                   }}
                   className="w-full border-t border-ink-100 py-3 text-[13.5px] font-bold text-brand-600 hover:bg-brand-50"
                 >
-                  저장하기 · 마이 트립에 추가
+                  저장하기 · 나의 여행에 추가
                 </button>
               </li>
             ))}

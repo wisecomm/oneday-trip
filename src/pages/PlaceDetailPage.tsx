@@ -176,7 +176,7 @@ export function PlaceDetailPage() {
               {new Date(confirmed.when).toLocaleString('ko-KR')} · {confirmed.party}명
             </p>
             <p className="hint mt-1">
-              마이 트립 타임라인의 해당 날짜에 예약 카드가 자동으로 표시됩니다.
+              나의 여행 타임라인의 해당 날짜에 예약 카드가 자동으로 표시됩니다.
             </p>
             <div className="mt-3 flex gap-2">
               <button type="button" onClick={shareToKakao} className="btn-ghost flex-1">
