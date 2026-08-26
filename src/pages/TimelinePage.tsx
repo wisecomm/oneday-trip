@@ -49,9 +49,12 @@ export function TimelinePage() {
   const [loading, setLoading] = useState(true)
   const [statusByPlace, setStatusByPlace] = useState<Record<string, '예약 확정'>>({})
   const [shareTarget, setShareTarget] = useState<VisitCardInput | null>(null)
-  const [noteTarget, setNoteTarget] = useState<TripItem | null>(null)
+  const [reviewTarget, setReviewTarget] = useState<TripItem | null>(null)
+  // 리뷰가 이미 있으면 '보기'로 열고, 그 안의 '수정' 버튼을 눌러야 편집 모드로 바뀐다
+  const [reviewMode, setReviewMode] = useState<'view' | 'edit'>('edit')
   const [noteDraft, setNoteDraft] = useState('')
-  const [savingNote, setSavingNote] = useState(false)
+  const [ratingDraft, setRatingDraft] = useState(0)
+  const [savingReview, setSavingReview] = useState(false)
 
   const load = useCallback(async () => {
     const [t, list] = await Promise.all([trips.get(tripId), tripItems.listByTrip(tripId)])
@@ -121,24 +124,30 @@ export function TimelinePage() {
     })
   }
 
-  /** 소감 작성/수정 시트를 연다 — 이미 써 둔 소감이 있으면 그 내용을 채워 넣는다 */
-  function openNote(item: TripItem) {
-    setNoteTarget(item)
+  /**
+   * 리뷰 시트를 연다. 이미 써 둔 리뷰(소감·별점 중 하나라도)가 있으면 '보기'로,
+   * 없으면 곧장 '쓰기'(편집) 모드로 연다.
+   */
+  function openReview(item: TripItem) {
+    setReviewTarget(item)
     setNoteDraft(item.note ?? '')
+    setRatingDraft(item.rating ?? 0)
+    setReviewMode(item.note || item.rating ? 'view' : 'edit')
   }
 
-  async function saveNote() {
-    if (!noteTarget) return
-    setSavingNote(true)
+  async function saveReview() {
+    if (!reviewTarget) return
+    setSavingReview(true)
     try {
-      await tripItems.setNote(noteTarget.id, noteDraft)
-      const saved = noteDraft.trim() || null
+      const rating = ratingDraft > 0 ? ratingDraft : null
+      await tripItems.setReview(reviewTarget.id, noteDraft, rating)
+      const note = noteDraft.trim() || null
       setItems((prev) =>
-        prev.map((it) => (it.id === noteTarget.id ? { ...it, note: saved } : it)),
+        prev.map((it) => (it.id === reviewTarget.id ? { ...it, note, rating } : it)),
       )
-      setNoteTarget(null)
+      setReviewTarget(null)
     } finally {
-      setSavingNote(false)
+      setSavingReview(false)
     }
   }
 
@@ -229,7 +238,7 @@ export function TimelinePage() {
                     onOpen={() => navigate(`/places/${item.place_id}`)}
                     onRemove={() => remove(item.id)}
                     onToggleVisit={() => toggleVisit(item)}
-                    onWriteNote={() => openNote(item)}
+                    onOpenReview={() => openReview(item)}
                     onShare={() => openShare(item, i + 1)}
                   />
                 ))}
@@ -264,29 +273,69 @@ export function TimelinePage() {
       <VisitShareSheet input={shareTarget} onClose={() => setShareTarget(null)} />
 
       <BottomSheet
-        open={Boolean(noteTarget)}
-        onClose={() => setNoteTarget(null)}
-        title={noteTarget?.note ? '소감 수정' : '소감 작성'}
+        open={Boolean(reviewTarget)}
+        onClose={() => setReviewTarget(null)}
+        title={reviewMode === 'edit' ? (reviewTarget?.note || reviewTarget?.rating ? '리뷰 수정' : '리뷰 쓰기') : '리뷰 보기'}
       >
-        <div className="flex flex-col gap-4">
-          <textarea
-            value={noteDraft}
-            onChange={(e) => setNoteDraft(e.target.value)}
-            rows={5}
-            placeholder="오늘 다녀온 소감을 남겨 보세요."
-            className="field resize-y leading-relaxed"
-          />
-          <button
-            type="button"
-            onClick={saveNote}
-            disabled={savingNote}
-            className="btn-primary w-full"
-          >
-            {savingNote ? '저장 중…' : '저장'}
-          </button>
-        </div>
+        {reviewMode === 'view' ? (
+          <div className="flex flex-col gap-4">
+            <StarRating value={ratingDraft} />
+            <p className="min-h-[4rem] whitespace-pre-wrap text-[14px] leading-relaxed text-ink-700">
+              {noteDraft || '작성한 소감이 없어요.'}
+            </p>
+            <button
+              type="button"
+              onClick={() => setReviewMode('edit')}
+              className="btn-primary w-full"
+            >
+              수정
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <StarRating value={ratingDraft} onChange={setRatingDraft} />
+            <textarea
+              value={noteDraft}
+              onChange={(e) => setNoteDraft(e.target.value)}
+              rows={5}
+              placeholder="오늘 다녀온 소감을 남겨 보세요."
+              className="field resize-y leading-relaxed"
+            />
+            <button
+              type="button"
+              onClick={saveReview}
+              disabled={savingReview}
+              className="btn-primary w-full"
+            >
+              {savingReview ? '저장 중…' : '저장'}
+            </button>
+          </div>
+        )}
       </BottomSheet>
     </>
+  )
+}
+
+/** 별점 표시 · 선택 — onChange 를 넘기면 탭으로 별점을 고를 수 있고, 없으면 읽기 전용으로 표시된다 */
+function StarRating({ value, onChange }: { value: number; onChange?: (n: number) => void }) {
+  return (
+    <div className="flex items-center gap-1" role={onChange ? 'radiogroup' : undefined}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          disabled={!onChange}
+          onClick={() => onChange?.(n === value ? 0 : n)}
+          aria-label={`별점 ${n}점`}
+          aria-pressed={n <= value}
+          className={`text-[26px] leading-none ${onChange ? 'cursor-pointer' : 'cursor-default'} ${
+            n <= value ? 'text-amber-400' : 'text-ink-200'
+          }`}
+        >
+          ★
+        </button>
+      ))}
+    </div>
   )
 }
 
@@ -298,7 +347,7 @@ function SortableItem({
   onOpen,
   onRemove,
   onToggleVisit,
-  onWriteNote,
+  onOpenReview,
   onShare,
 }: {
   item: TripItem
@@ -308,7 +357,7 @@ function SortableItem({
   onOpen: () => void
   onRemove: () => void
   onToggleVisit: () => void
-  onWriteNote: () => void
+  onOpenReview: () => void
   onShare: () => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -406,10 +455,10 @@ function SortableItem({
           <div className="flex divide-x divide-ink-100 border-t border-ink-100">
             <button
               type="button"
-              onClick={onWriteNote}
+              onClick={onOpenReview}
               className="flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[13px] font-bold text-ink-600 transition-colors hover:bg-ink-100"
             >
-              {item.note ? '소감 수정' : '소감 작성'}
+              {item.note || item.rating ? '리뷰 보기' : '리뷰 쓰기'}
             </button>
             <button
               type="button"

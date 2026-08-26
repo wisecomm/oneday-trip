@@ -246,6 +246,7 @@ export const tripItems = {
       planned_time: input.planned_time ?? null,
       status: 'planned',
       note: null,
+      rating: null,
     }
     mutateDb((d) => void d.trip_items.push(row))
     return { ...row, place: SEED_PLACES.find((p) => p.id === row.place_id) }
@@ -281,17 +282,20 @@ export const tripItems = {
     })
   },
 
-  /** 방문 소감 작성/수정 — 별도 이력 없이 값을 그대로 덮어쓴다. 빈 문자열은 null 로 저장한다 */
-  async setNote(id: string, note: string): Promise<void> {
-    const value = note.trim() || null
+  /** 방문 리뷰(소감+별점) 작성/수정 — 별도 이력 없이 값을 그대로 덮어쓴다. 빈 문자열은 null 로 저장한다 */
+  async setReview(id: string, note: string, rating: number | null): Promise<void> {
+    const noteValue = note.trim() || null
     if (isSupabaseConfigured) {
-      const { error } = await sb().from('trip_items').update({ note: value }).eq('id', id)
+      const { error } = await sb()
+        .from('trip_items')
+        .update({ note: noteValue, rating })
+        .eq('id', id)
       if (error) throw error
       return
     }
     mutateDb((d) => {
       const i = d.trip_items.findIndex((it) => it.id === id)
-      if (i >= 0) d.trip_items[i] = { ...d.trip_items[i], note: value }
+      if (i >= 0) d.trip_items[i] = { ...d.trip_items[i], note: noteValue, rating }
     })
   },
 

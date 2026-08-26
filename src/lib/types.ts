@@ -94,8 +94,9 @@ export interface TripItem {
   sort_order: number
   planned_time: string | null
   status: TripItemStatus
-  /** 방문 소감 — 작성 후에는 이 값을 덮어써서 수정한다(별도 이력 없음) */
+  /** 방문 리뷰 — 소감·별점 모두 작성 후에는 값을 덮어써서 수정한다(별도 이력 없음) */
   note: string | null
+  rating: number | null
   place?: Place
 }
 
