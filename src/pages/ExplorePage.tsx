@@ -205,7 +205,7 @@ export function ExplorePage() {
       (err) => {
         if (err.code === err.PERMISSION_DENIED) {
           setToast(
-            '위치 권한이 거부되어 있습니다. 브라우저 주소창 옆 자물쇠(사이트 정보) 아이콘에서 위치 접근을 허용한 뒤 다시 시도해 주세요.',
+            '위치 권한이 거부되어 있습니다. 브라우저 설정의 사이트 설정(또는 개인정보 보호)에서 이 사이트의 위치 접근을 허용한 뒤 다시 시도해 주세요.',
           )
         } else if (err.code === err.TIMEOUT) {
           setToast('위치 확인이 시간 초과되었습니다. 잠시 후 다시 시도해 주세요.')
