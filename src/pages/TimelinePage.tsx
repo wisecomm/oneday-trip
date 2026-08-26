@@ -103,17 +103,6 @@ export function TimelinePage() {
     await tripItems.remove(id)
   }
 
-  /**
-   * 방문 완료 토글 — 상태만 바꾼다. 소감 작성·SNS 포스팅은 각자 별도 버튼으로 뗐다.
-   */
-  async function toggleVisit(item: TripItem) {
-    const nextStatus = item.status === 'visited' ? 'planned' : 'visited'
-    setItems((prev) =>
-      prev.map((it) => (it.id === item.id ? { ...it, status: nextStatus } : it)),
-    )
-    await tripItems.setStatus(item.id, nextStatus)
-  }
-
   function openShare(item: TripItem, order: number) {
     if (!item.place || !trip) return
     setShareTarget({
@@ -135,15 +124,26 @@ export function TimelinePage() {
     setReviewMode(item.note || item.rating ? 'view' : 'edit')
   }
 
+  /**
+   * 리뷰를 저장한다. 방문 완료 버튼을 없앤 대신, 리뷰를 쓰는 것 자체가
+   * 방문을 확정하는 행동이므로 저장 시 상태도 함께 'visited'로 바꾼다.
+   */
   async function saveReview() {
     if (!reviewTarget) return
     setSavingReview(true)
     try {
       const rating = ratingDraft > 0 ? ratingDraft : null
-      await tripItems.setReview(reviewTarget.id, noteDraft, rating)
+      await Promise.all([
+        tripItems.setReview(reviewTarget.id, noteDraft, rating),
+        reviewTarget.status !== 'visited'
+          ? tripItems.setStatus(reviewTarget.id, 'visited')
+          : Promise.resolve(),
+      ])
       const note = noteDraft.trim() || null
       setItems((prev) =>
-        prev.map((it) => (it.id === reviewTarget.id ? { ...it, note, rating } : it)),
+        prev.map((it) =>
+          it.id === reviewTarget.id ? { ...it, note, rating, status: 'visited' } : it,
+        ),
       )
       setReviewTarget(null)
     } finally {
@@ -237,7 +237,6 @@ export function TimelinePage() {
                     }
                     onOpen={() => navigate(`/places/${item.place_id}`)}
                     onRemove={() => remove(item.id)}
-                    onToggleVisit={() => toggleVisit(item)}
                     onOpenReview={() => openReview(item)}
                     onShare={() => openShare(item, i + 1)}
                   />
@@ -346,7 +345,6 @@ function SortableItem({
   legMinutes,
   onOpen,
   onRemove,
-  onToggleVisit,
   onOpenReview,
   onShare,
 }: {
@@ -356,7 +354,6 @@ function SortableItem({
   legMinutes: number | null
   onOpen: () => void
   onRemove: () => void
-  onToggleVisit: () => void
   onOpenReview: () => void
   onShare: () => void
 }) {
@@ -432,14 +429,10 @@ function SortableItem({
         <div className="flex divide-x divide-ink-100 border-t border-ink-100">
           <button
             type="button"
-            onClick={visited ? onOpenReview : onToggleVisit}
-            className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[13px] font-bold transition-colors ${
-              visited
-                ? 'text-emerald-600 hover:bg-emerald-50'
-                : 'text-brand-600 hover:bg-brand-50'
-            }`}
+            onClick={onOpenReview}
+            className="flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[13px] font-bold text-emerald-600 transition-colors hover:bg-emerald-50"
           >
-            {visited ? (item.note || item.rating ? '리뷰 보기' : '리뷰 쓰기') : '✓ 방문 완료'}
+            {item.note || item.rating ? '리뷰 보기' : '리뷰 쓰기'}
           </button>
           <button
             type="button"
@@ -450,18 +443,15 @@ function SortableItem({
           </button>
         </div>
 
-        {/* SNS 포스팅은 방문을 확정한 뒤에야 의미가 있어 완료 후에만 보여준다 */}
-        {visited && (
-          <div className="flex border-t border-ink-100">
-            <button
-              type="button"
-              onClick={onShare}
-              className="flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[13px] font-bold text-ink-600 transition-colors hover:bg-ink-100"
-            >
-              SNS에 포스팅하기
-            </button>
-          </div>
-        )}
+        <div className="flex border-t border-ink-100">
+          <button
+            type="button"
+            onClick={onShare}
+            className="flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[13px] font-bold text-ink-600 transition-colors hover:bg-ink-100"
+          >
+            SNS에 포스팅하기
+          </button>
+        </div>
       </div>
     </li>
   )

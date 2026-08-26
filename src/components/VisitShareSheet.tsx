@@ -23,7 +23,8 @@ export function VisitShareSheet({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [caption, setCaption] = useState('')
   const [toast, setToast] = useState<string | null>(null)
-  const photoInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
 
   // 시트가 닫히거나 대상이 바뀌면 사진과 문구를 초기화한다
   useEffect(() => {
@@ -108,19 +109,30 @@ export function VisitShareSheet({
             </button>
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={() => photoInputRef.current?.click()}
-            className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-ink-200 bg-ink-50 px-6 py-10 transition-colors hover:border-brand-300 hover:bg-brand-50"
-          >
+          <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-ink-200 bg-ink-50 px-6 py-8">
             <span className="text-3xl" aria-hidden>
               📷
             </span>
             <span className="text-[14px] font-bold text-ink-700">
               {input.place.name}에서 찍은 사진 넣기
             </span>
-            <span className="text-[12px] text-ink-500">탭해서 사진을 선택하세요</span>
-          </button>
+            <div className="flex w-full gap-2">
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                className="btn-outline flex-1 !py-2.5 text-[13px]"
+              >
+                사진 찍기
+              </button>
+              <button
+                type="button"
+                onClick={() => galleryInputRef.current?.click()}
+                className="btn-outline flex-1 !py-2.5 text-[13px]"
+              >
+                앨범에서 선택
+              </button>
+            </div>
+          </div>
         )}
 
         <div>
@@ -160,23 +172,39 @@ export function VisitShareSheet({
           )}
         </div>
 
-        <div className="flex gap-2">
-          {photo && (
+        {photo && (
+          <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => photoInputRef.current?.click()}
-              className="btn-outline flex-1"
+              onClick={() => cameraInputRef.current?.click()}
+              className="btn-outline flex-1 !py-2.5 text-[13px]"
             >
-              사진 변경
+              사진 찍기
             </button>
-          )}
-          <button type="button" onClick={share} disabled={!photo} className="btn-primary flex-1">
-            공유하기
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={() => galleryInputRef.current?.click()}
+              className="btn-outline flex-1 !py-2.5 text-[13px]"
+            >
+              앨범에서 선택
+            </button>
+          </div>
+        )}
+
+        <button type="button" onClick={share} disabled={!photo} className="btn-primary w-full">
+          공유하기
+        </button>
 
         <input
-          ref={photoInputRef}
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={pickPhoto}
+          className="hidden"
+        />
+        <input
+          ref={galleryInputRef}
           type="file"
           accept="image/*"
           onChange={pickPhoto}
