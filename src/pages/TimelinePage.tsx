@@ -432,14 +432,14 @@ function SortableItem({
         <div className="flex divide-x divide-ink-100 border-t border-ink-100">
           <button
             type="button"
-            onClick={onToggleVisit}
+            onClick={visited ? onOpenReview : onToggleVisit}
             className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[13px] font-bold transition-colors ${
               visited
                 ? 'text-emerald-600 hover:bg-emerald-50'
                 : 'text-brand-600 hover:bg-brand-50'
             }`}
           >
-            {visited ? '방문 완료 취소' : '✓ 방문 완료'}
+            {visited ? (item.note || item.rating ? '리뷰 보기' : '리뷰 쓰기') : '✓ 방문 완료'}
           </button>
           <button
             type="button"
@@ -450,16 +450,9 @@ function SortableItem({
           </button>
         </div>
 
-        {/* 소감 작성·SNS 포스팅은 방문을 확정한 뒤에야 의미가 있어 완료 후에만 보여준다 */}
+        {/* SNS 포스팅은 방문을 확정한 뒤에야 의미가 있어 완료 후에만 보여준다 */}
         {visited && (
-          <div className="flex divide-x divide-ink-100 border-t border-ink-100">
-            <button
-              type="button"
-              onClick={onOpenReview}
-              className="flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[13px] font-bold text-ink-600 transition-colors hover:bg-ink-100"
-            >
-              {item.note || item.rating ? '리뷰 보기' : '리뷰 쓰기'}
-            </button>
+          <div className="flex border-t border-ink-100">
             <button
               type="button"
               onClick={onShare}
