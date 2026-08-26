@@ -90,6 +90,8 @@ create table public.trip_items (
   sort_order   smallint not null default 0,
   planned_time time,
   status       trip_item_status not null default 'planned',
+  -- 방문 소감. 작성/수정만 있고 별도 이력은 남기지 않는다(단일 텍스트 덮어쓰기)
+  note         text,
   created_at   timestamptz not null default now()
 );
 

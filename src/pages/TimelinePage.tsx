@@ -22,7 +22,7 @@ import { reservations, tripItems, trips } from '@/lib/db'
 import { routeDistanceKm, routeMinutes } from '@/lib/geo'
 import { CATEGORY_LABEL, type Trip, type TripItem } from '@/lib/types'
 import { CategoryDot, PlaceThumb } from '@/components/PlaceCard'
-import { EmptyState, Loading, PageHeader } from '@/components/ui'
+import { BottomSheet, EmptyState, Loading, PageHeader } from '@/components/ui'
 import { VisitShareSheet } from '@/components/VisitShareSheet'
 import type { VisitCardInput } from '@/lib/share-card'
 import { formatTripDate } from './TripCreatePage'
@@ -49,6 +49,9 @@ export function TimelinePage() {
   const [loading, setLoading] = useState(true)
   const [statusByPlace, setStatusByPlace] = useState<Record<string, '예약 확정'>>({})
   const [shareTarget, setShareTarget] = useState<VisitCardInput | null>(null)
+  const [noteTarget, setNoteTarget] = useState<TripItem | null>(null)
+  const [noteDraft, setNoteDraft] = useState('')
+  const [savingNote, setSavingNote] = useState(false)
 
   const load = useCallback(async () => {
     const [t, list] = await Promise.all([trips.get(tripId), tripItems.listByTrip(tripId)])
@@ -98,24 +101,44 @@ export function TimelinePage() {
   }
 
   /**
-   * 방문 완료 토글.
-   * 처음 완료로 표시할 때만 인증 카드 시트를 띄운다 — 취소했다가 다시 누르는
-   * 경우에도 매번 뜨면 성가시므로, 상태가 실제로 '방문함'으로 바뀔 때만 연다.
+   * 방문 완료 토글 — 상태만 바꾼다. 소감 작성·SNS 포스팅은 각자 별도 버튼으로 뗐다.
    */
-  async function toggleVisit(item: TripItem, order: number) {
+  async function toggleVisit(item: TripItem) {
     const nextStatus = item.status === 'visited' ? 'planned' : 'visited'
     setItems((prev) =>
       prev.map((it) => (it.id === item.id ? { ...it, status: nextStatus } : it)),
     )
     await tripItems.setStatus(item.id, nextStatus)
+  }
 
-    if (nextStatus === 'visited' && item.place && trip) {
-      setShareTarget({
-        place: item.place,
-        tripTitle: trip.title,
-        tripDate: formatTripDate(trip.trip_date),
-        order,
-      })
+  function openShare(item: TripItem, order: number) {
+    if (!item.place || !trip) return
+    setShareTarget({
+      place: item.place,
+      tripTitle: trip.title,
+      tripDate: formatTripDate(trip.trip_date),
+      order,
+    })
+  }
+
+  /** 소감 작성/수정 시트를 연다 — 이미 써 둔 소감이 있으면 그 내용을 채워 넣는다 */
+  function openNote(item: TripItem) {
+    setNoteTarget(item)
+    setNoteDraft(item.note ?? '')
+  }
+
+  async function saveNote() {
+    if (!noteTarget) return
+    setSavingNote(true)
+    try {
+      await tripItems.setNote(noteTarget.id, noteDraft)
+      const saved = noteDraft.trim() || null
+      setItems((prev) =>
+        prev.map((it) => (it.id === noteTarget.id ? { ...it, note: saved } : it)),
+      )
+      setNoteTarget(null)
+    } finally {
+      setSavingNote(false)
     }
   }
 
@@ -205,7 +228,9 @@ export function TimelinePage() {
                     }
                     onOpen={() => navigate(`/places/${item.place_id}`)}
                     onRemove={() => remove(item.id)}
-                    onToggleVisit={() => toggleVisit(item, i + 1)}
+                    onToggleVisit={() => toggleVisit(item)}
+                    onWriteNote={() => openNote(item)}
+                    onShare={() => openShare(item, i + 1)}
                   />
                 ))}
               </ul>
@@ -237,6 +262,30 @@ export function TimelinePage() {
       </div>
 
       <VisitShareSheet input={shareTarget} onClose={() => setShareTarget(null)} />
+
+      <BottomSheet
+        open={Boolean(noteTarget)}
+        onClose={() => setNoteTarget(null)}
+        title={noteTarget?.note ? '소감 수정' : '소감 작성'}
+      >
+        <div className="flex flex-col gap-4">
+          <textarea
+            value={noteDraft}
+            onChange={(e) => setNoteDraft(e.target.value)}
+            rows={5}
+            placeholder="오늘 다녀온 소감을 남겨 보세요."
+            className="field resize-y leading-relaxed"
+          />
+          <button
+            type="button"
+            onClick={saveNote}
+            disabled={savingNote}
+            className="btn-primary w-full"
+          >
+            {savingNote ? '저장 중…' : '저장'}
+          </button>
+        </div>
+      </BottomSheet>
     </>
   )
 }
@@ -249,6 +298,8 @@ function SortableItem({
   onOpen,
   onRemove,
   onToggleVisit,
+  onWriteNote,
+  onShare,
 }: {
   item: TripItem
   order: number
@@ -257,6 +308,8 @@ function SortableItem({
   onOpen: () => void
   onRemove: () => void
   onToggleVisit: () => void
+  onWriteNote: () => void
+  onShare: () => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
@@ -337,7 +390,7 @@ function SortableItem({
                 : 'text-brand-600 hover:bg-brand-50'
             }`}
           >
-            {visited ? '방문 완료 취소' : '✓ 방문 완료 · 인증하기'}
+            {visited ? '방문 완료 취소' : '✓ 방문 완료'}
           </button>
           <button
             type="button"
@@ -347,6 +400,26 @@ function SortableItem({
             삭제
           </button>
         </div>
+
+        {/* 소감 작성·SNS 포스팅은 방문을 확정한 뒤에야 의미가 있어 완료 후에만 보여준다 */}
+        {visited && (
+          <div className="flex divide-x divide-ink-100 border-t border-ink-100">
+            <button
+              type="button"
+              onClick={onWriteNote}
+              className="flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[13px] font-bold text-ink-600 transition-colors hover:bg-ink-100"
+            >
+              {item.note ? '소감 수정' : '소감 작성'}
+            </button>
+            <button
+              type="button"
+              onClick={onShare}
+              className="flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[13px] font-bold text-ink-600 transition-colors hover:bg-ink-100"
+            >
+              SNS에 포스팅하기
+            </button>
+          </div>
+        )}
       </div>
     </li>
   )

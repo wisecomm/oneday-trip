@@ -94,6 +94,8 @@ export interface TripItem {
   sort_order: number
   planned_time: string | null
   status: TripItemStatus
+  /** 방문 소감 — 작성 후에는 이 값을 덮어써서 수정한다(별도 이력 없음) */
+  note: string | null
   place?: Place
 }
 
