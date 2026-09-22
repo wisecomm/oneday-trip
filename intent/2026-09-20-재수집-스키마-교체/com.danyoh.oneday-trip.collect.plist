@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  전국 수집을 매일 00:10 에 이어서 돌린다.
+
+  cron 이 아니라 launchd 를 쓰는 이유: 맥북이 그 시각에 잠들어 있으면 cron 은
+  그날 실행을 통째로 건너뛰지만, launchd 는 깨어날 때 놓친 작업을 실행한다.
+  열흘에 걸친 작업에서 이 차이가 크다.
+
+  설치:
+    cp com.danyoh.oneday-trip.collect.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.danyoh.oneday-trip.collect.plist
+  해제:
+    launchctl unload ~/Library/LaunchAgents/com.danyoh.oneday-trip.collect.plist
+  지금 한 번 돌려보기:
+    launchctl start com.danyoh.oneday-trip.collect
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.danyoh.oneday-trip.collect</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/danyoh/XXX-GARDE/oneday-trip/intent/2026-09-20-재수집-스키마-교체/run-daily.sh</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/danyoh/XXX-GARDE/oneday-trip/intent/2026-09-20-재수집-스키마-교체</string>
+
+  <!-- 일일 한도는 보통 자정에 초기화된다. 10분 뒤에 시작한다. -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key><integer>0</integer>
+    <key>Minute</key><integer>10</integer>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <false/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/danyoh/XXX-GARDE/oneday-trip/intent/2026-09-20-재수집-스키마-교체/raw/logs/launchd.out</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/danyoh/XXX-GARDE/oneday-trip/intent/2026-09-20-재수집-스키마-교체/raw/logs/launchd.err</string>
+</dict>
+</plist>

@@ -12,6 +12,7 @@
  *   node collect.mjs --skip-detail  # 목록만 (상세는 나중에)
  *   node collect.mjs --detail-only  # 이미 받은 목록으로 상세만
  *   node collect.mjs --report-only  # 이미 받은 파일로 리포트만 다시 출력
+ *   node collect.mjs --backfill-mt  # 예전에 받은 상세에 modifiedtime 채우기 (호출 0회)
  *
  * 전국이면 호출이 6,700회쯤 된다. 개발계정 일일 한도(1,000건 수준)에 걸려 죽으면
  * 다음 날 그냥 다시 실행하면 이어서 받는다 — 장소 단위로 이미 받은 것을 건너뛴다.
@@ -232,6 +233,10 @@ async function collectPlaces(areaCode, sigunguCode, type, label) {
  * 상세 수집. 파일 단위는 목록과 같게 두고(시군구 × 콘텐츠타입), 그 안에서
  * contentid 별로 기록한다. 한 곳을 받을 때마다 저장하므로 어느 지점에서 죽어도
  * 그때까지 받은 건 남는다 — 시군구당 200회를 다시 쓰는 일이 없다.
+ *
+ * 각 항목에 그때의 목록 `modifiedtime`(`mt`)을 같이 적어 둔다. 그래서 재수집은
+ * **목록만 받아 mt 를 비교하고 바뀐 곳의 상세만 다시 받으면** 된다. 첫 수집에는
+ * 전부 새 항목이라 동작이 같고, 2회차부터 호출이 한 자릿수 퍼센트로 줄어든다.
  */
 async function collectDetail(areaCode, sigunguCode, type, label) {
   const listFile = path.join(OUT, `places-${areaCode}-${sigunguCode}-${type.id}.json`)
@@ -242,19 +247,72 @@ async function collectDetail(areaCode, sigunguCode, type, label) {
   const file = path.join(OUT, `detail-${areaCode}-${sigunguCode}-${type.id}.json`)
   const map = (await exists(file)) ? await readJson(file) : {}
 
-  const todo = items.filter((it) => it.contentid && !map[it.contentid])
+  // mt 를 도입하기 전에 받아 둔 항목은 mt 가 없다. 그 상세는 지금 목록과 같은
+  // 시점의 것이므로, 호출 없이 현재 mt 를 적어 넣으면 된다 — 다시 받을 이유가 없다.
+  let backfilled = 0
+  for (const it of items) {
+    const e = map[it.contentid]
+    if (e && e.mt === undefined) {
+      e.mt = it.modifiedtime ?? null
+      backfilled++
+    }
+  }
+  if (backfilled) await writeJson(file, map)
+
+  const todo = items.filter((it) => {
+    if (!it.contentid) return false
+    const e = map[it.contentid]
+    if (!e) return true // 새 장소
+    return e.mt !== (it.modifiedtime ?? null) // 수정된 장소
+  })
   if (todo.length === 0) return
 
-  console.log(`    ${label} / ${type.label}: 상세 ${todo.length}곳 (이미 ${Object.keys(map).length}곳)`)
+  const fresh = todo.filter((it) => !map[it.contentid]).length
+  const changed = todo.length - fresh
+  console.log(
+    `    ${label} / ${type.label}: 상세 ${todo.length}곳` +
+      (changed ? ` (새 ${fresh} · 수정됨 ${changed})` : '') +
+      ` — 이미 ${Object.keys(map).length}곳`,
+  )
   for (const it of todo) {
     const id = String(it.contentid)
     const [common] = (await call('detailCommon2', { contentId: id })).items
     await sleep(DELAY_MS)
     const [intro] = (await call('detailIntro2', { contentId: id, contentTypeId: type.id })).items
     await sleep(DELAY_MS)
-    map[id] = { common: common ?? null, intro: intro ?? null }
+    map[id] = { mt: it.modifiedtime ?? null, common: common ?? null, intro: intro ?? null }
     await writeJson(file, map) // 한 곳마다 저장 — 중단 손실을 0으로
   }
+}
+
+/**
+ * mt 도입 전에 받아 둔 상세에 목록의 modifiedtime 을 채워 넣는다. 네트워크를 쓰지
+ * 않는다 — 이미 받은 상세는 지금 목록과 같은 시점의 것이므로 다시 받을 이유가 없다.
+ */
+async function backfillMt() {
+  const files = await readdir(OUT)
+  let touched = 0,
+    filled = 0
+  for (const lf of files.filter((f) => f.startsWith('places-'))) {
+    const df = lf.replace('places-', 'detail-')
+    if (!(await exists(path.join(OUT, df)))) continue
+    const items = await readJson(path.join(OUT, lf))
+    const map = await readJson(path.join(OUT, df))
+    let dirty = false
+    for (const it of items) {
+      const e = map[it.contentid]
+      if (e && e.mt === undefined) {
+        e.mt = it.modifiedtime ?? null
+        dirty = true
+        filled++
+      }
+    }
+    if (dirty) {
+      await writeJson(path.join(OUT, df), map)
+      touched++
+    }
+  }
+  console.log(`mt 채움: ${filled}곳 (파일 ${touched}개). 호출 0회.`)
 }
 
 /** detailIntro2 는 콘텐츠타입마다 필드 이름이 다르다. 리포트에서만 쓰는 헬퍼다. */
@@ -321,6 +379,7 @@ async function report() {
 
   // 상세 통계
   let detailGot = 0
+  let hasMt = 0
   let hasOverview = 0
   let hasHours = 0
   let hasTel = 0
@@ -328,6 +387,7 @@ async function report() {
     const map = await readJson(path.join(OUT, f))
     for (const v of Object.values(map)) {
       detailGot++
+      if (v.mt !== undefined) hasMt++
       if (pickField(v.common, 'overview')) hasOverview++
       if (pickField(v.intro, 'opentimefood', 'usetime', 'usetimeculture')) hasHours++
       if (
@@ -355,6 +415,7 @@ async function report() {
   line(`  소개(overview) 있음:  ${hasOverview} (${pct(hasOverview)})`)
   line(`  영업시간 있음:        ${hasHours} (${pct(hasHours)})`)
   line(`  전화번호 있음:        ${hasTel} (${pct(hasTel)})`)
+  line(`  수정시각(mt) 기록됨:  ${hasMt} (${pct(hasMt)}) — 재수집 증분 갱신의 근거`)
   line('  → 비어 있는 비율만큼 화면에서 그 영역을 숨겨야 합니다 (intent.md 8번)')
   line('')
 
@@ -407,7 +468,7 @@ async function report() {
     areaNames: areas.map((a) => ({ code: a.code, name: a.name })),
     perContentType: Object.fromEntries(perType),
     missing: { areacode: missingArea, sigungucode: missingSigungu, coord: missingCoord },
-    detail: { collected: detailGot, overview: hasOverview, hours: hasHours, tel: hasTel },
+    detail: { collected: detailGot, withMt: hasMt, overview: hasOverview, hours: hasHours, tel: hasTel },
     missingSamples: samplesMissing,
     perLeaf: rows,
     buckets,
@@ -425,6 +486,12 @@ async function main() {
   const areaFilter = args.includes('--area') ? args[args.indexOf('--area') + 1] : null
 
   await mkdir(OUT, { recursive: true })
+
+  if (args.includes('--backfill-mt')) {
+    await backfillMt()
+    await report()
+    return
+  }
 
   if (reportOnly) {
     await report()
