@@ -4,9 +4,15 @@ import type { Profile, Reservation, Trip, TripItem } from './types'
  * 데모 모드 저장소.
  * Supabase 자격 증명이 없을 때 동일한 테이블 구조를 localStorage 위에서 재현한다.
  */
+/**
+ * 저장되는 여행 행. group_name·region_name 은 조회할 때 지역 목록에서 붙이는
+ * 값이므로 저장하지 않는다 — 지역 이름이 바뀌어도 저장본이 낡지 않게.
+ */
+export type StoredTrip = Omit<Trip, 'group_name' | 'region_name'>
+
 export interface LocalDb {
   profiles: Profile[]
-  trips: Trip[]
+  trips: StoredTrip[]
   trip_items: TripItem[]
   reservations: Reservation[]
 }

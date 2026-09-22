@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { tripItems, trips } from '@/lib/db'
 import { optimizeOrder, routeDistanceKm, routeMinutes } from '@/lib/geo'
-import { TRANSPORT_LABEL, type Place, type Trip, type TripItem } from '@/lib/types'
+import { TRANSPORT_LABEL, regionLabel, type Place, type Trip, type TripItem } from '@/lib/types'
 import { MapView } from '@/components/MapView'
 import { EmptyState, Loading, PageHeader } from '@/components/ui'
 import { CategoryDot } from '@/components/PlaceCard'
@@ -108,7 +108,7 @@ export function RoutePage() {
     <>
       <PageHeader
         title="동선 최적화"
-        subtitle={`${trip.destination} · ${TRANSPORT_LABEL[trip.transport]} 기준`}
+        subtitle={`${regionLabel(trip.group_name, trip.region_name)} · ${TRANSPORT_LABEL[trip.transport]} 기준`}
         back
       />
 

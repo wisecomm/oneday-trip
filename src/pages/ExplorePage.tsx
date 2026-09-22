@@ -11,15 +11,29 @@ import { BottomSheet, Loading } from '@/components/ui'
 
 const CATEGORIES: PlaceCategory[] = ['babzip', 'cafe', 'sulzip', 'spot']
 
-/** 하위 지역(구/시) 선택 대신 상위 지역 전체를 보고 싶을 때 쓰는 표식값 — 실제 지역명이 아니다 */
-const ALL_LEAF = '전체'
+/** 시군구 드롭다운에서 '전체'를 뜻하는 값. 실제 코드가 아니다 */
+const ALL_LEAF = ''
+
+/** URL 쿼리 파라미터 — 지역은 코드로 주고받는다 */
+const P_AREA = 'area'
+const P_SIGUNGU = 'sigungu'
+
+const numParam = (v: string | null): number | null => {
+  if (v === null || v === '') return null
+  const n = Number(v)
+  return Number.isFinite(n) ? n : null
+}
 
 /**
  * 다른 탭(홈·AI 추천 등)을 눌렀다가 지도로 돌아왔을 때 보던 자리 그대로
  * 보여주기 위한 세션 기억 — 컴포넌트 바깥(모듈 스코프)에 둬서 언마운트 후
  * 재마운트에도 값이 남아 있게 한다. 새로고침하면 초기화된다(의도된 동작).
  */
-let savedFilters: { group: string; region: string; active: PlaceCategory[] } | null = null
+let savedFilters: {
+  areaCode: number | null
+  sigunguCode: number | null
+  active: PlaceCategory[]
+} | null = null
 let savedViewport: { lat: number; lng: number; zoom: number } | null = null
 
 /**
@@ -38,14 +52,18 @@ export function ExplorePage() {
   const { groups, regions } = useRegions()
   // 여행 목적지(tripId)나 URL region 쿼리로 들어온 경우는 그 값이 우선이고,
   // 그것도 아니면 지난번 보던 필터를 그대로 복원한다
-  const [group, setGroup] = useState<string>(() =>
-    tripId || params.get('region') ? '' : (savedFilters?.group ?? ''),
+  const [areaCode, setAreaCode] = useState<number | null>(() =>
+    tripId || params.get(P_AREA)
+      ? numParam(params.get(P_AREA))
+      : (savedFilters?.areaCode ?? null),
   )
-  const [region, setRegion] = useState<string>(
-    () => params.get('region') ?? (tripId ? '' : (savedFilters?.region ?? '')),
+  const [sigunguCode, setSigunguCode] = useState<number | null>(() =>
+    tripId || params.get(P_AREA)
+      ? numParam(params.get(P_SIGUNGU))
+      : (savedFilters?.sigunguCode ?? null),
   )
   const [active, setActive] = useState<PlaceCategory[]>(() =>
-    tripId || params.get('region') ? [] : (savedFilters?.active ?? []),
+    tripId || params.get(P_AREA) ? [] : (savedFilters?.active ?? []),
   )
   const [initialViewport] = useState(() => (tripId ? null : savedViewport))
   const [list, setList] = useState<Place[]>([])
@@ -58,9 +76,9 @@ export function ExplorePage() {
 
   // 필터가 바뀔 때마다 세션 기억을 갱신한다
   useEffect(() => {
-    if (!group || !region) return
-    savedFilters = { group, region, active }
-  }, [group, region, active])
+    if (areaCode === null) return
+    savedFilters = { areaCode, sigunguCode, active }
+  }, [areaCode, sigunguCode, active])
 
   const handleViewportChange = useCallback((v: { lat: number; lng: number; zoom: number }) => {
     savedViewport = v
@@ -71,9 +89,11 @@ export function ExplorePage() {
     try {
       const categories = active.length ? active : undefined
       const filter =
-        region === ALL_LEAF
-          ? { regions: regions.filter((r) => r.group_name === group).map((r) => r.name), categories }
-          : { region, categories }
+        areaCode === null
+          ? { categories }
+          : sigunguCode === null
+            ? { areaCode, categories }
+            : { areaCode, sigunguCode, categories }
       const result = await placesApi.list(filter)
       // 내 위치를 확보한 상태라면 기본 정렬(평점순) 대신 거리순을 유지한다
       setList(
@@ -84,71 +104,53 @@ export function ExplorePage() {
     } finally {
       setLoading(false)
     }
-  }, [region, group, regions, active, myLocation])
+  }, [areaCode, sigunguCode, active, myLocation])
 
-  // 지역 목록이 비동기로 도착하므로, url 에 region 쿼리가 없고 여행 목적지로부터
+  // 지역 목록이 비동기로 도착하므로, url 에 지역 쿼리가 없고 여행 목적지로부터
   // 채워질 예정도 아니라면 첫 상위 지역 + 전체보기로 채운다
   useEffect(() => {
-    if (region || tripId || groups.length === 0) return
-    setGroup(groups[0].name)
-    setRegion(ALL_LEAF)
-  }, [groups, region, tripId])
-
-  // region 이 url 쿼리로부터 실제 지역명으로 채워진 경우, 소속 상위 지역을 역으로 맞춘다
-  useEffect(() => {
-    if (!region || region === ALL_LEAF || regions.length === 0) return
-    const match = regions.find((r) => r.name === region)
-    if (match && match.group_name !== group) setGroup(match.group_name)
-  }, [region, regions, group])
+    if (areaCode !== null || tripId || groups.length === 0) return
+    setAreaCode(groups[0].tour_area_code)
+    setSigunguCode(null)
+  }, [groups, areaCode, tripId])
 
   useEffect(() => {
-    if (!region || groups.length === 0) return
+    if (areaCode === null || groups.length === 0) return
     void load()
-  }, [load, region, groups.length])
-
-  // 여행 목적지 원본 문자열 — regions/groups 가 아직 로딩 중일 수 있어 일단 받아만 두고,
-  // 아래 별도 effect 에서 leaf 지역인지 상위 지역(전체) 인지 구분해 반영한다
-  const [tripDestination, setTripDestination] = useState<string | null>(null)
+  }, [load, areaCode, sigunguCode, groups.length])
 
   useEffect(() => {
     if (!tripId) return
     void trips.get(tripId).then((t) => {
       setTrip(t)
-      setTripDestination(t?.destination ?? null)
+      // 코드라서 leaf 인지 상위 전체인지 따로 구분할 필요가 없다 — 그대로 옮긴다
+      if (t) {
+        setAreaCode(t.tour_area_code)
+        setSigunguCode(t.tour_sigungu_code)
+      }
     })
     void tripItems
       .listByTrip(tripId)
       .then((items) => setPickedCount(items.length))
   }, [tripId])
 
-  useEffect(() => {
-    if (!tripDestination || regions.length === 0 || groups.length === 0) return
-    const leaf = regions.find((r) => r.name === tripDestination)
-    if (leaf) {
-      setGroup(leaf.group_name)
-      setRegion(leaf.name)
-    } else if (groups.some((g) => g.name === tripDestination)) {
-      setGroup(tripDestination)
-      setRegion(ALL_LEAF)
-    }
-  }, [tripDestination, regions, groups])
-
   /** 상위 지역을 바꾸면 하위 선택은 '전체'로 되돌린다 — 특정 구 하나로 좁혀 놓은 채 다른 시/도로
    *  넘어가면 그 시/도에 없는 지역명이 남아 있는 꼴이라 혼란스럽다 */
-  function changeGroup(next: string) {
-    setGroup(next)
-    setRegion(ALL_LEAF)
+  function changeGroup(next: number) {
+    setAreaCode(next)
+    setSigunguCode(null)
     setParams((p) => {
-      p.delete('region')
+      p.set(P_AREA, String(next))
+      p.delete(P_SIGUNGU)
       return p
     })
   }
 
-  function changeRegion(next: string) {
-    setRegion(next)
+  function changeRegion(next: number | null) {
+    setSigunguCode(next)
     setParams((p) => {
-      if (next === ALL_LEAF) p.delete('region')
-      else p.set('region', next)
+      if (next === null) p.delete(P_SIGUNGU)
+      else p.set(P_SIGUNGU, String(next))
       return p
     })
   }
@@ -186,19 +188,24 @@ export function ExplorePage() {
         )
 
         setMyLocation(me)
+        const nearestGroupName = nearestRegion
+          ? (groups.find((g) => g.tour_area_code === nearestRegion.region.tour_area_code)?.name ??
+            '')
+          : ''
         if (nearestRegion) {
-          setGroup(nearestRegion.region.group_name)
-          setRegion(ALL_LEAF)
+          setAreaCode(nearestRegion.region.tour_area_code)
+          setSigunguCode(null)
           setActive([])
           setParams((p) => {
-            p.delete('region')
+            p.set(P_AREA, String(nearestRegion.region.tour_area_code))
+            p.delete(P_SIGUNGU)
             return p
           })
         }
 
         setToast(
-          nearestRegion
-            ? `내 위치(${nearestRegion.region.group_name} 인근)에서 가까운 순으로 정렬했습니다.`
+          nearestGroupName
+            ? `내 위치(${nearestGroupName} 인근)에서 가까운 순으로 정렬했습니다.`
             : '내 위치에서 가까운 순으로 정렬했습니다.',
         )
       },
@@ -242,29 +249,31 @@ export function ExplorePage() {
       <div className="pointer-events-none absolute inset-x-0 top-0 p-3">
         <div className="pointer-events-auto mb-2 flex items-center gap-1.5">
           <select
-            value={group}
-            onChange={(e) => changeGroup(e.target.value)}
+            value={areaCode ?? ''}
+            onChange={(e) => changeGroup(Number(e.target.value))}
             className="min-w-0 rounded-xl border border-ink-200 bg-white px-2.5 py-2 text-[13px] font-bold text-ink-700 shadow-sm"
             aria-label="시/도 선택"
           >
             {groups.map((g) => (
-              <option key={g.name} value={g.name}>
+              <option key={g.tour_area_code} value={g.tour_area_code}>
                 {g.name}
               </option>
             ))}
           </select>
           <select
-            value={region}
-            onChange={(e) => changeRegion(e.target.value)}
+            value={sigunguCode ?? ALL_LEAF}
+            onChange={(e) =>
+              changeRegion(e.target.value === ALL_LEAF ? null : Number(e.target.value))
+            }
             className="min-w-0 flex-1 rounded-xl border border-ink-200 bg-white px-2.5 py-2 text-[13px] font-bold text-ink-700 shadow-sm"
-            aria-label="구/시 선택"
+            aria-label="시군구 선택"
           >
             <option value={ALL_LEAF}>전체</option>
             {regions
-              .filter((r) => r.group_name === group)
+              .filter((r) => r.tour_area_code === areaCode)
               .map((r) => (
-                <option key={r.name} value={r.name}>
-                  {r.name.slice(group.length + 1)}
+                <option key={r.tour_sigungu_code} value={r.tour_sigungu_code}>
+                  {r.name}
                 </option>
               ))}
           </select>
@@ -341,11 +350,21 @@ export function ExplorePage() {
                 </div>
                 <p className="mt-0.5 text-[12.5px] text-ink-500">{selected.address}</p>
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-2 text-[12.5px] text-ink-500">
-                  <span className="font-bold text-ink-700">★ {selected.rating.toFixed(1)}</span>
-                  <span>·</span>
+                  {selected.source_rating !== null && (
+                    <>
+                      <span className="font-bold text-ink-700">
+                        ★ {selected.source_rating.toFixed(1)}
+                      </span>
+                      <span>·</span>
+                    </>
+                  )}
                   <span>{'₩'.repeat(selected.price_level)}</span>
-                  <span>·</span>
-                  <span>{selected.open_hours}</span>
+                  {selected.open_hours && (
+                    <>
+                      <span>·</span>
+                      <span>{selected.open_hours}</span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

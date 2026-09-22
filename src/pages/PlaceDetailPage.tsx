@@ -114,7 +114,7 @@ export function PlaceDetailPage() {
           />
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-900/70 to-transparent px-4 pt-8 pb-3">
             <span className="text-[13px] font-bold tracking-wide text-white">
-              {CATEGORY_LABEL[place.category]} · {place.region}
+              {CATEGORY_LABEL[place.category]} · {place.group_name} {place.region_name}
             </span>
           </div>
         </div>
@@ -126,7 +126,7 @@ export function PlaceDetailPage() {
           }}
         >
           <span className="text-[13px] font-bold tracking-wide opacity-90">
-            {CATEGORY_LABEL[place.category]} · {place.region}
+            {CATEGORY_LABEL[place.category]} · {place.group_name} {place.region_name}
           </span>
         </div>
       )}
@@ -139,15 +139,27 @@ export function PlaceDetailPage() {
           </div>
           <p className="mt-1 text-[13px] text-ink-500">{place.address}</p>
           <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] text-ink-600">
-            <span className="font-bold">★ {place.rating.toFixed(1)}</span>
-            <span className="text-ink-300">|</span>
+            {/* 값이 없는 항목은 구분선까지 함께 숨긴다 — 빈 칸이 남은 화면이
+                그 영역이 아예 없는 화면보다 나쁘다 */}
+            {place.source_rating !== null && (
+              <>
+                <span className="font-bold">★ {place.source_rating.toFixed(1)}</span>
+                <span className="text-ink-300">|</span>
+              </>
+            )}
             <span>{'₩'.repeat(place.price_level)}</span>
-            <span className="text-ink-300">|</span>
-            <span>{place.open_hours}</span>
+            {place.open_hours && (
+              <>
+                <span className="text-ink-300">|</span>
+                <span>{place.open_hours}</span>
+              </>
+            )}
           </div>
         </div>
 
-        <p className="mb-4 text-[14px] leading-relaxed text-ink-700">{place.summary}</p>
+        {place.summary && (
+          <p className="mb-4 text-[14px] leading-relaxed text-ink-700">{place.summary}</p>
+        )}
 
         {place.tags.length > 0 && (
           <div className="mb-5 flex flex-wrap gap-1.5">

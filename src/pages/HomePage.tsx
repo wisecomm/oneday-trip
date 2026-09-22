@@ -9,17 +9,19 @@ import { formatTripDate } from './TripCreatePage'
 
 /**
  * 지역별로 고르게 섞어 count 개를 뽑는다.
- * rating 이 없거나 전부 0인 장소가 섞여 있으면(TourAPI 수집분) DB 의 rating
- * 정렬이 무의미해져 항상 같은 지역·카테고리 몇 곳만 노출되는 문제가 있었다.
- * 지역별 라운드로빈으로 뽑고 지역 내부는 매 호출마다 섞어, 한 지역이 결과를
- * 독차지하지 않고 새로고침마다 다른 곳이 보이게 한다.
+ *
+ * TourAPI 는 평점을 주지 않아 source_rating 이 대개 null 이다. 정렬에 쓸 순위가
+ * 없으니 그냥 두면 항상 같은 지역·카테고리 몇 곳만 노출된다. 지역별 라운드로빈으로
+ * 뽑고 지역 내부는 매 호출마다 섞어, 한 지역이 결과를 독차지하지 않고
+ * 새로고침마다 다른 곳이 보이게 한다.
  */
 function pickSpread(places: Place[], count: number): Place[] {
   const byRegion = new Map<string, Place[]>()
   for (const p of places) {
-    const bucket = byRegion.get(p.region) ?? []
+    const key = `${p.tour_area_code}-${p.tour_sigungu_code}`
+    const bucket = byRegion.get(key) ?? []
     bucket.push(p)
-    byRegion.set(p.region, bucket)
+    byRegion.set(key, bucket)
   }
   for (const bucket of byRegion.values()) {
     for (let i = bucket.length - 1; i > 0; i -= 1) {
@@ -57,10 +59,9 @@ export function HomePage() {
       if (!alive) return
       setMyTrips(t)
       setUpcoming(r.filter((x) => x.status === 'confirmed').slice(0, 2))
-      // list() 는 rating 내림차순인데, TourAPI 로 들여온 장소는 rating 이 전부 0이라
-      // 동점이다. 동점 처리 순서는 DB 가 보장해 주지 않고, 실제로는 삽입 순서를
-      // 그대로 따라가 매번 같은 지역·카테고리 몇 곳만 뜨는 문제가 있었다.
-      // '인기 있는 곳' 은 실제 순위가 없으므로, 지역별로 고르게 섞어 노출한다.
+      // '인기 있는 곳' 이라고 부르지만 실제 순위가 없다 — TourAPI 가 평점을 주지
+      // 않아서다. 이름순으로 받아 온 것을 그대로 쓰면 늘 같은 곳만 뜨므로,
+      // 지역별로 고르게 섞어 노출한다.
       setPopular(pickSpread(p, 5))
       setLoading(false)
     }

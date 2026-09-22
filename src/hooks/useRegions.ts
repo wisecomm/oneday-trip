@@ -3,12 +3,14 @@ import { regionGroups as regionGroupsApi, regions as regionsApi } from '@/lib/db
 import type { Region, RegionGroup } from '@/lib/types'
 
 /**
- * 목적지 지역 목록 — 상위(시/도) · 하위(구/시) 2단.
+ * 목적지 지역 목록 — 상위(시/도) · 하위(시군구) 2단.
  * region_groups/regions 테이블에서 불러오므로, 지역을 추가·수정해도 앱을
  * 재배포할 필요가 없다.
  *
- * 하위 지역은 group_name 으로 상위 지역에 속한 것만 걸러 쓴다:
- *   regions.filter((r) => r.group_name === selectedGroup)
+ * 키가 이름이 아니라 코드이므로, 하위 지역은 코드로 걸러 쓴다:
+ *   regions.filter((r) => r.tour_area_code === selectedAreaCode)
+ *
+ * 미판정 지역(코드 -1)은 db 계층에서 이미 걸러져 여기 오지 않는다.
  */
 export function useRegions(): {
   groups: RegionGroup[]

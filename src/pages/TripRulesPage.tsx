@@ -5,7 +5,6 @@ import { places as placesApi, tripItems, trips } from '@/lib/db'
 import { useRegions } from '@/hooks/useRegions'
 import { optimizeOrder } from '@/lib/geo'
 import { fetchWeather, recommendMix, type CategoryQuota, type TripContext } from '@/lib/recommend'
-import { SEED_PLACES } from '@/lib/seed'
 import {
   TRANSPORT_LABEL,
   TRANSPORT_SPEED_KMH,
@@ -38,19 +37,24 @@ const AUTO_ADD_QUOTA: CategoryQuota[] = [
  */
 async function seedRecommendedPlaces(
   tripId: string,
-  destination: string,
+  areaCode: number,
+  sigunguCode: number | null,
   profile: Profile | null,
   groups: RegionGroup[],
   regions: Region[],
 ): Promise<number> {
-  // destination 은 leaf 지역(regions.name)일 수도, '전체'로 골라 상위 지역
-  // 전체(region_groups.name)를 가리킬 수도 있다 — 후자면 그 아래 leaf 를 다 모은다
-  const asGroup = groups.find((g) => g.name === destination)
-  const filter = asGroup
-    ? { regions: regions.filter((r) => r.group_name === destination).map((r) => r.name) }
-    : { region: destination }
+  // 코드 구조에서는 sigungu 가 null 인지만 보면 된다. 이름으로 leaf 인지 group
+  // 전체인지 판별하던 로직이 통째로 없어졌다.
+  const filter = sigunguCode === null ? { areaCode } : { areaCode, sigunguCode }
 
-  const anchor = asGroup ?? SEED_PLACES.find((p) => p.region === destination) ?? SEED_PLACES[0]
+  // 날씨를 물을 기준점 — 구를 골랐으면 그 구, 아니면 시/도 중심
+  const anchor =
+    (sigunguCode === null
+      ? groups.find((g) => g.tour_area_code === areaCode)
+      : regions.find(
+          (r) => r.tour_area_code === areaCode && r.tour_sigungu_code === sigunguCode,
+        )) ?? groups[0]
+
   const [list, weather] = await Promise.all([
     placesApi.list(filter),
     fetchWeather(anchor.lat, anchor.lng),
@@ -129,7 +133,8 @@ export function TripRulesPage() {
         try {
           added = await seedRecommendedPlaces(
             created.id,
-            created.destination,
+            created.tour_area_code,
+            created.tour_sigungu_code,
             profile,
             groups,
             regions,

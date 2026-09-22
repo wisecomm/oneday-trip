@@ -4,13 +4,14 @@ import { useAuth } from '@/lib/auth'
 import { places as placesApi, tripItems, trips } from '@/lib/db'
 import { useRegions } from '@/hooks/useRegions'
 import { contextLabel, fetchWeather, recommend, type Scored, type TripContext } from '@/lib/recommend'
-import type { Trip } from '@/lib/types'
+import { regionLabel, type Trip } from '@/lib/types'
 import { CategoryDot, PlaceThumb } from '@/components/PlaceCard'
 import { BottomSheet, EmptyState, Loading, PageHeader } from '@/components/ui'
 import { formatTripDate } from './TripCreatePage'
 
 /** 하위 지역(구/시) 선택 대신 상위 지역 전체를 보고 싶을 때 쓰는 표식값 — 실제 지역명이 아니다 */
-const ALL_LEAF = '전체'
+/** 시군구 드롭다운에서 '전체'를 뜻하는 값 */
+const ALL_LEAF = ''
 
 /**
  * MAP-04-02 · 04. 로컬 장소 탐색 > 4.2 AI 추천 > 맥락 인지 추천 피드
@@ -22,8 +23,8 @@ export function RecommendPage() {
   const navigate = useNavigate()
 
   const { groups, regions } = useRegions()
-  const [group, setGroup] = useState<string>('')
-  const [region, setRegion] = useState<string>('')
+  const [areaCode, setAreaCode] = useState<number | null>(null)
+  const [sigunguCode, setSigunguCode] = useState<number | null>(null)
   const [ctx, setCtx] = useState<TripContext | null>(null)
   const [feed, setFeed] = useState<Scored[]>([])
   const [loading, setLoading] = useState(true)
@@ -36,12 +37,14 @@ export function RecommendPage() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      // 날씨는 구/시 단위로 갈라 볼 필요가 없어, 선택된 시/도의 중심 좌표를 그대로 쓴다
-      const anchor = groups.find((g) => g.name === group)
+      // 날씨는 시군구 단위로 갈라 볼 필요가 없어, 선택된 시/도의 중심 좌표를 그대로 쓴다
+      const anchor = groups.find((g) => g.tour_area_code === areaCode)
       const filter =
-        region === ALL_LEAF
-          ? { regions: regions.filter((r) => r.group_name === group).map((r) => r.name) }
-          : { region }
+        areaCode === null
+          ? {}
+          : sigunguCode === null
+            ? { areaCode }
+            : { areaCode, sigunguCode }
       const [list, weather] = await Promise.all([
         placesApi.list(filter),
         anchor ? fetchWeather(anchor.lat, anchor.lng) : Promise.resolve({ weather: 'clear' as const, temperature: null }),
@@ -57,37 +60,31 @@ export function RecommendPage() {
     } finally {
       setLoading(false)
     }
-  }, [region, group, regions, groups, profile])
+  }, [areaCode, sigunguCode, groups, profile])
 
   // 지역 목록·나의 여행이 모두 준비되면 기본 지역을 정한다 — 오늘 이후로 예정된
   // 여행이 있으면 그중 가장 빠른 여행의 목적지로, 없으면 첫 상위 지역으로 맞춘다
   useEffect(() => {
-    if (region || groups.length === 0 || regions.length === 0 || !myTripsLoaded) return
+    if (areaCode !== null || groups.length === 0 || regions.length === 0 || !myTripsLoaded) return
 
     const today = new Date().toISOString().slice(0, 10)
     const upcoming = myTrips
       .filter((t) => t.trip_date >= today)
       .sort((a, b) => a.trip_date.localeCompare(b.trip_date))[0]
 
-    let defaultGroup = groups[0].name
-    if (upcoming) {
-      const leaf = regions.find((r) => r.name === upcoming.destination)
-      if (leaf) defaultGroup = leaf.group_name
-      else if (groups.some((g) => g.name === upcoming.destination)) defaultGroup = upcoming.destination
-    }
-
-    setGroup(defaultGroup)
-    setRegion(ALL_LEAF)
-  }, [groups, regions, region, myTrips, myTripsLoaded])
+    // 다가오는 여행이 있으면 그 목적지로 맞춘다. 코드라 이름 매칭이 필요 없다.
+    setAreaCode(upcoming ? upcoming.tour_area_code : groups[0].tour_area_code)
+    setSigunguCode(upcoming ? upcoming.tour_sigungu_code : null)
+  }, [groups, regions, areaCode, myTrips, myTripsLoaded])
 
   useEffect(() => {
-    if (!region || groups.length === 0) return
+    if (areaCode === null || groups.length === 0) return
     void load()
-  }, [load, region, groups.length])
+  }, [load, areaCode, groups.length])
 
-  function changeGroup(next: string) {
-    setGroup(next)
-    setRegion(ALL_LEAF)
+  function changeGroup(next: number) {
+    setAreaCode(next)
+    setSigunguCode(null)
   }
 
   useEffect(() => {
@@ -107,10 +104,16 @@ export function RecommendPage() {
     return () => clearTimeout(id)
   }, [toast])
 
-  const regionLabel = region === ALL_LEAF ? group : region
+  // 화면에 보이는 목적지 문구 — 구를 고르지 않았으면 '서울 전체'
+  const groupName = groups.find((g) => g.tour_area_code === areaCode)?.name ?? ''
+  const regionName =
+    regions.find(
+      (r) => r.tour_area_code === areaCode && r.tour_sigungu_code === sigunguCode,
+    )?.name ?? null
+  const destinationLabel = regionLabel(groupName, regionName)
   const headline = useMemo(
-    () => (ctx ? contextLabel(ctx, regionLabel) : '추천 맥락을 분석하는 중'),
-    [ctx, regionLabel],
+    () => (ctx ? contextLabel(ctx, destinationLabel) : '추천 맥락을 분석하는 중'),
+    [ctx, destinationLabel],
   )
 
   return (
@@ -144,29 +147,31 @@ export function RecommendPage() {
 
           <div className="flex items-center gap-1.5 px-4 py-3">
             <select
-              value={group}
-              onChange={(e) => changeGroup(e.target.value)}
+              value={areaCode ?? ''}
+              onChange={(e) => changeGroup(Number(e.target.value))}
               className="field !w-auto min-w-0 !py-2 !text-[13.5px] font-bold"
               aria-label="시/도 선택"
             >
               {groups.map((g) => (
-                <option key={g.name} value={g.name}>
+                <option key={g.tour_area_code} value={g.tour_area_code}>
                   {g.name}
                 </option>
               ))}
             </select>
             <select
-              value={region}
-              onChange={(e) => setRegion(e.target.value)}
+              value={sigunguCode ?? ALL_LEAF}
+              onChange={(e) =>
+                setSigunguCode(e.target.value === ALL_LEAF ? null : Number(e.target.value))
+              }
               className="field min-w-0 flex-1 !py-2 !text-[13.5px] font-bold"
-              aria-label="구/시 선택"
+              aria-label="시군구 선택"
             >
               <option value={ALL_LEAF}>전체</option>
               {regions
-                .filter((r) => r.group_name === group)
+                .filter((r) => r.tour_area_code === areaCode)
                 .map((r) => (
-                  <option key={r.name} value={r.name}>
-                    {r.name.slice(group.length + 1)}
+                  <option key={r.tour_sigungu_code} value={r.tour_sigungu_code}>
+                    {r.name}
                   </option>
                 ))}
             </select>
@@ -212,10 +217,16 @@ export function RecommendPage() {
                       <CategoryDot category={place.category} />
                       <p className="truncate text-[15px] font-bold text-ink-800">{place.name}</p>
                     </div>
-                    <p className="mt-0.5 truncate text-[12.5px] text-ink-500">{place.summary}</p>
-                    <div className="mt-1 flex items-center gap-2 text-[12px] text-ink-500">
-                      <span className="font-bold text-ink-700">★ {place.rating.toFixed(1)}</span>
-                    </div>
+                    {place.summary && (
+                      <p className="mt-0.5 truncate text-[12.5px] text-ink-500">{place.summary}</p>
+                    )}
+                    {place.source_rating !== null && (
+                      <div className="mt-1 flex items-center gap-2 text-[12px] text-ink-500">
+                        <span className="font-bold text-ink-700">
+                          ★ {place.source_rating.toFixed(1)}
+                        </span>
+                      </div>
+                    )}
                   </button>
                 </div>
 

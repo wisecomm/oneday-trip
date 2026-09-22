@@ -22,68 +22,118 @@ const nowIso = () => new Date().toISOString()
 
 /* ─────────────────── Region groups · regions (TRIP-02-01) ─────────────────── */
 
+/**
+ * 미판정 지역·장소는 어디에도 보이지 않는다.
+ *
+ * 판정에 실패한 장소는 버리거나 가까운 구에 욱여넣지 않고 코드 -1 로 격리해
+ * 수동 처리 대기열에 둔다. 모든 화면이 이 모듈만 통해 읽으므로, 제외 조건은
+ * 여기 두 곳에만 있으면 된다.
+ */
+const visibleRegion = <T extends { tour_sigungu_code: number }>(r: T) =>
+  r.tour_sigungu_code >= 0
+
 export const regionGroups = {
   async list(): Promise<RegionGroup[]> {
     if (isSupabaseConfigured) {
-      const { data, error } = await sb().from('region_groups').select('*').order('sort_order')
+      const { data, error } = await sb()
+        .from('region_groups')
+        .select('*')
+        .gte('tour_area_code', 0)
+        .order('sort_order')
       if (error) throw error
       return (data ?? []) as RegionGroup[]
     }
-    return DEMO_REGION_GROUPS
+    return DEMO_REGION_GROUPS.filter((g) => g.tour_area_code >= 0)
   },
 }
 
 export const regions = {
-  /** 하위(구/시) 지역 전체. group_name 으로 필터링해 상위 지역에 속한 것만 골라 쓴다 */
+  /** 하위(시군구) 전체. tour_area_code 로 걸러 상위 지역에 속한 것만 골라 쓴다 */
   async list(): Promise<Region[]> {
     if (isSupabaseConfigured) {
-      const { data, error } = await sb().from('regions').select('*').order('sort_order')
+      const { data, error } = await sb()
+        .from('regions')
+        .select('*')
+        .gte('tour_sigungu_code', 0)
+        .order('sort_order')
       if (error) throw error
       return (data ?? []) as Region[]
     }
-    return DEMO_REGIONS
+    return DEMO_REGIONS.filter(visibleRegion)
   },
 }
 
 /* ───────────────────────── Places (MAP-04-01) ───────────────────────── */
 
 export interface PlaceFilter {
-  /** 하위 지역(구/시) 하나만 볼 때. region·regions 를 동시에 주면 region 이 우선한다 */
-  region?: string
-  /** 상위 지역(시/도) 전체를 볼 때 — 그 아래 하위 지역 이름 목록을 그대로 넘긴다 */
-  regions?: string[]
+  /** 상위 지역(시/도). 이것만 주면 그 시/도 전체를 본다 */
+  areaCode?: number
+  /** 하위 지역(시군구). areaCode 와 함께 준다 */
+  sigunguCode?: number
   categories?: PlaceCategory[]
   keyword?: string
 }
 
+/**
+ * Supabase 조회에 지역 이름을 함께 가져오는 select.
+ *
+ * 화면마다 코드→이름 변환을 부르게 하면 어딘가는 반드시 놓친다 — 실제로
+ * share-card.ts 가 지역 이름을 인스타그램 해시태그로 쓰고 있어서, 놓치면
+ * 사용자 게시물에 코드 숫자가 나간다. 조회 결과에 이름을 실어 보내면
+ * 표시 지점이 알아서 안전해진다.
+ */
+const PLACE_SELECT = '*, region:regions!inner(name, group:region_groups!inner(name))'
+
+type PlaceRow = Omit<Place, 'region_name' | 'group_name'> & {
+  region?: { name: string; group?: { name: string } | null } | null
+}
+
+const flattenPlace = (row: PlaceRow): Place => ({
+  ...(row as unknown as Place),
+  region_name: row.region?.name ?? '',
+  group_name: row.region?.group?.name ?? '',
+})
+
 export const places = {
   async list(filter: PlaceFilter = {}): Promise<Place[]> {
     if (isSupabaseConfigured) {
-      let query = sb().from('places').select('*')
-      if (filter.region) query = query.eq('region', filter.region)
-      else if (filter.regions?.length) query = query.in('region', filter.regions)
+      let query = sb()
+        .from('places')
+        .select(PLACE_SELECT)
+        // 미판정 장소는 목록에 넣지 않는다
+        .gte('tour_sigungu_code', 0)
+      if (filter.areaCode !== undefined) query = query.eq('tour_area_code', filter.areaCode)
+      if (filter.sigunguCode !== undefined)
+        query = query.eq('tour_sigungu_code', filter.sigunguCode)
       if (filter.categories?.length) query = query.in('category', filter.categories)
       if (filter.keyword) query = query.ilike('name', `%${filter.keyword}%`)
-      const { data, error } = await query.order('rating', { ascending: false })
+      // 정렬 기준을 source_rating 으로 두지 않는다 — TourAPI 가 평점을 주지 않아
+      // 전부 null 이라 정렬이 무작위가 된다. 이름순이 최소한 예측 가능하다.
+      const { data, error } = await query.order('name')
       if (error) throw error
-      return (data ?? []) as Place[]
+      return ((data ?? []) as unknown as PlaceRow[]).map(flattenPlace)
     }
 
     return SEED_PLACES.filter((p) => {
-      if (filter.region && p.region !== filter.region) return false
-      if (!filter.region && filter.regions?.length && !filter.regions.includes(p.region))
+      if (p.tour_sigungu_code < 0) return false
+      if (filter.areaCode !== undefined && p.tour_area_code !== filter.areaCode) return false
+      if (filter.sigunguCode !== undefined && p.tour_sigungu_code !== filter.sigunguCode)
         return false
       if (filter.categories?.length && !filter.categories.includes(p.category)) return false
       if (filter.keyword && !p.name.includes(filter.keyword)) return false
       return true
-    }).sort((a, b) => b.rating - a.rating)
+    }).sort((a, b) => a.name.localeCompare(b.name, 'ko'))
   },
 
   async get(id: string): Promise<Place | null> {
     if (isSupabaseConfigured) {
-      const { data, error } = await sb().from('places').select('*').eq('id', id).maybeSingle()
+      const { data, error } = await sb()
+        .from('places')
+        .select(PLACE_SELECT)
+        .eq('id', id)
+        .maybeSingle()
       if (error) throw error
-      return (data as Place) ?? null
+      return data ? flattenPlace(data as unknown as PlaceRow) : null
     }
     return SEED_PLACES.find((p) => p.id === id) ?? null
   },
@@ -133,42 +183,77 @@ export const profiles = {
 
 /* ───────────────── Trips (TRIP-02-01 / TRIP-02-02) ───────────────── */
 
-export type TripInput = Omit<Trip, 'id' | 'created_at'>
+/** 저장할 때는 코드만 넘긴다. 이름은 조회 시 조인해서 채운다 */
+export type TripInput = Omit<Trip, 'id' | 'created_at' | 'group_name' | 'region_name'>
+
+/** 여행도 장소와 같은 이유로 지역 이름을 함께 가져온다 */
+const TRIP_SELECT = '*, group:region_groups!inner(name), region:regions(name)'
+
+type TripRow = Omit<Trip, 'group_name' | 'region_name'> & {
+  group?: { name: string } | null
+  region?: { name: string } | null
+}
+
+const flattenTrip = (row: TripRow): Trip => ({
+  ...(row as unknown as Trip),
+  group_name: row.group?.name ?? '',
+  region_name: row.region?.name ?? null,
+})
+
+/** 데모 모드에서는 조인이 없으니 지역 배열에서 이름을 찾아 붙인다 */
+function demoTripNames(t: Omit<Trip, 'group_name' | 'region_name'>): Trip {
+  const g = DEMO_REGION_GROUPS.find((x) => x.tour_area_code === t.tour_area_code)
+  const r =
+    t.tour_sigungu_code === null
+      ? null
+      : DEMO_REGIONS.find(
+          (x) =>
+            x.tour_area_code === t.tour_area_code &&
+            x.tour_sigungu_code === t.tour_sigungu_code,
+        )
+  return { ...(t as Trip), group_name: g?.name ?? '', region_name: r?.name ?? null }
+}
 
 export const trips = {
   async list(userId: string): Promise<Trip[]> {
     if (isSupabaseConfigured) {
       const { data, error } = await sb()
         .from('trips')
-        .select('*')
+        .select(TRIP_SELECT)
         .eq('user_id', userId)
         .order('trip_date', { ascending: false })
       if (error) throw error
-      return (data ?? []) as Trip[]
+      return ((data ?? []) as unknown as TripRow[]).map(flattenTrip)
     }
     return readDb()
       .trips.filter((t) => t.user_id === userId)
       .sort((a, b) => b.trip_date.localeCompare(a.trip_date))
+      .map(demoTripNames)
   },
 
   async get(id: string): Promise<Trip | null> {
     if (isSupabaseConfigured) {
-      const { data, error } = await sb().from('trips').select('*').eq('id', id).maybeSingle()
+      const { data, error } = await sb()
+        .from('trips')
+        .select(TRIP_SELECT)
+        .eq('id', id)
+        .maybeSingle()
       if (error) throw error
-      return (data as Trip) ?? null
+      return data ? flattenTrip(data as unknown as TripRow) : null
     }
-    return readDb().trips.find((t) => t.id === id) ?? null
+    const t = readDb().trips.find((x) => x.id === id)
+    return t ? demoTripNames(t) : null
   },
 
   async create(input: TripInput): Promise<Trip> {
     if (isSupabaseConfigured) {
-      const { data, error } = await sb().from('trips').insert(input).select().single()
+      const { data, error } = await sb().from('trips').insert(input).select(TRIP_SELECT).single()
       if (error) throw error
-      return data as Trip
+      return flattenTrip(data as unknown as TripRow)
     }
-    const row: Trip = { ...input, id: uid('trip'), created_at: nowIso() }
+    const row = { ...input, id: uid('trip'), created_at: nowIso() }
     mutateDb((d) => void d.trips.push(row))
-    return row
+    return demoTripNames(row)
   },
 
   async update(id: string, patch: Partial<TripInput>): Promise<void> {

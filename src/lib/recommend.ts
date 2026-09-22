@@ -84,7 +84,9 @@ export function recommend(
   limit = 8,
 ): Scored[] {
   const scored = list.map((place) => {
-    let score = place.rating * 2
+    // source_rating 은 TourAPI 가 평점을 주지 않아 대개 null 이다. 0 으로 치면
+    // 모든 장소가 같은 기본 점수를 받아 이 항이 무의미해지므로, 값이 있을 때만 더한다.
+    let score = place.source_rating !== null ? place.source_rating * 2 : 0
     const reasons: string[] = []
 
     // 1) 취향 태그 일치 — 개인화 세그먼트

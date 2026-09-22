@@ -7,7 +7,8 @@ import { COMPANION_LABEL, type Companion, type TripDraft } from '@/lib/types'
 import { Loading, PageHeader, StepGuide } from '@/components/ui'
 
 /** 하위 지역(구/시) 선택 대신 상위 지역 전체를 목적지로 삼을 때 쓰는 표식값 — 실제 지역명이 아니다 */
-const ALL_LEAF = '전체'
+/** 시군구 드롭다운에서 '전체'를 뜻하는 값. 저장할 때는 null 이 된다 */
+const ALL_LEAF = ''
 
 function todayIso(offsetDays = 0): string {
   const d = new Date()
@@ -30,11 +31,14 @@ function formatMonthDay(iso: string): string {
 
 /**
  * 목적지·날짜로부터 만드는 기본 제목.
- * 구/시를 '전체'로 골랐을 때는 특정 구 이름이 없으므로 상위 지역명만 쓴다.
+ * 시군구를 '전체'로 골랐을 때는 특정 구 이름이 없으므로 상위 지역명만 쓴다.
  */
-export function defaultTripTitle(destination: string, group: string, tripDate: string): string {
-  const place = destination === ALL_LEAF ? group : destination
-  return `${place} 당일치기 ${formatMonthDay(tripDate)}`
+export function defaultTripTitle(
+  groupName: string,
+  regionName: string | null,
+  tripDate: string,
+): string {
+  return `${regionName ?? groupName} 당일치기 ${formatMonthDay(tripDate)}`
 }
 
 /** 기존 제목과 겹치면 '-01', '-02'… 순번을 붙여 구분한다 */
@@ -57,8 +61,9 @@ export function TripCreatePage() {
   const { user } = useAuth()
   const { groups, regions, loading: regionsLoading } = useRegions()
 
-  const [group, setGroup] = useState<string>('')
-  const [destination, setDestination] = useState<string>('')
+  // 지역은 이름이 아니라 코드로 들고 다닌다. sigungu 가 null 이면 '전체'다.
+  const [areaCode, setAreaCode] = useState<number | null>(null)
+  const [sigunguCode, setSigunguCode] = useState<number | null>(null)
   const [title, setTitle] = useState('')
   // 사용자가 제목을 직접 손댔다면 목적지를 바꿔도 덮어쓰지 않는다
   const [titleEdited, setTitleEdited] = useState(false)
@@ -67,7 +72,9 @@ export function TripCreatePage() {
   const [existingTitles, setExistingTitles] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
 
-  const leafOptions = regions.filter((r) => r.group_name === group)
+  const leafOptions = regions.filter((r) => r.tour_area_code === areaCode)
+  const groupName = groups.find((g) => g.tour_area_code === areaCode)?.name ?? ''
+  const regionName = leafOptions.find((r) => r.tour_sigungu_code === sigunguCode)?.name ?? null
 
   // 제목 중복 확인용 — 내 기존 여행 제목 목록을 미리 받아 둔다
   useEffect(() => {
@@ -77,22 +84,22 @@ export function TripCreatePage() {
 
   // 지역 목록이 비동기로 도착하면 첫 상위 지역 + '전체'를 기본 선택으로 채운다
   useEffect(() => {
-    if (groups.length === 0 || group) return
-    setGroup(groups[0].name)
-    setDestination(ALL_LEAF)
-  }, [groups, group])
+    if (groups.length === 0 || areaCode !== null) return
+    setAreaCode(groups[0].tour_area_code)
+    setSigunguCode(null)
+  }, [groups, areaCode])
 
   // 목적지·날짜가 바뀔 때마다 자동 제목을 다시 계산한다 (직접 수정한 경우는 건드리지 않는다)
   useEffect(() => {
-    if (titleEdited || !destination || !group) return
-    const base = defaultTripTitle(destination, group, tripDate)
+    if (titleEdited || !groupName) return
+    const base = defaultTripTitle(groupName, regionName, tripDate)
     setTitle(dedupeTitle(base, existingTitles))
-  }, [destination, group, tripDate, existingTitles, titleEdited])
+  }, [groupName, regionName, tripDate, existingTitles, titleEdited])
 
-  function changeGroup(next: string) {
-    setGroup(next)
-    // 상위 지역을 바꾸면 특정 구 이름이 그대로 남아 혼란스러우니 '전체'로 되돌린다
-    setDestination(ALL_LEAF)
+  function changeGroup(next: number) {
+    setAreaCode(next)
+    // 상위 지역을 바꾸면 특정 구가 그대로 남아 혼란스러우니 '전체'로 되돌린다
+    setSigunguCode(null)
   }
 
   function changeTitle(next: string) {
@@ -111,12 +118,16 @@ export function TripCreatePage() {
       setError('여행 제목을 입력해 주세요.')
       return
     }
+    if (areaCode === null) {
+      setError('목적지를 골라 주세요.')
+      return
+    }
     setError(null)
-    // '전체' 는 실제 지역명이 아니므로, 저장은 상위 지역명(region_groups.name)으로 한다
-    const effectiveDestination = destination === ALL_LEAF ? group : destination
     const draft: TripDraft = {
       title: trimmed,
-      destination: effectiveDestination,
+      tour_area_code: areaCode,
+      // null 이면 '시/도 전체'. 문자열 하나에 두 층위를 섞어 담던 걸 두 컬럼이 나눈다
+      tour_sigungu_code: sigunguCode,
       trip_date: tripDate,
       // 하루 활동 시간대는 별도 입력 없이 기본값(09:00~20:00)을 그대로 쓴다
       start_time: '09:00',
@@ -141,27 +152,29 @@ export function TripCreatePage() {
           <p className="label">목적지</p>
           <div className="grid grid-cols-2 gap-2">
             <select
-              value={group}
-              onChange={(e) => changeGroup(e.target.value)}
+              value={areaCode ?? ''}
+              onChange={(e) => changeGroup(Number(e.target.value))}
               className="field"
               aria-label="시/도 선택"
             >
               {groups.map((g) => (
-                <option key={g.name} value={g.name}>
+                <option key={g.tour_area_code} value={g.tour_area_code}>
                   {g.name}
                 </option>
               ))}
             </select>
             <select
-              value={destination}
-              onChange={(e) => setDestination(e.target.value)}
+              value={sigunguCode ?? ALL_LEAF}
+              onChange={(e) =>
+                setSigunguCode(e.target.value === ALL_LEAF ? null : Number(e.target.value))
+              }
               className="field"
-              aria-label="구/시 선택"
+              aria-label="시군구 선택"
             >
               <option value={ALL_LEAF}>전체</option>
               {leafOptions.map((r) => (
-                <option key={r.name} value={r.name}>
-                  {r.name.slice(group.length + 1)}
+                <option key={r.tour_sigungu_code} value={r.tour_sigungu_code}>
+                  {r.name}
                 </option>
               ))}
             </select>
@@ -178,7 +191,7 @@ export function TripCreatePage() {
             value={title}
             onChange={(e) => changeTitle(e.target.value)}
             maxLength={30}
-            placeholder={group ? defaultTripTitle(destination, group, tripDate) : ''}
+            placeholder={groupName ? defaultTripTitle(groupName, regionName, tripDate) : ''}
             className="field"
           />
           <p className="hint mt-1.5">
@@ -227,7 +240,7 @@ export function TripCreatePage() {
         <button
           type="button"
           onClick={goToRules}
-          disabled={!destination}
+          disabled={areaCode === null}
           className="btn-primary w-full"
         >
           다음 · 여행 규칙 설정
