@@ -100,7 +100,8 @@ create table public.places (
 create index places_region_category_idx
   on public.places (tour_area_code, tour_sigungu_code, category);
 create index places_unresolved_idx
-  on public.places (region_source) where region_source = 'unresolved';
+  on public.places (region_source)
+  where region_source = 'unresolved'::region_source_kind;
 
 -- 지역 코드만 고쳐도 region_source 가 'manual' 로 바뀌게 한다. 관리자가 두
 -- 가지를 기억해야 하는 구조는 언젠가 깨진다. 배치는

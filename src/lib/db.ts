@@ -294,9 +294,13 @@ export const tripItems = {
       if (error) throw error
       return (data ?? []) as TripItem[]
     }
+    // 장소 카탈로그가 교체되면 예전 place_id 를 가리키는 행이 localStorage 에
+    // 남는다. 그대로 넘기면 place 가 undefined 인 항목이 화면에 흘러가므로,
+    // 찾지 못한 것은 조용히 걸러낸다.
     return readDb()
       .trip_items.filter((it) => it.trip_id === tripId)
       .map((it) => ({ ...it, place: SEED_PLACES.find((p) => p.id === it.place_id) }))
+      .filter((it) => it.place !== undefined)
       .sort((a, b) => a.sort_order - b.sort_order)
   },
 
@@ -410,6 +414,7 @@ export const reservations = {
     return readDb()
       .reservations.filter((r) => r.user_id === userId)
       .map((r) => ({ ...r, place: SEED_PLACES.find((p) => p.id === r.place_id) }))
+      .filter((r) => r.place !== undefined)
       .sort((a, b) => a.reserved_at.localeCompare(b.reserved_at))
   },
 

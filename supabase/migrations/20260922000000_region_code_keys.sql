@@ -66,6 +66,11 @@ create index regions_group_idx on public.regions (tour_area_code, sort_order);
 -- ── 4. 지역 판정 출처 ────────────────────────────────────────────────
 -- 어느 순위로 판정했는지를 행마다 남긴다. 실패한 행을 성공 경로로 적어 두면
 -- 리포트의 성공률이 부풀려지므로 'unresolved' 를 따로 둔다.
+--
+-- 이 마이그레이션이 중간에 실패하면 여기까지는 적용된 채 이력에는 기록되지
+-- 않는다. 그 상태에서 다시 돌려도 같은 결과가 나오도록 drop 을 앞에 둔다.
+drop type if exists region_source_kind cascade;
+
 create type region_source_kind as enum (
   'tour',        -- 1순위: 응답의 sigunguCode
   'addr',        -- 2순위: 주소에서 시군구명 매칭
@@ -106,31 +111,35 @@ create table public.places (
 create index places_region_category_idx
   on public.places (tour_area_code, tour_sigungu_code, category);
 create index places_unresolved_idx
-  on public.places (region_source) where region_source = 'unresolved';
+  on public.places (region_source)
+  where region_source = 'unresolved'::region_source_kind;
 
 -- ── 6. trip_items · reservations 의 FK 를 다시 건다 ──────────────────
 alter table public.trip_items
+  drop constraint if exists trip_items_place_id_fkey,
   add constraint trip_items_place_id_fkey
   foreign key (place_id) references public.places on delete cascade;
 
 alter table public.reservations
+  drop constraint if exists reservations_place_id_fkey,
   add constraint reservations_place_id_fkey
   foreign key (place_id) references public.places on delete cascade;
 
 -- ── 7. trips 의 목적지를 코드 두 컬럼으로 ────────────────────────────
-alter table public.trips drop column destination;
+alter table public.trips drop column if exists destination;
 
 alter table public.trips
-  add column tour_area_code smallint not null
+  add column if not exists tour_area_code smallint not null
     references public.region_groups(tour_area_code),
   -- null 이면 '시/도 전체'. 사용자가 의도적으로 고른 값이지 '모름'이 아니다.
   -- (모름을 뜻하는 -1 은 places 에만 쓰이고 trips 에는 나타나지 않는다)
-  add column tour_sigungu_code smallint;
+  add column if not exists tour_sigungu_code smallint;
 
 -- 복합 FK 는 기본이 MATCH SIMPLE 이라 참조 컬럼 중 하나라도 null 이면 검사를
 -- 건너뛴다. 그래서 '전체' 선택은 통과하고, 구를 지정한 경우에만 실재 여부를
 -- 검증한다. 제약을 걸 수 없어 비워 두었던 자리가 없어진다.
 alter table public.trips
+  drop constraint if exists trips_region_fkey,
   add constraint trips_region_fkey
   foreign key (tour_area_code, tour_sigungu_code)
     references public.regions (tour_area_code, tour_sigungu_code);

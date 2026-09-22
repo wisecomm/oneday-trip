@@ -51,19 +51,25 @@ export function HomePage() {
   useEffect(() => {
     let alive = true
     async function load() {
-      const [t, r, p] = await Promise.all([
-        user ? trips.list(user.id) : Promise.resolve([]),
-        user ? reservations.listByUser(user.id) : Promise.resolve([]),
-        placesApi.list({}),
-      ])
-      if (!alive) return
-      setMyTrips(t)
-      setUpcoming(r.filter((x) => x.status === 'confirmed').slice(0, 2))
+      try {
+        const [t, r, p] = await Promise.all([
+          user ? trips.list(user.id) : Promise.resolve([]),
+          user ? reservations.listByUser(user.id) : Promise.resolve([]),
+          placesApi.list({}),
+        ])
+        if (!alive) return
+        setMyTrips(t)
+        setUpcoming(r.filter((x) => x.status === 'confirmed').slice(0, 2))
       // '인기 있는 곳' 이라고 부르지만 실제 순위가 없다 — TourAPI 가 평점을 주지
       // 않아서다. 이름순으로 받아 온 것을 그대로 쓰면 늘 같은 곳만 뜨므로,
       // 지역별로 고르게 섞어 노출한다.
-      setPopular(pickSpread(p, 5))
-      setLoading(false)
+        setPopular(pickSpread(p, 5))
+      } catch (err) {
+        // 여기서 멈추면 화면이 스피너에 갇힌다. 빈 홈이라도 보여주는 편이 낫다.
+        console.error('[Home] 홈 데이터를 불러오지 못했습니다.', err)
+      } finally {
+        if (alive) setLoading(false)
+      }
     }
     void load()
     return () => {
