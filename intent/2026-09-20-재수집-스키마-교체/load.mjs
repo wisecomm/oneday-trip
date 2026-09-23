@@ -402,7 +402,11 @@ async function main() {
     L.push("  region_source = case when public.places.region_source = 'manual'")
     L.push("    then 'manual'::region_source_kind else excluded.region_source end,")
     L.push("  region_note = case when public.places.region_source = 'manual'")
-    L.push('    then public.places.region_note else excluded.region_note end;')
+    L.push('    then public.places.region_note else excluded.region_note end')
+    // 수동 등록 행(source='manual')은 배치가 건드리지 않는다. id 접두사 'm-' 가
+    // TourAPI contentid(6~7자리 숫자)와 겹칠 수 없어 여기 걸릴 일은 없지만,
+    // 안전장치가 접두사 규약 하나에만 걸려 있지 않게 조건을 박아 둔다.
+    L.push("  where public.places.source = 'tour';")
     L.push('')
   }
 
