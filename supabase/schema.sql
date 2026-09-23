@@ -140,7 +140,11 @@ create table public.trips (
   -- 하루 동선의 시작·종료 시각 (기본 09:00~20:00)
   start_time         time not null default '09:00',
   end_time           time not null default '20:00',
-  companions         text[] not null default '{}',
+  -- 정의되지 않은 값이 들어가면 화면이 라벨을 찾지 못해 조용히 빈 칸이 된다.
+  -- `<@` 는 포함 검사이고 빈 배열은 통과한다.
+  companions         text[] not null default '{}'
+    constraint trips_companions_valid
+    check (companions <@ array['solo', 'couple', 'friends', 'family', 'pet']::text[]),
   transport          transport_type not null default 'transit',
   created_at         timestamptz not null default now(),
   -- 복합 FK 는 기본이 MATCH SIMPLE 이라 참조 컬럼 중 하나라도 null 이면 검사를
@@ -166,6 +170,9 @@ create table public.trip_items (
 );
 
 create index trip_items_trip_idx on public.trip_items (trip_id, sort_order);
+-- places 는 on delete cascade 로 참조된다. 인덱스가 없으면 장소를 한 행 지울
+-- 때마다 이 테이블을 통째로 훑어 참조를 찾는다.
+create index trip_items_place_idx on public.trip_items (place_id);
 
 -- ── RSV-05-01 예약 ───────────────────────────────────────────────────
 create table public.reservations (
@@ -175,12 +182,15 @@ create table public.reservations (
   trip_item_id uuid references public.trip_items on delete set null,
   reserved_at  timestamptz not null,
   party_size   smallint not null check (party_size between 1 and 12),
-  deposit      integer not null default 0,
+  deposit      integer not null default 0
+    constraint reservations_deposit_non_negative check (deposit >= 0),
   status       reservation_status not null default 'confirmed',
   created_at   timestamptz not null default now()
 );
 
 create index reservations_user_idx on public.reservations (user_id, reserved_at);
+create index reservations_place_idx on public.reservations (place_id);
+create index reservations_trip_item_idx on public.reservations (trip_item_id);
 
 -- ── 프로필 생성 시점에 대하여 ────────────────────────────────────────
 -- 가입 시 auth.users 트리거로 profiles 행을 자동 생성하지 않는다.

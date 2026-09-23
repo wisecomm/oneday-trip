@@ -4,7 +4,7 @@ import type { Place, Region, RegionGroup } from './types'
  * 데모 모드(Supabase 미연결) 데이터 — load.mjs --demo 가 생성한다.
  * 손으로 고치지 말고 수집 원본에서 다시 생성하세요.
  *
- * 생성: 2026-09-22T07:14:55.710Z
+ * 생성: 2026-09-23T10:51:14.051Z
  * 지역은 전량, 장소는 몇 개 시군구만 골라 담았다. 상세가 채워진 서울 구와
  * 아직 비어 있는 부산·제주를 섞어, 빈 값을 숨기는 처리도 데모에서 확인된다.
  */
@@ -175,9 +175,8 @@ export const DEMO_REGIONS: Region[] = [
   { tour_area_code: 33, tour_sigungu_code: 7, name: "제천시", ldong_cd: "43150", lat: 37.07687, lng: 128.174878, sort_order: 6 },
   { tour_area_code: 33, tour_sigungu_code: 12, name: "증평군", ldong_cd: "43745", lat: 36.783368, lng: 127.593069, sort_order: 7 },
   { tour_area_code: 33, tour_sigungu_code: 8, name: "진천군", ldong_cd: "43750", lat: 36.872372, lng: 127.428388, sort_order: 8 },
-  { tour_area_code: 33, tour_sigungu_code: 9, name: "청원군", ldong_cd: null, lat: 36.7815, lng: 127.791127, sort_order: 9 },
-  { tour_area_code: 33, tour_sigungu_code: 10, name: "청주시", ldong_cd: "43111", lat: 36.63526, lng: 127.48068, sort_order: 10 },
-  { tour_area_code: 33, tour_sigungu_code: 11, name: "충주시", ldong_cd: "43130", lat: 36.995315, lng: 127.908331, sort_order: 11 },
+  { tour_area_code: 33, tour_sigungu_code: 10, name: "청주시", ldong_cd: "43111", lat: 36.63526, lng: 127.48068, sort_order: 9 },
+  { tour_area_code: 33, tour_sigungu_code: 11, name: "충주시", ldong_cd: "43130", lat: 36.995315, lng: 127.908331, sort_order: 10 },
   { tour_area_code: 33, tour_sigungu_code: -1, name: "미판정", ldong_cd: null, lat: 36.7815, lng: 127.791127, sort_order: 999 },
   { tour_area_code: 34, tour_sigungu_code: 16, name: "계룡시", ldong_cd: "44250", lat: 36.281262, lng: 127.245321, sort_order: 0 },
   { tour_area_code: 34, tour_sigungu_code: 1, name: "공주시", ldong_cd: "44150", lat: 36.448452, lng: 127.145392, sort_order: 1 },
@@ -223,21 +222,19 @@ export const DEMO_REGIONS: Region[] = [
   { tour_area_code: 36, tour_sigungu_code: 3, name: "고성군", ldong_cd: "48820", lat: 35.007026, lng: 128.30667, sort_order: 2 },
   { tour_area_code: 36, tour_sigungu_code: 4, name: "김해시", ldong_cd: "48250", lat: 35.235749, lng: 128.84809, sort_order: 3 },
   { tour_area_code: 36, tour_sigungu_code: 5, name: "남해군", ldong_cd: "48840", lat: 34.817424, lng: 127.950405, sort_order: 4 },
-  { tour_area_code: 36, tour_sigungu_code: 6, name: "마산시", ldong_cd: null, lat: 35.175669, lng: 128.358386, sort_order: 5 },
-  { tour_area_code: 36, tour_sigungu_code: 7, name: "밀양시", ldong_cd: "48270", lat: 35.504249, lng: 128.798391, sort_order: 6 },
-  { tour_area_code: 36, tour_sigungu_code: 8, name: "사천시", ldong_cd: "48240", lat: 35.001239, lng: 128.049369, sort_order: 7 },
-  { tour_area_code: 36, tour_sigungu_code: 9, name: "산청군", ldong_cd: "48860", lat: 35.362489, lng: 127.88098, sort_order: 8 },
-  { tour_area_code: 36, tour_sigungu_code: 10, name: "양산시", ldong_cd: "48330", lat: 35.384452, lng: 129.047998, sort_order: 9 },
-  { tour_area_code: 36, tour_sigungu_code: 12, name: "의령군", ldong_cd: "48720", lat: 35.374003, lng: 128.258133, sort_order: 10 },
-  { tour_area_code: 36, tour_sigungu_code: 13, name: "진주시", ldong_cd: "48170", lat: 35.186951, lng: 128.105092, sort_order: 11 },
-  { tour_area_code: 36, tour_sigungu_code: 14, name: "진해시", ldong_cd: null, lat: 35.175669, lng: 128.358386, sort_order: 12 },
-  { tour_area_code: 36, tour_sigungu_code: 15, name: "창녕군", ldong_cd: "48740", lat: 35.504512, lng: 128.500602, sort_order: 13 },
-  { tour_area_code: 36, tour_sigungu_code: 16, name: "창원시", ldong_cd: "48125", lat: 35.192979, lng: 128.616744, sort_order: 14 },
-  { tour_area_code: 36, tour_sigungu_code: 17, name: "통영시", ldong_cd: "48220", lat: 34.817719, lng: 128.406893, sort_order: 15 },
-  { tour_area_code: 36, tour_sigungu_code: 18, name: "하동군", ldong_cd: "48850", lat: 35.140139, lng: 127.74236, sort_order: 16 },
-  { tour_area_code: 36, tour_sigungu_code: 19, name: "함안군", ldong_cd: "48730", lat: 35.285353, lng: 128.4401, sort_order: 17 },
-  { tour_area_code: 36, tour_sigungu_code: 20, name: "함양군", ldong_cd: "48870", lat: 35.541804, lng: 127.730885, sort_order: 18 },
-  { tour_area_code: 36, tour_sigungu_code: 21, name: "합천군", ldong_cd: "48890", lat: 35.594357, lng: 128.125632, sort_order: 19 },
+  { tour_area_code: 36, tour_sigungu_code: 7, name: "밀양시", ldong_cd: "48270", lat: 35.504249, lng: 128.798391, sort_order: 5 },
+  { tour_area_code: 36, tour_sigungu_code: 8, name: "사천시", ldong_cd: "48240", lat: 35.001239, lng: 128.049369, sort_order: 6 },
+  { tour_area_code: 36, tour_sigungu_code: 9, name: "산청군", ldong_cd: "48860", lat: 35.362489, lng: 127.88098, sort_order: 7 },
+  { tour_area_code: 36, tour_sigungu_code: 10, name: "양산시", ldong_cd: "48330", lat: 35.384452, lng: 129.047998, sort_order: 8 },
+  { tour_area_code: 36, tour_sigungu_code: 12, name: "의령군", ldong_cd: "48720", lat: 35.374003, lng: 128.258133, sort_order: 9 },
+  { tour_area_code: 36, tour_sigungu_code: 13, name: "진주시", ldong_cd: "48170", lat: 35.186951, lng: 128.105092, sort_order: 10 },
+  { tour_area_code: 36, tour_sigungu_code: 15, name: "창녕군", ldong_cd: "48740", lat: 35.504512, lng: 128.500602, sort_order: 11 },
+  { tour_area_code: 36, tour_sigungu_code: 16, name: "창원시", ldong_cd: "48125", lat: 35.192979, lng: 128.616744, sort_order: 12 },
+  { tour_area_code: 36, tour_sigungu_code: 17, name: "통영시", ldong_cd: "48220", lat: 34.817719, lng: 128.406893, sort_order: 13 },
+  { tour_area_code: 36, tour_sigungu_code: 18, name: "하동군", ldong_cd: "48850", lat: 35.140139, lng: 127.74236, sort_order: 14 },
+  { tour_area_code: 36, tour_sigungu_code: 19, name: "함안군", ldong_cd: "48730", lat: 35.285353, lng: 128.4401, sort_order: 15 },
+  { tour_area_code: 36, tour_sigungu_code: 20, name: "함양군", ldong_cd: "48870", lat: 35.541804, lng: 127.730885, sort_order: 16 },
+  { tour_area_code: 36, tour_sigungu_code: 21, name: "합천군", ldong_cd: "48890", lat: 35.594357, lng: 128.125632, sort_order: 17 },
   { tour_area_code: 36, tour_sigungu_code: -1, name: "미판정", ldong_cd: null, lat: 35.175669, lng: 128.358386, sort_order: 999 },
   { tour_area_code: 37, tour_sigungu_code: 1, name: "고창군", ldong_cd: "52790", lat: 35.469141, lng: 126.61925, sort_order: 0 },
   { tour_area_code: 37, tour_sigungu_code: 2, name: "군산시", ldong_cd: "52130", lat: 35.951005, lng: 126.674611, sort_order: 1 },
@@ -277,10 +274,8 @@ export const DEMO_REGIONS: Region[] = [
   { tour_area_code: 38, tour_sigungu_code: 23, name: "해남군", ldong_cd: "12790", lat: 34.502178, lng: 126.540881, sort_order: 20 },
   { tour_area_code: 38, tour_sigungu_code: 24, name: "화순군", ldong_cd: "12760", lat: 35.048753, lng: 127.009344, sort_order: 21 },
   { tour_area_code: 38, tour_sigungu_code: -1, name: "미판정", ldong_cd: null, lat: 34.864242, lng: 126.918206, sort_order: 999 },
-  { tour_area_code: 39, tour_sigungu_code: 1, name: "남제주군", ldong_cd: null, lat: 33.399522, lng: 126.532304, sort_order: 0 },
-  { tour_area_code: 39, tour_sigungu_code: 2, name: "북제주군", ldong_cd: null, lat: 33.399522, lng: 126.532304, sort_order: 1 },
-  { tour_area_code: 39, tour_sigungu_code: 3, name: "서귀포시", ldong_cd: "50130", lat: 33.296364, lng: 126.548569, sort_order: 2 },
-  { tour_area_code: 39, tour_sigungu_code: 4, name: "제주시", ldong_cd: "50110", lat: 33.473843, lng: 126.520586, sort_order: 3 },
+  { tour_area_code: 39, tour_sigungu_code: 3, name: "서귀포시", ldong_cd: "50130", lat: 33.296364, lng: 126.548569, sort_order: 0 },
+  { tour_area_code: 39, tour_sigungu_code: 4, name: "제주시", ldong_cd: "50110", lat: 33.473843, lng: 126.520586, sort_order: 1 },
   { tour_area_code: 39, tour_sigungu_code: -1, name: "미판정", ldong_cd: null, lat: 33.399522, lng: 126.532304, sort_order: 999 },
   { tour_area_code: -1, tour_sigungu_code: -1, name: "미판정", ldong_cd: null, lat: 36.5, lng: 127.8, sort_order: 999 },
 ]

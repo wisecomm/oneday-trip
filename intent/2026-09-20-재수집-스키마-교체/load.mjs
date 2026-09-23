@@ -280,6 +280,8 @@ async function main() {
 
   const groupRows = []
   const regionRows = []
+  /** 장소가 한 곳도 없어 적재하지 않은 시군구 — 리포트에 남긴다 */
+  const emptyLeaves = []
   const orderOf = (n) => {
     const i = AREA_ORDER.indexOf(n)
     return i < 0 ? AREA_ORDER.length : i
@@ -302,8 +304,21 @@ async function main() {
     const gc = sum.n ? { lat: +(sum.lat / sum.n).toFixed(6), lng: +(sum.lng / sum.n).toFixed(6) } : KR
     groupRows.push({ code, name, ...gc, order: orderOf(name) })
 
-    // 시군구는 가나다순 — 25개를 훑을 때 예측 가능한 게 낫다
-    const byName = [...list].sort((x, y) => x.name.localeCompare(y.name, 'ko'))
+    // 장소가 한 곳도 없는 시군구는 넣지 않는다.
+    //
+    // TourAPI 코드표에는 오래전에 없어진 행정구역이 남아 있다 — 진해시·마산시
+    // (2010년 창원시 통합), 남제주군·북제주군(2006년 폐지), 청원군(2014년 청주시
+    // 통합). 그대로 적재하면 드롭다운에 뜨고, 고르면 빈 화면이 된다.
+    //
+    // 버리는 게 아니라 '이번 수집분에 장소가 없어서 넣지 않는' 것이다. 나중에
+    // 장소가 생기면 재적재 때 자동으로 들어온다.
+    const withPlaces = list.filter((s) => (agg.get(`${code}-${s.code}`)?.n ?? 0) > 0)
+    for (const s of list) {
+      if (!withPlaces.includes(s)) emptyLeaves.push(`${name} ${s.name}`)
+    }
+
+    // 시군구는 가나다순 — 스물몇 개를 훑을 때 예측 가능한 게 낫다
+    const byName = [...withPlaces].sort((x, y) => x.name.localeCompare(y.name, 'ko'))
     byName.forEach((s, i) => {
       const k = `${code}-${s.code}`
       const c = center(k, gc)
@@ -435,6 +450,13 @@ async function main() {
   console.log(`── 상세 없는 장소: ${stats.noDetail}건 (${((stats.noDetail / tot) * 100).toFixed(1)}%) ──`)
   console.log('   소개·영업시간·전화가 빈 채로 적재됩니다. 수집이 끝나면 다시 돌리세요.')
   console.log('')
+  if (emptyLeaves.length) {
+    console.log(`── 장소가 없어 적재하지 않은 시군구: ${emptyLeaves.length}개 ──`)
+    console.log('   대개 폐지된 행정구역이 TourAPI 코드표에 남아 있는 경우다.')
+    for (const n of emptyLeaves) console.log(`     · ${n}`)
+    console.log('')
+  }
+
   console.log('── 시군구별 장소 수 (미판정 제외) ──')
   for (const [k, v] of Object.entries(buckets)) console.log(`  ${k.padEnd(6)}곳: ${v}개`)
   console.log('')
