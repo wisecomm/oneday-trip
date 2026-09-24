@@ -289,6 +289,7 @@ export const SEED_PLACES: Place[] = [
     summary: "작은공간은 서울 강남구 양재역 인근 은광여고 앞에 위치한 즉석떡볶이 전문점이다",
     open_hours: "[평일] - - 11:00~20:50 (마지막 주문 20:20) - [주말] - - 11:00~20:30 (라스트오더 20:00)", phone: "02-3462-3533",
     source_modified_at: "20251231150302", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "132892", name: "삼원가든", category: "babzip",
@@ -298,6 +299,7 @@ export const SEED_PLACES: Place[] = [
     summary: "서울 삼원가든은 전통 한식 전문점으로 1,200여 명을 맞을 수 있는 규모와 음식 맛으로 입소문이 난 음식점이다",
     open_hours: "[평일] - - 11:30~21:30 - - 준비 시간 14:30~17:30 - - 마지막 주문 20:45 - [주말] - -11:00~21:00 - - 준비 시간 14:30~17:00 - - 마지막 주문 20:00", phone: "02-548-3030",
     source_modified_at: "20251223162717", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "403515", name: "고래불", category: "babzip",
@@ -307,6 +309,7 @@ export const SEED_PLACES: Place[] = [
     summary: "서울의 작은 동해바다라고 불리는 고래불은 2002년 영덕지방을 고향으로 하신 1대 사장님이 신선한 동해안 해산물로 만든 음식을 서울에서도 맛보게하고 싶다는 사장님의 생각으로 시작되었다",
     open_hours: "[평일] - - 11:30~22:00 - - 준비 시간 14:30~17:00 - - 마지막 주문 20:45 - [주말] - - 11:30~21:00 - - 마지막 주문 19:45", phone: "02-556-3677",
     source_modified_at: "20251216112203", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2465041", name: "최수사 대게마을", category: "babzip",
@@ -316,6 +319,7 @@ export const SEED_PLACES: Place[] = [
     summary: "정통일식 최수사 대게마을은 고급스럽고 풍미를 느낄 수 있는 대게를 분위기 있게 먹을 수 있는 곳이다",
     open_hours: "11:30~22:30 (준비시간 14:30~17:00)", phone: "02-566-2525",
     source_modified_at: "20251125133348", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2833050", name: "신의주찹쌀순대", category: "babzip",
@@ -325,6 +329,7 @@ export const SEED_PLACES: Place[] = [
     summary: "신의주찹쌀순대는 1995년부터 청담동에서 영업을 이어왔다",
     open_hours: "00:00~24:00", phone: "02-511-9081",
     source_modified_at: "20251120101220", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2870637", name: "어거스트힐 강남점", category: "babzip",
@@ -334,6 +339,7 @@ export const SEED_PLACES: Place[] = [
     summary: "어거스트힐 강남점은 스테이크 전문 레스토랑이다",
     open_hours: "- 11:30~22:00 - - 마지막 주문 20:50", phone: "0507-1478-8013",
     source_modified_at: "20251031095720", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "402880", name: "미 피아체", category: "babzip",
@@ -343,6 +349,7 @@ export const SEED_PLACES: Place[] = [
     summary: "청담동에 위치한 이탈리안 레스토랑 미 피아체는 테이블보와 세팅, 서비스와 요리까지 신경을 많이 쓴 듯한 섬세함이 느껴지며 꾸준한 서비스와 맛과 분위기로 발길을 잡는 곳이다",
     open_hours: "- 12:00~21:30 - - 준비시간 15:00~18:00 - - 마지막 주문 19:30", phone: "02-516-6317",
     source_modified_at: "20251028113434", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "134201", name: "무등산", category: "babzip",
@@ -352,6 +359,7 @@ export const SEED_PLACES: Place[] = [
     summary: "무등산은 1985년부터 전라남도의 한우 생고기 육회, 숯불구이를 서울 강남에 소개해 온 1세대 고깃집이다",
     open_hours: "[월요일~금요일] - - 10:00~24:00 - - 마지막 주문 23:30 - [토요일] - - 10:00~23:30 - - 마지막 주문 23:00", phone: "0507-1409-4017",
     source_modified_at: "20251028112446", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2733965", name: "반려문화", category: "cafe",
@@ -361,6 +369,7 @@ export const SEED_PLACES: Place[] = [
     summary: "반려문화는 서울 강남구 논현동에 위치한 종합 반려 문화센터로 반려견을 키우는 반려인뿐만 아니라 애견을 좋아하는 모든 사람이 이용할 수 있는 곳이다",
     open_hours: "주중 10:00~21:30 (휴게시간 16:00~17:00) - 주말 10:00~19:00", phone: "02-2088-3375",
     source_modified_at: "20250626114852", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2867252", name: "마일스톤 커피", category: "cafe",
@@ -370,6 +379,7 @@ export const SEED_PLACES: Place[] = [
     summary: "마일스톤 커피는 신사동 가로수길 메인길에서 조금만 벗어나면 나오는 한적한 골목길에 위치해 있다",
     open_hours: "10:00~21:00 (마지막 주문 20:30)", phone: "0507-1425-1195",
     source_modified_at: "20250429112842", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2847150", name: "플레어비 도곡점", category: "cafe",
@@ -379,6 +389,7 @@ export const SEED_PLACES: Place[] = [
     summary: "플레어비 도곡점은 브런치 카페로, 세련된 분위기에서 여유로운 시간을 보낼 수 있는 곳이다",
     open_hours: "- 평일 09:30~19:00 - - 주말 09:30~20:00", phone: "02-578-3300",
     source_modified_at: "20250424135804", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2847076", name: "젠제로", category: "cafe",
@@ -388,6 +399,7 @@ export const SEED_PLACES: Place[] = [
     summary: "이탈리아어로 ‘생강’을 뜻하는 젠제로(zenzero)는 서울의 젤라토 전문점이다",
     open_hours: "12:00~22:00", phone: "02-543-1261",
     source_modified_at: "20250424134652", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "1602451", name: "대모산도시자연공원", category: "spot",
@@ -397,6 +409,7 @@ export const SEED_PLACES: Place[] = [
     summary: "강남구에 위치한 대모산은 국수봉이라고도 불렸던 높이 293m의 나지막한 산이다",
     open_hours: "상시 개방", phone: "강남구청 공원녹지과 02-3423-6283",
     source_modified_at: "20251230171206", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2757155", name: "법룡사", category: "spot",
@@ -406,6 +419,7 @@ export const SEED_PLACES: Place[] = [
     summary: "서울 강남구 수서동에 있는 법룡사는 지하 2층, 지상 3층 규모의 배(반야용선) 모양의 현대식 건축물이다",
     open_hours: "04:00~18:00 - ※ 매월 첫째 금요일 19:00~21:00 능엄주 기도", phone: "02-3411-8104",
     source_modified_at: "20251223143856", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2752545", name: "역삼개나리공원", category: "spot",
@@ -415,6 +429,7 @@ export const SEED_PLACES: Place[] = [
     summary: "역삼역 3번 출구 근처에 있는 도심 속 근린공원으로 어린이들을 위한 놀이터와 남녀노소가 모두 이용할 수 있는 운동 기구가 설치되어 있으며, 휴식을 위한 정자와 벤치가 있다",
     open_hours: "상시 개방", phone: "강남구청 공원녹지과 02-3423-6248",
     source_modified_at: "20251223133624", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2456536", name: "강남 마이스 관광특구", category: "spot",
@@ -424,6 +439,7 @@ export const SEED_PLACES: Place[] = [
     summary: "일찍이 무역 센터가 자리 잡으며 국제 교류의 메카로 손꼽혀온 강남 삼성동 일대는, 세계에서 모여든 최첨단 비즈니스맨에게 한국을 알리는 창구 역할을 해왔다",
     open_hours: "", phone: "강남관광정보센터 02-3445-0111",
     source_modified_at: "20251222174229", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "987720", name: "신사동 가로수길", category: "spot",
@@ -433,6 +449,7 @@ export const SEED_PLACES: Place[] = [
     summary: "서울 가로수길은 강남구 신사동에 위치한 번화가로 주로 신사동 가로수길이라고 불린다",
     open_hours: "점포 별로 상이함", phone: "강남관광정보센터 02-3445-0111",
     source_modified_at: "20251114112540", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "3081985", name: "청담도로공원", category: "spot",
@@ -442,6 +459,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251031133712", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2946112", name: "향기억", category: "spot",
@@ -451,6 +469,7 @@ export const SEED_PLACES: Place[] = [
     summary: "개인 맞춤으로 세상에서 단 하나뿐인 향수를 만들 수 있는 공방이다",
     open_hours: "11:00~21:00", phone: "0507-1318-9070",
     source_modified_at: "20251030153045", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "130284", name: "코엑스 아쿠아리움", category: "spot",
@@ -460,6 +479,7 @@ export const SEED_PLACES: Place[] = [
     summary: "코엑스 아쿠아리움은 전시 수조 183개, 사육수조 90개, 수량 3,500톤에 이르는 대형수족관이다",
     open_hours: "10:00~20:00 (입장 마감 19:00)", phone: "02-700-7200",
     source_modified_at: "20250723152656", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2899749", name: "성수노루", category: "babzip",
@@ -469,6 +489,7 @@ export const SEED_PLACES: Place[] = [
     summary: "성수노루는 직원들이 직접 구워주는 한우곱창집이다",
     open_hours: "- 16:00~23:00 - - 마지막 주문 22:00", phone: "0507-1388-1936",
     source_modified_at: "20251230175945", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2895145", name: "할머니의 레시피", category: "babzip",
@@ -478,6 +499,7 @@ export const SEED_PLACES: Place[] = [
     summary: "성수동에 위치한 할머니의 레시피는 수인·분당선 서울숲역 5번 출구 인근에 자리 잡고 있다",
     open_hours: "- 11:00~21:10 - - 준비시간 15:30~16:40 - - 점심 마지막 주문 15:00 / 저녁 마지막 주문 20:40", phone: "0507-1429-5101",
     source_modified_at: "20251209111351", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2373394", name: "성수족발", category: "babzip",
@@ -487,6 +509,7 @@ export const SEED_PLACES: Place[] = [
     summary: "성수동에 위치한 성수족발은 서울 3대 족발이라고 불릴 만큼 유명한 족발 맛집이다",
     open_hours: "- 12:00~22:00 - - 준비시간 15:00~17:00 - - 마지막 주문 21:00", phone: "02-464-0425",
     source_modified_at: "20251125170139", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2899926", name: "비사벌 전주 콩나물 국밥", category: "babzip",
@@ -496,6 +519,7 @@ export const SEED_PLACES: Place[] = [
     summary: "비사벌 전주 콩나물국밥은 수인분당선 서울숲역 1번 출구, 2호선 성수역 7번 출구 성수1가2동 행정복지센터 맞은편에 있다",
     open_hours: "07:00~22:00", phone: "02-464-8704",
     source_modified_at: "20250924131650", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2895179", name: "록멘", category: "babzip",
@@ -505,6 +529,7 @@ export const SEED_PLACES: Place[] = [
     summary: "록멘은 수인분당선 서울숲역 1번 출구 경일중학교 방향, 2호선 성수역 4번 출구 경일초등학교 사이 성수 1가 1동 행정복지센터 인근에 있다",
     open_hours: "[평일] - - 11:30~21:00 - - 준비시간 15:00~17:00 - - 마지막 주문 20:30 - [일요일] - - 12:00~16:00 - - 마지막 주문 15:30", phone: "0507-1339-9857",
     source_modified_at: "20250924113847", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2893900", name: "차이나플레인 서울숲점", category: "babzip",
@@ -514,6 +539,7 @@ export const SEED_PLACES: Place[] = [
     summary: "차이나플레인은 플라타너스 나무처럼 고객에 대한 따뜻한 사랑과 지속적인 애정을 의미하는 프리미엄 차이니즈 레스토랑이다",
     open_hours: "[평일] - - 11:00~21:00 - - 준비시간 15:00~17:00 - - 마지막 주문 14:30, 20:20 - [주말] - - 11:30~20:00 - - 마지막 주문 19:20", phone: "0507-1301-8493",
     source_modified_at: "20250924113014", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2901359", name: "계자람", category: "babzip",
@@ -523,6 +549,7 @@ export const SEED_PLACES: Place[] = [
     summary: "계모임은 춘천식 숯불 닭갈비 구이 전문점이다",
     open_hours: "- 15:00~23:00 - - 마지막 주문 22:10", phone: "0507-1369-2510",
     source_modified_at: "20250923132418", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2901229", name: "가조쿠", category: "babzip",
@@ -532,6 +559,7 @@ export const SEED_PLACES: Place[] = [
     summary: "가조쿠는 성동구 성수동에 있는 우동, 소바 전문점이다",
     open_hours: "- 11:00~21:00 - - 준비시간(평일) 14:30~17:00 - - 준비시간(주말) 15:00~17:00 - - 마지막 주문 20:00", phone: "0507-1434-2177",
     source_modified_at: "20250923132114", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2870210", name: "비올레타", category: "cafe",
@@ -541,6 +569,7 @@ export const SEED_PLACES: Place[] = [
     summary: "성동구 금호동에 위치한 비올레타는 2018년에 오픈한 머핀 전문 카페이다",
     open_hours: "13:00~18:00", phone: "0507-1307-8178",
     source_modified_at: "20251205163518", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2900881", name: "옹근달", category: "cafe",
@@ -550,6 +579,7 @@ export const SEED_PLACES: Place[] = [
     summary: "옹근달은 서울지하철 2호선 성수역 4번 출구 인근에 있다",
     open_hours: "- 11:00~23:00 - - 마지막 주문 22:30", phone: "02-499-5012",
     source_modified_at: "20251029152803", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2835889", name: "어니언 성수", category: "cafe",
@@ -559,6 +589,7 @@ export const SEED_PLACES: Place[] = [
     summary: "어니언 성수는 2호선 성수역 2번 출구 앞 카페거리 인근 초입에 있다",
     open_hours: "[평일] - - 08:00~22:00 - - 마지막 주문 21:30 - [주말] - - 09:00~22:00 - - 마지막 주문 21:30", phone: "0507-1386-3238",
     source_modified_at: "20251023143000", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2899351", name: "메쉬커피", category: "cafe",
@@ -568,6 +599,7 @@ export const SEED_PLACES: Place[] = [
     summary: "메쉬커피는 서울지하철 2호선 뚝섬역 8번 출구 뚝섬역사거리에서 성수중학교 사이에 있다",
     open_hours: "- 평일 08:00~17:00 - - 토요일 10:00~18:00 - - 일요일 12:00~17:00", phone: "02-464-7078",
     source_modified_at: "20250924131218", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "822861", name: "한강", category: "spot",
@@ -577,6 +609,7 @@ export const SEED_PLACES: Place[] = [
     summary: "한강은 한반도 가운데를 가로지르는 강으로 강원도, 충청북도, 경기도, 서울특별시를 거쳐 서해로 유입하는 강이다",
     open_hours: "상시 개방", phone: "미래한강본부 운영부 02-3780-0812",
     source_modified_at: "20251118155108", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "753994", name: "살곶이체육공원", category: "spot",
@@ -586,6 +619,7 @@ export const SEED_PLACES: Place[] = [
     summary: "살곶이체육공원은 청계천이 중랑천과 만나는 자리 부근으로 한양대학교에서도 내려다보면 바로 보인다",
     open_hours: "상시 개방", phone: "02-2286-6090",
     source_modified_at: "20251118154204", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2745594", name: "성수연방", category: "spot",
@@ -595,6 +629,7 @@ export const SEED_PLACES: Place[] = [
     summary: "서울 성동구에 위치한 성수연방은 각자의 분야에서 특별한 개성과 능력, 이야기를 가진 구성원들이 모인 생활 문화 소사이어티 플랫폼이다",
     open_hours: "10:00~22:00", phone: "010-8979-8122",
     source_modified_at: "20251118153128", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "309302", name: "미타사(성동)", category: "spot",
@@ -604,6 +639,7 @@ export const SEED_PLACES: Place[] = [
     summary: "옥수동에 자리한 미타사는 대한불교 조계종 조계사의 직할 사찰로 달맞이봉공원 아래 위치해 있다",
     open_hours: "상시 개방", phone: "02-2298-3377",
     source_modified_at: "20251023143000", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "753989", name: "서울 살곶이 다리", category: "spot",
@@ -613,6 +649,7 @@ export const SEED_PLACES: Place[] = [
     summary: "이 다리는 정종과 태종의 잦은 행차 때문에 1420년 처음 만들어지기 시작했으나 태종이 죽자 왕의 행차가 거의 없어 완성되지 못하였다",
     open_hours: "상시 개방", phone: "성동구청 문화체육과 02-2286-5202",
     source_modified_at: "20250902130644", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2850614", name: "스탈릿성수", category: "spot",
@@ -622,6 +659,7 @@ export const SEED_PLACES: Place[] = [
     summary: "성수역 3번과 4번 출구 사이, 붉은색 벽돌을 쌓은 커다란 건물이 있는데, 신세계프라퍼티가 MZ세대를 타깃으로 처음 선보이는 도심형 복합상업시설 스탈릿 성수이다",
     open_hours: "점포 별로 상이함", phone: null,
     source_modified_at: "20250829131857", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2722936", name: "아모레 성수", category: "spot",
@@ -631,6 +669,7 @@ export const SEED_PLACES: Place[] = [
     summary: "서울 성수동에 위치한 아모레 성수는 아모레퍼시픽이 제안하는 ‘아름다움’에 대해 차별화된 경험을 할 수 있는 뷰티 플래그십 공간이다",
     open_hours: "10:30~20:30", phone: "02-469-8600",
     source_modified_at: "20250814143500", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "3442142", name: "서울숲 곤충식물원", category: "spot",
@@ -640,6 +679,7 @@ export const SEED_PLACES: Place[] = [
     summary: "서울숲 곤충식물원은 서울숲 내에 위치한 자연 학습 공간으로, 열대 식물과 다양한 곤충을 관찰할 수 있다",
     open_hours: "하절기 화~일 10:00~17:00 / 동절기 화~일 11:00~16:00", phone: "02-460-2905",
     source_modified_at: "20250725094923", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2858244", name: "사운드키친", category: "babzip",
@@ -649,6 +689,7 @@ export const SEED_PLACES: Place[] = [
     summary: "마포구에 위치한 사운드키친은 포케로 유명한 맛집이다",
     open_hours: "- 11:00~20:00 - - 준비시간 15:00~17:00 - - 마지막 주문 19:30", phone: "070-4334-7350",
     source_modified_at: "20251209174309", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2733861", name: "서강팔경", category: "babzip",
@@ -658,6 +699,7 @@ export const SEED_PLACES: Place[] = [
     summary: "식당 입구에 한강을 드나들던 옛 황포돛배와 한강을 상징하는 바닥 대리석을 시작으로, 한강을 연상시키는 콘셉트의 각종 실내 디자인들이 독특하게 꾸며져 있다 낮에는 다양한 음료가 제공되고, 밤에는 한강을 배경으로 위스키, 와인, 맥주, 칵테일 등을 음미할 수 있다",
     open_hours: "- 12:00~24:00 - - 점심 준비시간 15:00~17:30 / 저녁 준비시간 19:30~20:00 - - 마지막 주문 23:30 - ※ 22시부터 주류 고객만 이용 가능", phone: "02-334-1919",
     source_modified_at: "20251209155821", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2833276", name: "송이네", category: "babzip",
@@ -667,6 +709,7 @@ export const SEED_PLACES: Place[] = [
     summary: "마포구 망원동에 위치한 송이네는 좁은 공간의 바 테이블과 3인석 하나의 단출한 망원시장 내 떡볶이집이다",
     open_hours: "11:00~20:00", phone: "0507-1424-2876",
     source_modified_at: "20251203162443", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "1932502", name: "외양간", category: "babzip",
@@ -676,6 +719,7 @@ export const SEED_PLACES: Place[] = [
     summary: "외양간은 서울 마포구 성산동에 있는 육우 전문 음식점이다",
     open_hours: "※ 전화문의 요망", phone: "02-334-7942",
     source_modified_at: "20251201164614", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2761653", name: "잠두봉더나인", category: "babzip",
@@ -685,6 +729,7 @@ export const SEED_PLACES: Place[] = [
     summary: "잠두봉더나인은 마포구 양화대교 북단 합정동 망원한강공원에 있는 잠두봉 선착장에 위치한 식당이다",
     open_hours: "12:00~21:30", phone: "0507-1385-8903",
     source_modified_at: "20251126153227", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "250564", name: "산띠", category: "babzip",
@@ -694,6 +739,7 @@ export const SEED_PLACES: Place[] = [
     summary: "홍대에 유일한 정통 네팔, 인도 음식점인 산띠(Shanti)는 산스크리트어로 마음의 평화라는 뜻이다",
     open_hours: "11:30~22:00", phone: "02-6052-3989",
     source_modified_at: "20251117161546", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2789499", name: "베이스캠프", category: "babzip",
@@ -703,6 +749,7 @@ export const SEED_PLACES: Place[] = [
     summary: "베이스캠프 홍대본점은 캠핑 분위기를 느낄 수 있는 고기 전문점이다",
     open_hours: "- 일요일~목요일 11:00~01:00 - - 금요일~토요일 11:00~02:00", phone: "02-323-2360",
     source_modified_at: "20251023143000", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2871262", name: "일등식당", category: "babzip",
@@ -712,6 +759,7 @@ export const SEED_PLACES: Place[] = [
     summary: "마포구청역 5번 출구와 망원역 2번 출구에서 도보로 10분 이내 거리에 있는 우거지 뼈해장국 전문점이다",
     open_hours: "- 평일 09:00~21:00 - - 주말 08:30~21:00", phone: "02-333-0361",
     source_modified_at: "20250924112405", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2875964", name: "빈브라더스 합정", category: "cafe",
@@ -721,6 +769,7 @@ export const SEED_PLACES: Place[] = [
     summary: "빈브라더스는 합정은 2호선, 6호선 합정역 7번 출구 성산중학교 마포새빛문화숲 근처에 있다",
     open_hours: "- 10:00~22:00 - - 마지막 주문 21:30", phone: "0507-1428-2001",
     source_modified_at: "20250919171606", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2848973", name: "피오니", category: "cafe",
@@ -730,6 +779,7 @@ export const SEED_PLACES: Place[] = [
     summary: "피오니는 딸기 생크림 케이크 하면 가장 먼저 생각나는 디저트 카페이다",
     open_hours: "- 12:00~22:00 - - 마지막 주문 21:00", phone: "02-333-5325",
     source_modified_at: "20250918101033", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2845157", name: "파롤앤랑그", category: "cafe",
@@ -739,6 +789,7 @@ export const SEED_PLACES: Place[] = [
     summary: "연남동에 위치한 파롤앤랑그는 직사각형 파이로 유명한 디저트 카페이다",
     open_hours: "13:00~21:00", phone: "02-332-2527",
     source_modified_at: "20250917112810", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2871192", name: "어반플랜트 합정", category: "cafe",
@@ -748,6 +799,7 @@ export const SEED_PLACES: Place[] = [
     summary: "어반플랜트는 바쁜 도심 속에서 만날 수 있는 편안하고 여유로운 공간이다",
     open_hours: "10:00~22:00", phone: "0507-1412-0396",
     source_modified_at: "20250902150420", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2500207", name: "상수동 카페거리", category: "spot",
@@ -757,6 +809,7 @@ export const SEED_PLACES: Place[] = [
     summary: "서울 마포구 상수동 주변에는 한강을 조망할 수 있는 카페들이 군데군데 들어서 있어 한강 카페거리로도 불린다",
     open_hours: "상시 개방", phone: "마포관광정보센터 02-334-7878",
     source_modified_at: "20251231103348", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "127307", name: "망원정 터", category: "spot",
@@ -766,6 +819,7 @@ export const SEED_PLACES: Place[] = [
     summary: "합정동에 자리 잡고있는 정자로서 서울시 기념물로 1989년 10월 복원되어 관리하고 있다",
     open_hours: "상시 개방", phone: "02-3153-8350",
     source_modified_at: "20251223131704", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2500214", name: "로렌스길", category: "spot",
@@ -775,6 +829,7 @@ export const SEED_PLACES: Place[] = [
     summary: "서울시 마포구 상수역 1번 출구로 나와 쭉 내려오면 만날 수 있는 로렌스 길은 한국에서 가장 오래된 시계 회사인 로렌스 뒤쪽으로, 개성 있는 식당과 카페들이 위치한 골목이다",
     open_hours: "※ 점포별 상이", phone: "마포구 문화예술과 02-3153-8353",
     source_modified_at: "20251223093929", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2500201", name: "연남동 공방거리", category: "spot",
@@ -784,6 +839,7 @@ export const SEED_PLACES: Place[] = [
     summary: "연남동 공방거리는 서울 마포구 연남동에 위치한 예술 문화 공간으로, 경의선 숲길공원 연남동 구간 인근에 자연스럽게 형성된 골목문화거리다",
     open_hours: "상시 개방", phone: "마포관광정보센터 02-334-7878",
     source_modified_at: "20251218143620", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2946242", name: "내맘대로폰케이스 홍대점", category: "spot",
@@ -793,6 +849,7 @@ export const SEED_PLACES: Place[] = [
     summary: "내맘대로폰케이스 홍대점은 많은 양의 파츠를 구비하고 있으며 본드의 컬러, 모양 등 선택이 가능하다",
     open_hours: "12:00~21:00", phone: "02-322-6682",
     source_modified_at: "20251218134555", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "126528", name: "절두산 순교성지", category: "spot",
@@ -802,6 +859,7 @@ export const SEED_PLACES: Place[] = [
     summary: "절두산은 원래 누에의 머리와 비슷하다고 하여 잠두봉이라 불렀다고 한다",
     open_hours: "09:30~17:00", phone: "02-3142-4434",
     source_modified_at: "20251127112328", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "127859", name: "난지한강공원", category: "spot",
@@ -811,6 +869,7 @@ export const SEED_PLACES: Place[] = [
     summary: "난지한강공원은 홍제천교에서 난지천교 사이에 위치해 있다",
     open_hours: "상시 개방", phone: "02-3780-0611~3",
     source_modified_at: "20251127111854", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "749280", name: "아현동 전골목", category: "spot",
@@ -820,6 +879,7 @@ export const SEED_PLACES: Place[] = [
     summary: "아현동 전 골목은 시장 역사에 비해 그다지 오래되지는 않았고 현재 문을 열고 있는 5곳 중 1990년대 초반에 문을 연 집이 가장 오래된 집이다",
     open_hours: "점포별 상이", phone: "02-323-2240",
     source_modified_at: "20251126142946", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2757738", name: "한국순대(서초구)", category: "babzip",
@@ -829,6 +889,7 @@ export const SEED_PLACES: Place[] = [
     summary: "서초구 양재동에 위치한 한국순대는 24시간 연중무휴로 운영되는 가게로, 술 마시고 해장국으로 먹거나 술을 안주로 먹거나 하는 순댓국집답게 식당 외관은 포차를 연상시킨다",
     open_hours: "상시 개방", phone: "02-573-3550",
     source_modified_at: "20251126141712", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "134733", name: "카나디안 랍스터", category: "babzip",
@@ -838,6 +899,7 @@ export const SEED_PLACES: Place[] = [
     summary: "카나디안 랍스터는 서울 서초구에 위치한 바닷가재 전문점으로 전문 조리사들이 체계적으로 요리를 해주는 곳이다",
     open_hours: "12:00~21:00 (준비 시간 15:00~17:00 / 마지막 주문 20:00)", phone: "02-585-9624",
     source_modified_at: "20251118134458", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "133785", name: "서석대", category: "babzip",
@@ -847,6 +909,7 @@ export const SEED_PLACES: Place[] = [
     summary: "주변의 아파트 단지와 오피스 빌딩가에 잘 알려진 한우고기 전문 음식점이다",
     open_hours: "11:30~22:00 (평일 준비시간 15:00~17:00)", phone: "02-537-0077",
     source_modified_at: "20251028135858", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2745569", name: "서래본갈비", category: "babzip",
@@ -856,6 +919,7 @@ export const SEED_PLACES: Place[] = [
     summary: "서울 서초구 서래마을 입구에 위치한 서래본갈비는 육회비빔밥과 영양솥밥을 비롯한 다양한 한식 메뉴를 선보인다",
     open_hours: "11:30~22:00", phone: "02-3477-9192",
     source_modified_at: "20251023143000", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2763749", name: "밴건디스테이크하우스", category: "babzip",
@@ -865,6 +929,7 @@ export const SEED_PLACES: Place[] = [
     summary: "서울 서초구 서래마을에 있는 밴건디 스테이크하우스는 유럽풍 고급스러운 분위기가 있는 스테이크 전문 레스토랑이다",
     open_hours: "- 11:30~22:00 - - 준비시간 15:00~17:30 - - 마지막 주문 20:30", phone: "0507-1307-6062",
     source_modified_at: "20250924093958", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2535556", name: "린스시", category: "babzip",
@@ -874,6 +939,7 @@ export const SEED_PLACES: Place[] = [
     summary: "남부터미널역 6번 출구 근처에 위치한 린스시는 37년 경력 조리장의 노하우를 바탕으로 기존의 초밥과 차별화를 두고 부드러운 식감과 감칠맛을 위해 약간 따뜻한 온도의 밥으로 초밥을 만들어 입안에 넣는 순간 부드러운 감칠맛이 일품이다",
     open_hours: "[평일] - - 10:30~21:30 - - 준비시간 14:00~15:40 - - 마지막 주문 20:30 - [일요일] - - 11:00~20:30 - - 마지막 주문 19:30", phone: "02-585-9893",
     source_modified_at: "20250919173616", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2856763", name: "해우담 본점", category: "babzip",
@@ -883,6 +949,7 @@ export const SEED_PLACES: Place[] = [
     summary: "해우담 본점은 지하철 2호선, 신분당선 강남역 5번 출구 부근에 있다",
     open_hours: "- 11:00~22:00 - - 준비시간 14:30~17:00 - - 마지막 주문 13:00, 20:30", phone: "02-522-4211",
     source_modified_at: "20250919155639", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2856747", name: "줄라이", category: "babzip",
@@ -892,6 +959,7 @@ export const SEED_PLACES: Place[] = [
     summary: "줄라이는 지하철 2호선 서초역 5번 출구 부근에 있다",
     open_hours: "- 12:00~22:00 - - 준비시간 15:00~18:00", phone: "02-534-9544",
     source_modified_at: "20250919155208", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2784696", name: "동작구름카페", category: "cafe",
@@ -901,6 +969,7 @@ export const SEED_PLACES: Place[] = [
     summary: "서울 동작대교 중간에 있는 동작구름카페는 한강 교량 전망 쉼터 중 최고의 한강 조망 위치에 있다",
     open_hours: "12:00~21:00", phone: "0507-1312-5573",
     source_modified_at: "20251229164403", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2847224", name: "태양커피", category: "cafe",
@@ -910,6 +979,7 @@ export const SEED_PLACES: Place[] = [
     summary: "태양커피는 7호선 내방역 7번 출구에서 함지박 사거리 방향 300m 인근 주택가에 있다",
     open_hours: "10:00~19:30", phone: "0507-1426-8181",
     source_modified_at: "20250924095059", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2810010", name: "마얘(MAILLET)", category: "cafe",
@@ -919,6 +989,7 @@ export const SEED_PLACES: Place[] = [
     summary: "마얘는 서래마을 골목길에 자리한 정통 프렌치 디저트샵이다",
     open_hours: "11:00~21:30", phone: "02-749-1411",
     source_modified_at: "20250923181229", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2856199", name: "보아즈", category: "cafe",
@@ -928,6 +999,7 @@ export const SEED_PLACES: Place[] = [
     summary: "보아즈는 신분당선 양재시민의숲역 1번 출구 양재시민의숲 공원주차장 맞은편에 있다",
     open_hours: "- 10:00~21:00 - - 마지막 주문 20:00", phone: "0507-1332-8884",
     source_modified_at: "20250919110346", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "1131275", name: "매헌시민의 숲", category: "spot",
@@ -937,6 +1009,7 @@ export const SEED_PLACES: Place[] = [
     summary: "매헌시민의 숲은 우리나라 최초로 숲 개념을 도입한 공원으로 도심에서 보기 힘든 울창한 숲을 이루고 있는 공원이다",
     open_hours: "상시 개방", phone: "02-575-3895",
     source_modified_at: "20251128112825", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "1021339", name: "서래마을", category: "spot",
@@ -946,6 +1019,7 @@ export const SEED_PLACES: Place[] = [
     summary: "‘마을 앞의 개울이 서리서리 굽이쳐 흐른다’는 의미의 서래마을은 프랑스풍의 다양한 레스토랑과 카페, 와인바, 상점들을 만나볼 수 있는 곳이다",
     open_hours: "상시 개방 - ※ 단, 매장 이용 시 매장 별로 상이할 수 있음", phone: "02-120",
     source_modified_at: "20251127134113", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "827642", name: "헌인릉 생태경관보전지역(오리나무림)", category: "spot",
@@ -955,6 +1029,7 @@ export const SEED_PLACES: Place[] = [
     summary: "헌인릉 생태경관보전지역은 대모산의 남사면 하단 산자락 헌인릉 아래쪽으로 17,000여 평의 오리나무가 군락을 이루고 있는 숲이다",
     open_hours: "[2월~5월] 09:00~18:00 (입장마감 17:00) - [6월~8월] 09:00~18:30 (입장마감 17:30) - [9월~10월] 09:00~18:00 (입장마감 17:00) - [11월~1월] 09:00~17:30 (입장마감 16:30)", phone: "헌릉관리소 02-445-0347 - 서울시청 자연생태과 02-2133-2151",
     source_modified_at: "20251120164608", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "584698", name: "스파레이", category: "spot",
@@ -964,6 +1039,7 @@ export const SEED_PLACES: Place[] = [
     summary: "전통 동유럽풍 헝가리식 사우나를 지향하는 스파레이는 고품격의 시설과 다양하고 세련된 서비스로 아름다운 유럽풍의 아르누보 양식의 건축적인 접근과 현대적인 감각이 잘 어우러진 여성전용 사우나이다",
     open_hours: "상시 운영", phone: "02-545-4002",
     source_modified_at: "20251117154601", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2946113", name: "길상도예", category: "spot",
@@ -973,6 +1049,7 @@ export const SEED_PLACES: Place[] = [
     summary: "길상도예공방은 일반인을 대상으로 하는 취미반과 전문가 과정으로 나뉘어있다",
     open_hours: "10:00~22:00", phone: "0507-1415-8203",
     source_modified_at: "20251105091306", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2718257", name: "서울웨이브아트센터", category: "spot",
@@ -982,6 +1059,7 @@ export const SEED_PLACES: Place[] = [
     summary: "서울웨이브아트센터는 서울시 서초구 잠원한강공원에 위치한 아트센터이다",
     open_hours: "매장 별 상이", phone: "02-534-5577",
     source_modified_at: "20251027164341", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2773409", name: "서리풀공원", category: "spot",
@@ -991,6 +1069,7 @@ export const SEED_PLACES: Place[] = [
     summary: "서래마을 주민들이 즐겨 찾는 서리풀공원은 휴식과 건강을 위한 공간이다",
     open_hours: "상시 개방", phone: "서초구청 푸른도시과 02-2155-6882",
     source_modified_at: "20250918132517", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2773271", name: "양재근린공원", category: "spot",
@@ -1000,6 +1079,7 @@ export const SEED_PLACES: Place[] = [
     summary: "양재근린공원은 도심 속의 근린공원으로, 숲 속처럼 느껴지고 잘 가꾸어져 있어 많은 사람이 찾는 공원이다",
     open_hours: "상시 개방", phone: "서초구청 푸른도시과 02-2155-6865",
     source_modified_at: "20250918132027", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2867167", name: "양산국밥", category: "babzip",
@@ -1009,6 +1089,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251105172754", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2860819", name: "샤브막심 송정본점", category: "babzip",
@@ -1018,6 +1099,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251105143502", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2760773", name: "해운대기와집대구탕", category: "babzip",
@@ -1027,6 +1109,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251105113448", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2891789", name: "라꽁띠", category: "babzip",
@@ -1036,6 +1119,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251024151709", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2760771", name: "거대갈비", category: "babzip",
@@ -1045,6 +1129,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20250902114540", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2891868", name: "문토스트", category: "babzip",
@@ -1054,6 +1139,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20250902103855", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2891826", name: "맘보식당", category: "babzip",
@@ -1063,6 +1149,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20250902103123", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2793181", name: "속씨원한대구탕미포본점", category: "babzip",
@@ -1072,6 +1159,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20250902102847", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2891887", name: "프루터리포레스트", category: "cafe",
@@ -1081,6 +1169,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251024152407", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2869896", name: "엣지993", category: "cafe",
@@ -1090,6 +1179,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20250829094605", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2787408", name: "반송187", category: "cafe",
@@ -1099,6 +1189,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20250828101956", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "3443614", name: "원시학", category: "cafe",
@@ -1108,6 +1199,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20250730132740", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "128810", name: "동백공원", category: "spot",
@@ -1117,6 +1209,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251219095747", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2617724", name: "마린시티", category: "spot",
@@ -1126,6 +1219,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251128105741", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2946508", name: "부산 영화의 거리", category: "spot",
@@ -1135,6 +1229,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251105153332", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2456837", name: "부산 영화의 전당", category: "spot",
@@ -1144,6 +1239,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251023173241", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2822343", name: "해운대 그린레일웨이 (미포~송정 구간)", category: "spot",
@@ -1153,6 +1249,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20250814152348", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2875849", name: "대천공원", category: "spot",
@@ -1162,6 +1259,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20250704093231", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2875837", name: "달맞이동산", category: "spot",
@@ -1171,6 +1269,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20250704092614", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "129597", name: "죽도공원", category: "spot",
@@ -1180,6 +1279,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20250520164017", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2798036", name: "숙성도 제주본점", category: "babzip",
@@ -1189,6 +1289,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251117191057", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2860639", name: "송림반점", category: "babzip",
@@ -1198,6 +1299,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251105142816", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2758924", name: "미스칠", category: "babzip",
@@ -1207,6 +1309,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251105111939", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2758900", name: "제주광해 애월점", category: "babzip",
@@ -1216,6 +1319,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251105111534", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2758859", name: "협재해녀의집", category: "babzip",
@@ -1225,6 +1329,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251105110344", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2758855", name: "해녀잠수촌", category: "babzip",
@@ -1234,6 +1339,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251105110052", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2902758", name: "뿌리와열매", category: "babzip",
@@ -1243,6 +1349,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251031103926", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2902737", name: "바움하우스", category: "babzip",
@@ -1252,6 +1359,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251031102014", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2778916", name: "제주살롱", category: "cafe",
@@ -1261,6 +1369,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251117174948", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2755895", name: "아트인명도암", category: "cafe",
@@ -1270,6 +1379,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251104162311", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2903123", name: "올드북촌", category: "cafe",
@@ -1279,6 +1389,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251031155236", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2903088", name: "오스모시스", category: "cafe",
@@ -1288,6 +1399,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251031152214", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "1884521", name: "가새기오름", category: "spot",
@@ -1297,6 +1409,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251230161028", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2791433", name: "고내포구", category: "spot",
@@ -1306,6 +1419,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251230092732", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2723542", name: "한담해변", category: "spot",
@@ -1315,6 +1429,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251224175308", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "126468", name: "방선문", category: "spot",
@@ -1324,6 +1439,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251224130708", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2779457", name: "종달리해변", category: "spot",
@@ -1333,6 +1449,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251224130448", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "1621059", name: "구시물", category: "spot",
@@ -1342,6 +1459,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251224112133", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "128443", name: "교래 삼다수마을", category: "spot",
@@ -1351,6 +1469,7 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251222175834", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
   {
     id: "2606209", name: "화조원", category: "spot",
@@ -1360,5 +1479,6 @@ export const SEED_PLACES: Place[] = [
     summary: "",
     open_hours: "", phone: null,
     source_modified_at: "20251222130009", region_source: "tour", region_note: null,
+    source: 'tour', created_by: null,
   },
 ]

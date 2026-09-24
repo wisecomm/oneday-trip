@@ -565,6 +565,8 @@ async function writeDemo(groupRows, regionRows, places) {
     L.push(
       `    source_modified_at: ${t(p.modified)}, region_source: ${t(p.source)}, region_note: ${t(p.note)},`,
     )
+    // 데모 카탈로그는 전부 TourAPI 에서 온 행이다. 수동 등록 행은 여기 오지 않는다.
+    L.push(`    source: 'tour', created_by: null,`)
     L.push('  },')
   }
   L.push(']')
