@@ -480,27 +480,52 @@ export interface PlanFilter {
 }
 
 /**
- * 지역 이름과 작성자 닉네임을 함께 가져온다.
+ * 지역 이름을 함께 가져온다.
  *
- * 작성자는 `profiles` 가 아니라 `public_profiles` 뷰에서 온다. 본체를 열면
- * `taste_tags` 까지 딸려 나가고, RLS 는 행 단위라 컬럼을 가려 주지 않는다.
- * 운영자 플랜은 `author_user_id` 가 null 이라 이 조인을 타지 않는다.
+ * 작성자 닉네임은 여기서 조인하지 않는다. PostgREST 의 임베드는 외래키를
+ * 근거로 관계를 찾는데, `shared_plans.author_user_id` 는 `auth.users` 를
+ * 가리키고 `public_profiles` 는 뷰라 외래키가 없다. 실제로 임베드를 걸면
+ * PGRST200 ("Could not find a relationship between 'shared_plans' and
+ * 'public_profiles'") 으로 조회 자체가 400 이 된다.
+ *
+ * 닉네임을 얻자고 `shared_plans` 에 `profiles` 로 가는 외래키를 새로 다는
+ * 방법도 있지만, 그러면 프로필이 아직 없는 사용자는 플랜을 올릴 수 없게
+ * 된다. 조회를 한 번 더 하는 편이 싸다 — `attachAuthors` 가 한다.
  */
-const PLAN_SELECT =
-  '*, group:region_groups!inner(name), region:regions(name), author:public_profiles(nickname)'
+const PLAN_SELECT = '*, group:region_groups!inner(name), region:regions(name)'
 
 type PlanRow = Omit<SharedPlan, 'group_name' | 'region_name' | 'author_nickname'> & {
   group?: { name: string } | null
   region?: { name: string } | null
-  author?: { nickname: string } | null
 }
 
 const flattenPlan = (row: PlanRow): SharedPlan => ({
   ...(row as unknown as SharedPlan),
   group_name: row.group?.name ?? '',
   region_name: row.region?.name ?? null,
-  author_nickname: row.author?.nickname ?? null,
+  author_nickname: null,
 })
+
+/**
+ * 작성자 닉네임을 한 번의 추가 조회로 채운다.
+ *
+ * `public_profiles` 는 id·nickname 만 있는 뷰이고, 공개 플랜을 하나 이상
+ * 올린 사용자만 들어 있다. `profiles` 본체를 열지 않으므로 `taste_tags` 는
+ * 어떤 경로로도 새지 않는다. 운영자 플랜은 `author_user_id` 가 null 이라
+ * 조회 대상에서 빠진다.
+ */
+async function attachAuthors(plans: SharedPlan[]): Promise<SharedPlan[]> {
+  const ids = [...new Set(plans.map((p) => p.author_user_id).filter((id): id is string => !!id))]
+  if (ids.length === 0) return plans
+
+  const { data, error } = await sb().from('public_profiles').select('id, nickname').in('id', ids)
+  if (error) throw error
+
+  const byId = new Map((data ?? []).map((r) => [r.id as string, r.nickname as string]))
+  return plans.map((p) =>
+    p.author_user_id ? { ...p, author_nickname: byId.get(p.author_user_id) ?? null } : p,
+  )
+}
 
 /** 데모 모드에는 조인이 없으니 지역·작성자 이름을 직접 찾아 붙인다 */
 function demoPlanNames(p: StoredPlan): SharedPlan {
@@ -592,7 +617,7 @@ export const sharedPlans = {
           ? await query.order('created_at', { ascending: false })
           : await query.order('clone_count', { ascending: false })
       if (error) throw error
-      return ((data ?? []) as unknown as PlanRow[]).map(flattenPlan)
+      return attachAuthors(((data ?? []) as unknown as PlanRow[]).map(flattenPlan))
     }
 
     ensureDemoPlans()
@@ -633,7 +658,8 @@ export const sharedPlans = {
         .order('sort_order')
       if (itemsError) throw itemsError
 
-      return { ...flattenPlan(data as unknown as PlanRow), items: (items ?? []) as SharedPlanItem[] }
+      const [plan] = await attachAuthors([flattenPlan(data as unknown as PlanRow)])
+      return { ...plan, items: (items ?? []) as SharedPlanItem[] }
     }
 
     ensureDemoPlans()
@@ -658,7 +684,7 @@ export const sharedPlans = {
         .eq('author_user_id', userId)
         .order('created_at', { ascending: false })
       if (error) throw error
-      return ((data ?? []) as unknown as PlanRow[]).map(flattenPlan)
+      return attachAuthors(((data ?? []) as unknown as PlanRow[]).map(flattenPlan))
     }
     ensureDemoPlans()
     return readDb()
@@ -705,7 +731,7 @@ export const sharedPlans = {
         .select(PLAN_SELECT)
         .single()
       if (error) throw error
-      const plan = flattenPlan(data as unknown as PlanRow)
+      const [plan] = await attachAuthors([flattenPlan(data as unknown as PlanRow)])
       const { error: itemsError } = await sb().from('shared_plan_items').insert(
         items.map((it) => ({
           plan_id: plan.id,
@@ -772,7 +798,7 @@ export const sharedPlans = {
         .select(PLAN_SELECT)
         .single()
       if (error) throw error
-      const plan = flattenPlan(data as unknown as PlanRow)
+      const [plan] = await attachAuthors([flattenPlan(data as unknown as PlanRow)])
       const { error: itemsError } = await sb().from('shared_plan_items').insert(
         input.items.map((it, i) => ({
           plan_id: plan.id,
