@@ -1,11 +1,17 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { isSupabaseConfigured } from '@/lib/supabase'
 
+/**
+ * 탭이 6개면 375px(iPhone SE) 화면에서 칸당 62.5px 이다. "여행 지도"·"나의 여행"
+ * 같은 네 글자 라벨은 이 폭에서 줄바꿈되거나 잘리므로 전부 두 글자로 줄였다.
+ * 44px 터치 타깃은 6개까지 확보된다 — 문제는 폭이 아니라 글자 수였다.
+ */
 const NAV = [
   { to: '/', label: '홈', icon: 'home' },
-  { to: '/map', label: '여행 지도', icon: 'map' },
-  { to: '/recommend', label: 'AI 추천', icon: 'sparkle' },
-  { to: '/trips', label: '나의 여행', icon: 'route' },
+  { to: '/map', label: '지도', icon: 'map' },
+  { to: '/recommend', label: '추천', icon: 'sparkle' },
+  { to: '/trips', label: '여행', icon: 'route' },
+  { to: '/plans', label: '플랜', icon: 'plan' },
   { to: '/me', label: 'MY', icon: 'user' },
 ] as const
 
@@ -104,6 +110,13 @@ function NavIcon({ name, active }: { name: string; active: boolean }) {
           <circle cx="6" cy="6.5" r="2.5" />
           <circle cx="18" cy="17.5" r="2.5" />
           <path d="M8.5 6.5H14a3.5 3.5 0 0 1 0 7h-4a3.5 3.5 0 0 0 0 7h5.5" />
+        </svg>
+      )
+    case 'plan':
+      return (
+        <svg {...common}>
+          <path d="M4 5.5 9 4l6 2 5-1.5v13L15 19l-6-2-5 1.5v-13Z" />
+          <path d="M9 4v13M15 6v13" />
         </svg>
       )
     default:

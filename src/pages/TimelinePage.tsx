@@ -20,7 +20,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useAuth } from '@/lib/auth'
 import { reservations, tripItems, trips } from '@/lib/db'
 import { routeDistanceKm, routeMinutes } from '@/lib/geo'
-import { CATEGORY_LABEL, type Trip, type TripItem } from '@/lib/types'
+import { CATEGORY_LABEL, MIN_PLAN_PLACES, type Trip, type TripItem } from '@/lib/types'
 import { CategoryDot, PlaceThumb } from '@/components/PlaceCard'
 import { BottomSheet, EmptyState, Loading, PageHeader } from '@/components/ui'
 import { VisitShareSheet } from '@/components/VisitShareSheet'
@@ -259,6 +259,16 @@ export function TimelinePage() {
                 동선 최적화
               </Link>
             </div>
+          </div>
+        )}
+
+        {/* SHARE-06-03 — 잘 짠 하루를 남에게 넘기는 입구.
+            올리기는 스냅샷 복사라 날짜·소감·별점은 넘어가지 않는다 */}
+        {orderedItems.length >= MIN_PLAN_PLACES && (
+          <div className="mt-3">
+            <Link to={`/trips/${tripId}/share`} className="btn-outline w-full">
+              플랜으로 올리기
+            </Link>
           </div>
         )}
 

@@ -1,6 +1,7 @@
 import { isSupabaseConfigured, db as sb } from './supabase'
 import { mutateDb, readDb, uid } from './local-store'
 import { DEMO_REGIONS, DEMO_REGION_GROUPS, SEED_PLACES } from './seed'
+import { DEMO_PLANS } from './demo-plans'
 import type {
   Place,
   PlaceCategory,
@@ -556,6 +557,23 @@ function weekdayAndSeason(tripDate: string): { weekday: number; season: Season }
   return { weekday: d.getDay(), season: SEASON_OF_MONTH[d.getMonth()] }
 }
 
+/**
+ * 데모 저장소가 비어 있으면 예시 플랜을 한 번 심는다.
+ *
+ * 빈 리스트로 시작하면 데모에서 이 기능이 뭘 하는지 볼 수가 없다. 한 번
+ * 심은 뒤에는 사용자가 담고 지운 결과가 그대로 남는다 — 매번 덮어쓰면
+ * 데모에서 올린 플랜이 사라진다.
+ */
+function ensureDemoPlans(): void {
+  if (isSupabaseConfigured) return
+  const d = readDb()
+  if (d.shared_plans.length > 0 || d.shared_plan_items.length > 0) return
+  mutateDb((draft) => {
+    draft.shared_plans.push(...DEMO_PLANS.plans)
+    draft.shared_plan_items.push(...DEMO_PLANS.items)
+  })
+}
+
 export const sharedPlans = {
   async list(filter: PlanFilter = {}): Promise<SharedPlan[]> {
     if (isSupabaseConfigured) {
@@ -573,6 +591,7 @@ export const sharedPlans = {
       return ((data ?? []) as unknown as PlanRow[]).map(flattenPlan)
     }
 
+    ensureDemoPlans()
     return readDb()
       .shared_plans.filter((p) => {
         if (p.is_hidden) return false
@@ -613,6 +632,7 @@ export const sharedPlans = {
       return { ...flattenPlan(data as unknown as PlanRow), items: (items ?? []) as SharedPlanItem[] }
     }
 
+    ensureDemoPlans()
     const p = readDb().shared_plans.find((x) => x.id === id)
     if (!p) return null
     // 카탈로그가 교체되면 예전 place_id 를 가리키는 항목이 남는다. 장소를 찾지
@@ -636,6 +656,7 @@ export const sharedPlans = {
       if (error) throw error
       return ((data ?? []) as unknown as PlanRow[]).map(flattenPlan)
     }
+    ensureDemoPlans()
     return readDb()
       .shared_plans.filter((p) => p.author_user_id === userId)
       .sort((a, b) => b.created_at.localeCompare(a.created_at))

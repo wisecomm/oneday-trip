@@ -17,6 +17,9 @@ import { ExplorePage } from '@/pages/ExplorePage'
 import { RecommendPage } from '@/pages/RecommendPage'
 import { PlaceDetailPage } from '@/pages/PlaceDetailPage'
 import { MyPage } from '@/pages/MyPage'
+import { PlanListPage } from '@/pages/PlanListPage'
+import { PlanDetailPage } from '@/pages/PlanDetailPage'
+import { PlanPublishPage } from '@/pages/PlanPublishPage'
 
 /** 로그인이 필요한 화면 가드 (IA '작업 조건: 필수') */
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -52,6 +55,10 @@ export default function App() {
           {/* 비로그인 열람 가능 (Guest 모드) */}
           <Route path="map" element={<ExplorePage />} />
           <Route path="places/:placeId" element={<PlaceDetailPage />} />
+          {/* 공유 링크를 받은 사람이 로그인 벽을 먼저 만나면 공유가 성립하지 않는다.
+              담기를 누를 때 로그인으로 보낸다 (SHARE-06-01 / 06-02) */}
+          <Route path="plans" element={<PlanListPage />} />
+          <Route path="plans/:planId" element={<PlanDetailPage />} />
 
           <Route
             path="recommend"
@@ -107,6 +114,14 @@ export default function App() {
             element={
               <RequireAuth>
                 <RoutePage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="trips/:tripId/share"
+            element={
+              <RequireAuth>
+                <PlanPublishPage />
               </RequireAuth>
             }
           />
