@@ -3,10 +3,12 @@ dist
 .DS_Store
 *.log
 
-# 환경 변수 — Supabase / 네이버 지도 키가 들어 있으므로 절대 커밋하지 않는다
-.env
-.env.local
-.env.*.local
+# 환경 변수 — Supabase / 네이버 지도 키가 들어 있으므로 절대 커밋하지 않는다.
+# 이름을 하나씩 나열하면 새 변형이 생길 때마다 또 새어 나간다. 실제로
+# .env.bak 이 이 목록에 없어서 실제 키가 커밋된 적이 있다. 전부 막고
+# 값이 비어 있는 예시 파일만 예외로 둔다.
+.env*
+!.env.example
 
 # Supabase CLI 로컬 상태 (링크된 프로젝트 ref, 임시 파일)
 supabase/.temp
