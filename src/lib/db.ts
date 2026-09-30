@@ -1,7 +1,7 @@
 import { isSupabaseConfigured, db as sb } from './supabase'
 import { mutateDb, readDb, uid } from './local-store'
 import { DEMO_REGIONS, DEMO_REGION_GROUPS, SEED_PLACES } from './seed'
-import { DEMO_PLANS } from './demo-plans'
+import { DEMO_AUTHOR_PROFILE, DEMO_PLANS } from './demo-plans'
 import type {
   Place,
   PlaceCategory,
@@ -569,6 +569,10 @@ function ensureDemoPlans(): void {
   const d = readDb()
   if (d.shared_plans.length > 0 || d.shared_plan_items.length > 0) return
   mutateDb((draft) => {
+    // 작성자 프로필이 없으면 카드에 '알 수 없음'이 찍힌다
+    if (!draft.profiles.some((x) => x.id === DEMO_AUTHOR_PROFILE.id)) {
+      draft.profiles.push(DEMO_AUTHOR_PROFILE)
+    }
     draft.shared_plans.push(...DEMO_PLANS.plans)
     draft.shared_plan_items.push(...DEMO_PLANS.items)
   })

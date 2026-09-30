@@ -1,5 +1,5 @@
 import { SEED_PLACES } from './seed'
-import type { SharedPlanItem } from './types'
+import type { PlaceCategory, Profile, SharedPlanItem } from './types'
 import type { StoredSharedPlan } from './local-store'
 
 /**
@@ -15,7 +15,25 @@ import type { StoredSharedPlan } from './local-store'
 
 const DEMO_AUTHOR_ID = 'demo-user'
 
-/** 데모 카탈로그에서 장소가 넉넉한 시군구를 앞에서부터 고른다 */
+/**
+ * 사용자 플랜의 작성자. 이 행이 없으면 닉네임을 찾지 못해 카드에 '알 수 없음'
+ * 이 찍힌다 — 데모에서 사용자 플랜과 운영자 플랜을 구분해 보여 주는 게
+ * 목적인데 그러면 구분이 안 된다.
+ */
+export const DEMO_AUTHOR_PROFILE: Profile = {
+  id: DEMO_AUTHOR_ID,
+  nickname: '하루여행자',
+  taste_tags: [],
+  role: 'user',
+  created_at: new Date(0).toISOString(),
+}
+
+/**
+ * 장소가 넉넉한 시군구를 고르되 **시/도가 겹치지 않게** 먼저 채운다.
+ *
+ * 그냥 앞에서부터 집으면 데모 카탈로그가 서울에 몰려 있어 셋 다 서울이 된다.
+ * 지역 필터가 무슨 일을 하는지 데모에서 보이지 않는다.
+ */
 function pickLeaves(count: number, perPlan: number) {
   const byLeaf = new Map<string, typeof SEED_PLACES>()
   for (const p of SEED_PLACES) {
@@ -25,7 +43,23 @@ function pickLeaves(count: number, perPlan: number) {
     if (bucket) bucket.push(p)
     else byLeaf.set(key, [p])
   }
-  return [...byLeaf.values()].filter((v) => v.length >= perPlan).slice(0, count)
+  const usable = [...byLeaf.values()].filter((v) => v.length >= perPlan)
+
+  const picked: typeof usable = []
+  const usedAreas = new Set<number>()
+  for (const bucket of usable) {
+    if (picked.length >= count) break
+    const area = bucket[0].tour_area_code
+    if (usedAreas.has(area)) continue
+    usedAreas.add(area)
+    picked.push(bucket)
+  }
+  // 시/도 수가 모자라면 남은 것으로 채운다
+  for (const bucket of usable) {
+    if (picked.length >= count) break
+    if (!picked.includes(bucket)) picked.push(bucket)
+  }
+  return picked
 }
 
 const TEMPLATES = [
@@ -60,6 +94,38 @@ const TEMPLATES = [
 
 const PLACES_PER_PLAN = 3
 
+/**
+ * 하루 코스로 그럴듯한 순서. 앞에서부터 그냥 3곳을 집으면 데모 카탈로그가
+ * 카테고리별로 뭉쳐 있어 밥집만 셋이 나온다 — 코스가 아니라 목록이 된다.
+ */
+const COURSE_SHAPE: PlaceCategory[] = ['babzip', 'cafe', 'spot']
+
+/**
+ * 'HH:MM' 에 시간을 더한다.
+ *
+ * 시(hh)만 더하면 11:30 시작인 플랜의 첫 항목이 11:00 이 되어 플랜 시작보다
+ * 앞선다 — 분을 버리기 때문이다.
+ */
+function addHours(time: string, hours: number): string {
+  const [h, m] = time.split(':').map(Number)
+  const total = (h + hours) % 24
+  return `${String(total).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
+/** 원하는 카테고리 순서대로 한 곳씩 뽑고, 모자라면 남은 것으로 채운다 */
+function pickCourse(bucket: typeof SEED_PLACES): typeof SEED_PLACES {
+  const picked: typeof SEED_PLACES = []
+  for (const category of COURSE_SHAPE) {
+    const next = bucket.find((p) => p.category === category && !picked.includes(p))
+    if (next) picked.push(next)
+  }
+  for (const p of bucket) {
+    if (picked.length >= PLACES_PER_PLAN) break
+    if (!picked.includes(p)) picked.push(p)
+  }
+  return picked.slice(0, PLACES_PER_PLAN)
+}
+
 function build(): { plans: StoredSharedPlan[]; items: SharedPlanItem[] } {
   const leaves = pickLeaves(TEMPLATES.length, PLACES_PER_PLAN)
   const plans: StoredSharedPlan[] = []
@@ -68,7 +134,7 @@ function build(): { plans: StoredSharedPlan[]; items: SharedPlanItem[] } {
   leaves.forEach((bucket, i) => {
     const t = TEMPLATES[i]
     const id = `demo-plan-${i + 1}`
-    const picked = bucket.slice(0, PLACES_PER_PLAN)
+    const picked = pickCourse(bucket)
     const head = picked[0]
 
     plans.push({
@@ -105,7 +171,7 @@ function build(): { plans: StoredSharedPlan[]; items: SharedPlanItem[] } {
         plan_id: id,
         place_id: p.id,
         sort_order: j,
-        planned_time: `${String(Number(t.start.slice(0, 2)) + j * 2).padStart(2, '0')}:00`,
+        planned_time: addHours(t.start, j * 2),
         tip: j === 0 ? '문 여는 시간에 맞춰 가면 덜 기다립니다.' : null,
       })
     })
