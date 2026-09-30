@@ -675,6 +675,29 @@ export const sharedPlans = {
     return { ...demoPlanNames(p), items }
   },
 
+  /**
+   * 관리자용 전체 목록. 내려간 플랜도 포함한다.
+   *
+   * RLS 가 `is_hidden = false or 작성자 or is_admin()` 이므로, 관리자가
+   * 아닌 계정이 이걸 불러도 공개된 플랜만 돌아온다 — 화면 가드가 뚫려도
+   * 데이터가 새지 않는다.
+   */
+  async listAll(): Promise<SharedPlan[]> {
+    if (isSupabaseConfigured) {
+      const { data, error } = await sb()
+        .from('shared_plans')
+        .select(PLAN_SELECT)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return attachAuthors(((data ?? []) as unknown as PlanRow[]).map(flattenPlan))
+    }
+    ensureDemoPlans()
+    return readDb()
+      .shared_plans.slice()
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+      .map(demoPlanNames)
+  },
+
   /** 내가 올린 플랜 (내려간 것도 보인다 — 왜 내려갔는지 알아야 하므로) */
   async listMine(userId: string): Promise<SharedPlan[]> {
     if (isSupabaseConfigured) {

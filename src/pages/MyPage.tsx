@@ -92,6 +92,37 @@ export function MyPage() {
           )}
         </section>
 
+        {/* SHARE-06-04 · 관리자면 PLACE-07-01 까지 (7-D6 의 role 로 판정) */}
+        <section className="mb-6">
+          <h2 className="section-title mb-3">공유</h2>
+          <ul className="card divide-y divide-ink-100">
+            <li>
+              <Link
+                to="/me/plans"
+                className="flex items-center justify-between px-4 py-3.5 text-[14px] font-semibold text-ink-700"
+              >
+                내가 올린 플랜
+                <span aria-hidden className="text-ink-300">
+                  ›
+                </span>
+              </Link>
+            </li>
+            {profile?.role === 'admin' && (
+              <li>
+                <Link
+                  to="/admin/plans"
+                  className="flex items-center justify-between px-4 py-3.5 text-[14px] font-semibold text-ink-700"
+                >
+                  운영자 플랜 관리
+                  <span aria-hidden className="text-ink-300">
+                    ›
+                  </span>
+                </Link>
+              </li>
+            )}
+          </ul>
+        </section>
+
         <section className="mb-6">
           <h2 className="section-title mb-3">예약 내역</h2>
           {list.length === 0 ? (

@@ -20,6 +20,25 @@ import { MyPage } from '@/pages/MyPage'
 import { PlanListPage } from '@/pages/PlanListPage'
 import { PlanDetailPage } from '@/pages/PlanDetailPage'
 import { PlanPublishPage } from '@/pages/PlanPublishPage'
+import { MyPlansPage } from '@/pages/MyPlansPage'
+import { AdminPlansPage } from '@/pages/AdminPlansPage'
+import { AdminPlanEditPage } from '@/pages/AdminPlanEditPage'
+
+/**
+ * 관리자 화면 가드.
+ *
+ * 화면을 가리는 것뿐이고 실제 방어선은 RLS 다 — 이 가드가 뚫려도 서버가
+ * 거부한다. 판정은 profiles.role 이고, 임명은 화면이 아니라 SQL 로만 한다
+ * (intent 7-D6).
+ */
+function RequireAdmin({ children }: { children: React.ReactNode }) {
+  const { user, profile, loading } = useAuth()
+  const location = useLocation()
+  if (loading) return <Loading />
+  if (!user) return <Navigate to="/login" state={{ from: location.pathname }} replace />
+  if (profile?.role !== 'admin') return <Navigate to="/me" replace />
+  return <>{children}</>
+}
 
 /** 로그인이 필요한 화면 가드 (IA '작업 조건: 필수') */
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -127,6 +146,30 @@ export default function App() {
           />
           {/* MY 는 비로그인 상태에서 로그인 유도 화면을 직접 노출하므로 가드하지 않는다 */}
           <Route path="me" element={<MyPage />} />
+          <Route
+            path="me/plans"
+            element={
+              <RequireAuth>
+                <MyPlansPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="admin/plans"
+            element={
+              <RequireAdmin>
+                <AdminPlansPage />
+              </RequireAdmin>
+            }
+          />
+          <Route
+            path="admin/plans/new"
+            element={
+              <RequireAdmin>
+                <AdminPlanEditPage />
+              </RequireAdmin>
+            }
+          />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
