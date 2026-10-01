@@ -35,6 +35,27 @@ export function AdminPlansPage() {
     void load()
   }, [load])
 
+  /**
+   * 내려간 플랜만 지울 수 있게 한다. 공개 중인 플랜에 삭제 버튼을 바로 두면
+   * '내리기' 옆에서 한 번의 실수로 되돌릴 수 없는 일이 된다. 내린 뒤 다시 보고
+   * 지우는 두 단계가 맞다.
+   */
+  async function remove(id: string) {
+    if (
+      !window.confirm(
+        '이 플랜을 지웁니다. 되돌릴 수 없습니다. 이미 담아 간 사람의 여행은 복사본이라 그대로 남습니다.',
+      )
+    )
+      return
+    setBusy(id)
+    try {
+      await sharedPlans.remove(id)
+      await load()
+    } finally {
+      setBusy(null)
+    }
+  }
+
   async function setHidden(id: string, hidden: boolean) {
     setBusy(id)
     try {
@@ -56,7 +77,7 @@ export function AdminPlansPage() {
         title="운영자 플랜 관리"
         back
         right={
-          <Link to="/admin/plans/new" className="btn-primary !px-3 !py-1.5 text-[13px]">
+          <Link to="/trips" className="btn-primary !px-3 !py-1.5 text-[13px]">
             + 새 플랜
           </Link>
         }
@@ -67,10 +88,10 @@ export function AdminPlansPage() {
           <EmptyState
             icon="🧭"
             title="아직 플랜이 없습니다"
-            description="운영자가 먼저 완성된 하루를 올려 두어야 사용자가 담아 갈 것이 생깁니다."
+            description="운영자도 사용자와 같은 길로 만듭니다 — 여행을 하나 짜고 '플랜으로 올리기' 를 누르면 운영자 플랜이 됩니다."
             action={
-              <Link to="/admin/plans/new" className="btn-primary">
-                첫 플랜 만들기
+              <Link to="/trips" className="btn-primary">
+                내 여행에서 만들기
               </Link>
             }
           />
@@ -90,14 +111,24 @@ export function AdminPlansPage() {
                         {p.hidden_reason === 'place_removed' &&
                           ' — 담긴 장소가 재수집으로 사라졌습니다. 장소를 갈아 끼우거나 플랜을 지워 주세요.'}
                       </p>
-                      <button
-                        type="button"
-                        onClick={() => setHidden(p.id, false)}
-                        disabled={busy === p.id}
-                        className="btn-outline mt-2 w-full !py-2 text-[13px]"
-                      >
-                        다시 공개
-                      </button>
+                      <div className="mt-2 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setHidden(p.id, false)}
+                          disabled={busy === p.id}
+                          className="btn-outline flex-1 !py-2 text-[13px]"
+                        >
+                          다시 공개
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => remove(p.id)}
+                          disabled={busy === p.id}
+                          className="btn-ghost !px-3 !py-2 text-[13px] text-ink-500"
+                        >
+                          삭제
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>

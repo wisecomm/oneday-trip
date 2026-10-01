@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { sharedPlans, tripItems, trips } from '@/lib/db'
@@ -21,6 +21,11 @@ import { EmptyState, Loading, PageHeader } from '@/components/ui'
  * visited 로 바뀌므로, 모든 항목이 visited 인지로 판정한다. 가 보지도 않은
  * 동선이 남에게 "가 볼 만한 하루"로 건네지는 걸 막는 장치다. 관리자는 예외다 —
  * 큐레이션 플랜은 원래 아무도 안 다녀온 동선이고, 그 판단에 책임지는 자리다.
+ *
+ * **관리자가 올리면 운영자 플랜이 된다 (Q20).** 관리자 전용 작성 화면을 따로
+ * 두지 않는다 — 여행 만들기에 이미 있는 지역·시간·동행·장소 검색·순서 조정·동선
+ * 최적화를 두 벌로 유지할 이유가 없었다. 관리자도 여행을 하나 짜고 여기서
+ * 올린다. 작성자는 비워지고 origin 이 'admin' 이 된다.
  */
 export function PlanPublishPage() {
   const { tripId } = useParams()
@@ -34,6 +39,8 @@ export function PlanPublishPage() {
   const [error, setError] = useState<string | null>(null)
   const { profile } = useAuth()
   const isAdmin = profile?.role === 'admin'
+  /** trip_item.id → 한 줄 팁. 관리자 전용 작성 화면을 없애면서 이리로 옮겼다 (Q20) */
+  const [tips, setTips] = useState<Record<string, string>>({})
 
   const load = useCallback(async () => {
     if (!tripId) return
@@ -67,7 +74,12 @@ export function PlanPublishPage() {
     setBusy(true)
     setError(null)
     try {
-      const plan = await sharedPlans.publishFromTrip(trip.id, { title: t, description: d })
+      const plan = await sharedPlans.publishFromTrip(trip.id, {
+        title: t,
+        description: d,
+        asAdmin: isAdmin,
+        tips,
+      })
       navigate(`/plans/${plan.id}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : '올리기에 실패했습니다.')
@@ -89,10 +101,10 @@ export function PlanPublishPage() {
   // 한 곳짜리는 플랜이 아니라 즐겨찾기다
   const tooFew = items.length < MIN_PLAN_PLACES
 
-  const unreviewed = useMemo(
-    () => items.filter((it) => it.status !== 'visited').length,
-    [items],
-  )
+  // useMemo 를 쓰지 않는다. 이 줄은 early return 아래에 있어서 훅을 두면
+  // 렌더마다 훅 개수가 달라져 "Rendered more hooks than during the previous
+  // render" 로 화면이 통째로 죽는다. 항목 몇 개를 세는 일이라 메모할 값도 없다.
+  const unreviewed = items.filter((it) => it.status !== 'visited').length
   const needsReview = !isAdmin && unreviewed > 0
   // 제목·설명 검사를 누른 뒤가 아니라 버튼 상태로 보여 준다. 눌러 봐야 아는
   // 버튼은 무엇을 더 해야 하는지를 숨긴다.
@@ -110,7 +122,11 @@ export function PlanPublishPage() {
 
   return (
     <>
-      <PageHeader title="플랜으로 올리기" subtitle={trip.title} back />
+      <PageHeader
+        title={isAdmin ? '운영자 플랜으로 올리기' : '플랜으로 올리기'}
+        subtitle={trip.title}
+        back
+      />
 
       <div className="px-5 py-5">
         {tooFew ? (
@@ -121,6 +137,13 @@ export function PlanPublishPage() {
           />
         ) : (
           <>
+            {isAdmin && (
+              <p className="mb-5 rounded-xl bg-brand-50 px-4 py-3 text-[13px] font-semibold text-brand-700">
+                관리자 계정이라 <b>운영자 플랜</b>으로 올라갑니다. 작성자는 표시되지
+                않고 목록에 "운영자" 배지가 붙습니다.
+              </p>
+            )}
+
             <section className="mb-6">
               <label className="label" htmlFor="plan-title">
                 공개용 제목
@@ -155,12 +178,47 @@ export function PlanPublishPage() {
               </p>
             </section>
 
+            <section className="mb-6">
+              <p className="label">장소별 한 줄 팁 (선택)</p>
+              <p className="hint mb-2">
+                "문 여는 시간에 맞춰 가면 덜 기다립니다" 같은 것. 플랜 상세에서 그 장소
+                아래에 붙습니다. 비워 두면 표시되지 않습니다.
+              </p>
+              <ol className="flex flex-col gap-2">
+                {items
+                  .slice()
+                  .sort((a, b) => a.sort_order - b.sort_order)
+                  .map((it, i) => (
+                    <li key={it.id} className="card p-3">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-50 text-[12px] font-bold text-brand-700">
+                          {i + 1}
+                        </span>
+                        <p className="min-w-0 flex-1 truncate text-[14px] font-bold text-ink-800">
+                          {it.place?.name ?? '이름 없는 장소'}
+                        </p>
+                      </div>
+                      <input
+                        value={tips[it.id] ?? ''}
+                        onChange={(e) =>
+                          setTips((prev) => ({ ...prev, [it.id]: e.target.value }))
+                        }
+                        maxLength={120}
+                        placeholder="한 줄 팁 (선택)"
+                        aria-label={`${it.place?.name ?? '장소'} 팁`}
+                        className="field !py-2 mt-2 text-[13px]"
+                      />
+                    </li>
+                  ))}
+              </ol>
+            </section>
+
             <section className="card mb-6 p-4">
               <h2 className="section-title mb-2">공개되는 내용</h2>
               <ul className="flex flex-col gap-1 text-[13px] text-ink-600">
                 <li>· 목적지 {regionLabel(trip.group_name, trip.region_name)}</li>
                 <li>
-                  · 장소 {items.length}곳과 순서, 시각
+                  · 장소 {items.length}곳과 순서, 시각, 한 줄 팁
                 </li>
                 <li>
                   · 이동수단 · 동행인 · 시작/종료 시각
@@ -178,6 +236,14 @@ export function PlanPublishPage() {
               </p>
             </section>
 
+            {error && (
+              <p
+                ref={(el) => el?.scrollIntoView({ block: 'center', behavior: 'smooth' })}
+                className="mb-2 rounded-xl bg-red-50 px-4 py-3 text-[13px] font-semibold text-red-700"
+              >
+                {error}
+              </p>
+            )}
             <button
               type="button"
               onClick={publish}
@@ -187,7 +253,6 @@ export function PlanPublishPage() {
               {busy ? '올리는 중…' : '공개하기'}
             </button>
             {blockReason && <p className="hint mt-2">{blockReason}</p>}
-            {error && <p className="mt-2 text-[13px] text-red-600">{error}</p>}
           </>
         )}
       </div>

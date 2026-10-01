@@ -22,7 +22,6 @@ import { PlanDetailPage } from '@/pages/PlanDetailPage'
 import { PlanPublishPage } from '@/pages/PlanPublishPage'
 import { MyPlansPage } from '@/pages/MyPlansPage'
 import { AdminPlansPage } from '@/pages/AdminPlansPage'
-import { AdminPlanEditPage } from '@/pages/AdminPlanEditPage'
 import { AdminPlacesPage } from '@/pages/AdminPlacesPage'
 
 /**
@@ -160,14 +159,6 @@ export default function App() {
             element={
               <RequireAdmin>
                 <AdminPlansPage />
-              </RequireAdmin>
-            }
-          />
-          <Route
-            path="admin/plans/new"
-            element={
-              <RequireAdmin>
-                <AdminPlanEditPage />
               </RequireAdmin>
             }
           />

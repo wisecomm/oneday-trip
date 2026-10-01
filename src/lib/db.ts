@@ -534,20 +534,14 @@ type StoredPlan = Omit<SharedPlan, 'group_name' | 'region_name' | 'items'>
 export interface PublishInput {
   title: string
   description: string
-}
-
-/** 운영자가 원본 없이 만들 때 넘기는 값 */
-export interface AdminPlanInput {
-  title: string
-  description: string
-  tour_area_code: number
-  tour_sigungu_code: number | null
-  transport: Trip['transport']
-  companions: Trip['companions']
-  start_time: string
-  end_time: string
-  season?: Season | null
-  items: Array<{ place_id: string; planned_time?: string | null; tip?: string | null }>
+  /**
+   * 올리는 사람이 관리자면 운영자 플랜이 된다 — 작성자를 비우고 origin 을
+   * 'admin' 으로 적는다. 관리자 전용 작성 화면을 따로 두지 않기로 하면서
+   * (Q20) 이 플래그가 두 종류를 가르는 유일한 자리가 됐다.
+   */
+  asAdmin?: boolean
+  /** 장소별 한 줄 팁. trip_item.id → 팁. 비어 있으면 넣지 않는다 */
+  tips?: Record<string, string>
 }
 
 const SEASON_OF_MONTH: Season[] = [
@@ -702,9 +696,10 @@ export const sharedPlans = {
     if (!trip) throw new Error('여행을 찾을 수 없습니다')
     const items = await tripItems.listByTrip(tripId)
     const { weekday, season } = weekdayAndSeason(trip.trip_date)
+    // 운영자 플랜은 작성자가 없어야 한다 (DB 의 shared_plans_author_matches_origin)
     const row = {
-      origin: 'user' as const,
-      author_user_id: trip.user_id,
+      origin: input.asAdmin ? ('admin' as const) : ('user' as const),
+      author_user_id: input.asAdmin ? null : trip.user_id,
       title: input.title,
       description: input.description,
       tour_area_code: trip.tour_area_code,
@@ -734,6 +729,7 @@ export const sharedPlans = {
           place_id: it.place_id,
           sort_order: it.sort_order,
           planned_time: it.planned_time,
+          tip: input.tips?.[it.id]?.trim() || null,
         })),
       )
       if (itemsError) throw itemsError
@@ -761,7 +757,7 @@ export const sharedPlans = {
           place_id: it.place_id,
           sort_order: it.sort_order,
           planned_time: it.planned_time,
-          tip: null,
+          tip: input.tips?.[it.id]?.trim() || null,
         })
       }
     })
@@ -769,72 +765,6 @@ export const sharedPlans = {
   },
 
   /** 운영자가 원본 여행 없이 만든다 — 담긴 장소를 직접 엮는다 */
-  async createByAdmin(input: AdminPlanInput): Promise<SharedPlan> {
-    const row = {
-      origin: 'admin' as const,
-      author_user_id: null,
-      title: input.title,
-      description: input.description,
-      tour_area_code: input.tour_area_code,
-      tour_sigungu_code: input.tour_sigungu_code,
-      transport: input.transport,
-      companions: input.companions,
-      start_time: input.start_time,
-      end_time: input.end_time,
-      weekday: null,
-      season: input.season ?? null,
-      place_count: input.items.length,
-      was_visited: false,
-    }
-
-    if (isSupabaseConfigured) {
-      const { data, error } = await sb()
-        .from('shared_plans')
-        .insert(row)
-        .select(PLAN_SELECT)
-        .single()
-      if (error) throw error
-      const plan = flattenPlan(data as unknown as PlanRow)
-      const { error: itemsError } = await sb().from('shared_plan_items').insert(
-        input.items.map((it, i) => ({
-          plan_id: plan.id,
-          place_id: it.place_id,
-          sort_order: i,
-          planned_time: it.planned_time ?? null,
-          tip: it.tip ?? null,
-        })),
-      )
-      if (itemsError) throw itemsError
-      return plan
-    }
-
-    const stored: StoredPlan = {
-      ...row,
-      id: uid('plan'),
-      duration_minutes: null,
-      clone_count: 0,
-      rating_avg: null,
-      rating_count: 0,
-      is_hidden: false,
-      hidden_reason: null,
-      created_at: nowIso(),
-      updated_at: nowIso(),
-    }
-    mutateDb((d) => {
-      d.shared_plans.push(stored)
-      input.items.forEach((it, i) => {
-        d.shared_plan_items.push({
-          id: uid('planitem'),
-          plan_id: stored.id,
-          place_id: it.place_id,
-          sort_order: i,
-          planned_time: it.planned_time ?? null,
-          tip: it.tip ?? null,
-        })
-      })
-    })
-    return demoPlanNames(stored)
-  },
 
   /**
    * 담기 — 복제이지 참조가 아니다. 원본 플랜이 내려가도 내 여행은 그대로다.
