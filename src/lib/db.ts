@@ -1,7 +1,6 @@
 import { isSupabaseConfigured, db as sb } from './supabase'
 import { mutateDb, readDb, uid } from './local-store'
-import { DEMO_REGIONS, DEMO_REGION_GROUPS, SEED_PLACES } from './seed'
-import { DEMO_PLANS } from './demo-plans'
+import { demo } from './demo-data'
 import type {
   Place,
   PlaceCategory,
@@ -51,7 +50,7 @@ export const regionGroups = {
       if (error) throw error
       return (data ?? []) as RegionGroup[]
     }
-    return DEMO_REGION_GROUPS.filter((g) => g.tour_area_code >= 0)
+    return demo.groups.filter((g) => g.tour_area_code >= 0)
   },
 }
 
@@ -67,7 +66,7 @@ export const regions = {
       if (error) throw error
       return (data ?? []) as Region[]
     }
-    return DEMO_REGIONS.filter(visibleRegion)
+    return demo.regions.filter(visibleRegion)
   },
 }
 
@@ -122,7 +121,7 @@ export const places = {
       return ((data ?? []) as unknown as PlaceRow[]).map(flattenPlace)
     }
 
-    return SEED_PLACES.filter((p) => {
+    return demo.places.filter((p) => {
       if (p.tour_sigungu_code < 0) return false
       if (filter.areaCode !== undefined && p.tour_area_code !== filter.areaCode) return false
       if (filter.sigunguCode !== undefined && p.tour_sigungu_code !== filter.sigunguCode)
@@ -143,7 +142,7 @@ export const places = {
       if (error) throw error
       return data ? flattenPlace(data as unknown as PlaceRow) : null
     }
-    return SEED_PLACES.find((p) => p.id === id) ?? null
+    return demo.places.find((p) => p.id === id) ?? null
   },
 }
 
@@ -220,11 +219,11 @@ const flattenTrip = (row: TripRow): Trip => ({
 
 /** 데모 모드에서는 조인이 없으니 지역 배열에서 이름을 찾아 붙인다 */
 function demoTripNames(t: Omit<Trip, 'group_name' | 'region_name'>): Trip {
-  const g = DEMO_REGION_GROUPS.find((x) => x.tour_area_code === t.tour_area_code)
+  const g = demo.groups.find((x) => x.tour_area_code === t.tour_area_code)
   const r =
     t.tour_sigungu_code === null
       ? null
-      : DEMO_REGIONS.find(
+      : demo.regions.find(
           (x) =>
             x.tour_area_code === t.tour_area_code &&
             x.tour_sigungu_code === t.tour_sigungu_code,
@@ -322,7 +321,7 @@ export const tripItems = {
     // 찾지 못한 것은 조용히 걸러낸다.
     return readDb()
       .trip_items.filter((it) => it.trip_id === tripId)
-      .map((it) => ({ ...it, place: SEED_PLACES.find((p) => p.id === it.place_id) }))
+      .map((it) => ({ ...it, place: demo.places.find((p) => p.id === it.place_id) }))
       .filter((it) => it.place !== undefined)
       .sort((a, b) => a.sort_order - b.sort_order)
   },
@@ -361,7 +360,7 @@ export const tripItems = {
       rating: null,
     }
     mutateDb((d) => void d.trip_items.push(row))
-    return { ...row, place: SEED_PLACES.find((p) => p.id === row.place_id) }
+    return { ...row, place: demo.places.find((p) => p.id === row.place_id) }
   },
 
   /** 드래그 앤 드롭 정렬 결과를 일괄 반영 */
@@ -436,7 +435,7 @@ export const reservations = {
     }
     return readDb()
       .reservations.filter((r) => r.user_id === userId)
-      .map((r) => ({ ...r, place: SEED_PLACES.find((p) => p.id === r.place_id) }))
+      .map((r) => ({ ...r, place: demo.places.find((p) => p.id === r.place_id) }))
       .filter((r) => r.place !== undefined)
       .sort((a, b) => a.reserved_at.localeCompare(b.reserved_at))
   },
@@ -465,7 +464,7 @@ export const reservations = {
       ...input,
     }
     mutateDb((d) => void d.reservations.push(row))
-    return { ...row, place: SEED_PLACES.find((p) => p.id === row.place_id) }
+    return { ...row, place: demo.places.find((p) => p.id === row.place_id) }
   },
 
   async cancel(id: string): Promise<void> {
@@ -513,11 +512,11 @@ const flattenPlan = (row: PlanRow): SharedPlan => ({
 
 /** 데모 모드에는 조인이 없으니 지역 이름을 직접 찾아 붙인다 */
 function demoPlanNames(p: StoredPlan): SharedPlan {
-  const g = DEMO_REGION_GROUPS.find((x) => x.tour_area_code === p.tour_area_code)
+  const g = demo.groups.find((x) => x.tour_area_code === p.tour_area_code)
   const r =
     p.tour_sigungu_code === null
       ? null
-      : DEMO_REGIONS.find(
+      : demo.regions.find(
           (x) =>
             x.tour_area_code === p.tour_area_code && x.tour_sigungu_code === p.tour_sigungu_code,
         )
@@ -567,8 +566,8 @@ function ensureDemoPlans(): void {
   const d = readDb()
   if (d.shared_plans.length > 0 || d.shared_plan_items.length > 0) return
   mutateDb((draft) => {
-    draft.shared_plans.push(...DEMO_PLANS.plans)
-    draft.shared_plan_items.push(...DEMO_PLANS.items)
+    draft.shared_plans.push(...demo.plans)
+    draft.shared_plan_items.push(...demo.planItems)
   })
 }
 
@@ -638,7 +637,7 @@ export const sharedPlans = {
     // 못한 항목은 조용히 걸러 낸다 — 화면에 빈 카드가 흘러가지 않게.
     const items = readDb()
       .shared_plan_items.filter((it) => it.plan_id === id)
-      .map((it) => ({ ...it, place: SEED_PLACES.find((pl) => pl.id === it.place_id) }))
+      .map((it) => ({ ...it, place: demo.places.find((pl) => pl.id === it.place_id) }))
       .filter((it) => it.place !== undefined)
       .sort((a, b) => a.sort_order - b.sort_order)
     return { ...demoPlanNames(p), items }

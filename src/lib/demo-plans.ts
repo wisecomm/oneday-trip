@@ -1,5 +1,4 @@
-import { SEED_PLACES } from './seed'
-import type { PlaceCategory, SharedPlanItem } from './types'
+import type { Place, PlaceCategory, SharedPlanItem } from './types'
 import type { StoredSharedPlan } from './local-store'
 
 /**
@@ -21,9 +20,9 @@ const DEMO_AUTHOR_ID = 'demo-user'
  * 그냥 앞에서부터 집으면 데모 카탈로그가 서울에 몰려 있어 셋 다 서울이 된다.
  * 지역 필터가 무슨 일을 하는지 데모에서 보이지 않는다.
  */
-function pickLeaves(count: number, perPlan: number) {
-  const byLeaf = new Map<string, typeof SEED_PLACES>()
-  for (const p of SEED_PLACES) {
+function pickLeaves(places: Place[], count: number, perPlan: number) {
+  const byLeaf = new Map<string, Place[]>()
+  for (const p of places) {
     if (p.tour_sigungu_code < 0) continue
     const key = `${p.tour_area_code}-${p.tour_sigungu_code}`
     const bucket = byLeaf.get(key)
@@ -100,8 +99,8 @@ function addHours(time: string, hours: number): string {
 }
 
 /** 원하는 카테고리 순서대로 한 곳씩 뽑고, 모자라면 남은 것으로 채운다 */
-function pickCourse(bucket: typeof SEED_PLACES): typeof SEED_PLACES {
-  const picked: typeof SEED_PLACES = []
+function pickCourse(bucket: Place[]): Place[] {
+  const picked: Place[] = []
   for (const category of COURSE_SHAPE) {
     const next = bucket.find((p) => p.category === category && !picked.includes(p))
     if (next) picked.push(next)
@@ -113,8 +112,16 @@ function pickCourse(bucket: typeof SEED_PLACES): typeof SEED_PLACES {
   return picked.slice(0, PLACES_PER_PLAN)
 }
 
-function build(): { plans: StoredSharedPlan[]; items: SharedPlanItem[] } {
-  const leaves = pickLeaves(TEMPLATES.length, PLACES_PER_PLAN)
+/**
+ * 데모 플랜을 계산해 만든다. 장소 목록을 인자로 받는 이유는 `seed.ts` 를 동적
+ * import 로 바꿨기 때문이다 — 이 모듈이 그걸 정적으로 들고 있으면 운영 번들에
+ * 다시 끌려 들어온다 (demo-data.ts 참조).
+ */
+export function buildDemoPlans(places: Place[]): {
+  plans: StoredSharedPlan[]
+  items: SharedPlanItem[]
+} {
+  const leaves = pickLeaves(places, TEMPLATES.length, PLACES_PER_PLAN)
   const plans: StoredSharedPlan[] = []
   const items: SharedPlanItem[] = []
 
@@ -168,4 +175,3 @@ function build(): { plans: StoredSharedPlan[]; items: SharedPlanItem[] } {
   return { plans, items }
 }
 
-export const DEMO_PLANS = build()
