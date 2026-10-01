@@ -41,6 +41,21 @@ export interface LocalDb {
 
 const KEY = 'oneday-trip:db'
 
+/**
+ * 저장본 형식 번호.
+ *
+ * 데모 데이터는 한 번 심으면 localStorage 에 남고, 씨앗을 고쳐도 이미 심긴
+ * 브라우저에는 옛 모양이 그대로 있다. 2026-10-01 에 이것 때문에 플랜 목록이
+ * 통째로 하얗게 떴다 — 옛 행에 rating_avg 가 아예 없어 undefined.toFixed()
+ * 에서 터졌다. 화면 쪽 방어도 함께 넣었지만, 근본은 낡은 저장본이다.
+ *
+ * 저장되는 행의 모양이 바뀌면 이 번호를 올린다. 번호가 다르면 저장본을
+ * 버리고 다시 심는다. 데모 데이터는 언제든 다시 만들 수 있으므로 옮겨 심지
+ * 않고 버리는 쪽이 맞다.
+ */
+const VERSION = 2
+const VERSION_KEY = 'oneday-trip:db-version'
+
 const EMPTY: LocalDb = {
   profiles: [],
   trips: [],
@@ -54,6 +69,11 @@ const EMPTY: LocalDb = {
 export function readDb(): LocalDb {
   if (typeof localStorage === 'undefined') return { ...EMPTY }
   try {
+    if (localStorage.getItem(VERSION_KEY) !== String(VERSION)) {
+      localStorage.removeItem(KEY)
+      localStorage.setItem(VERSION_KEY, String(VERSION))
+      return { ...EMPTY }
+    }
     const raw = localStorage.getItem(KEY)
     if (!raw) return { ...EMPTY }
     return { ...EMPTY, ...(JSON.parse(raw) as Partial<LocalDb>) }

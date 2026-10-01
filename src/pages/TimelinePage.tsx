@@ -35,7 +35,7 @@ import { formatTripDate } from './TripCreatePage'
  */
 export function TimelinePage() {
   const { tripId = '' } = useParams()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -47,6 +47,8 @@ export function TimelinePage() {
   const [trip, setTrip] = useState<Trip | null>(null)
   const [items, setItems] = useState<TripItem[]>([])
   const [loading, setLoading] = useState(true)
+  // 조회 실패와 '없는 여행'은 다르다 (RoutePage 와 같은 이유)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [statusByPlace, setStatusByPlace] = useState<Record<string, '예약 확정'>>({})
   const [shareTarget, setShareTarget] = useState<VisitCardInput | null>(null)
   const [reviewTarget, setReviewTarget] = useState<TripItem | null>(null)
@@ -57,17 +59,24 @@ export function TimelinePage() {
   const [savingReview, setSavingReview] = useState(false)
 
   const load = useCallback(async () => {
-    const [t, list] = await Promise.all([trips.get(tripId), tripItems.listByTrip(tripId)])
-    setTrip(t)
-    setItems(list)
+    setLoadFailed(false)
+    try {
+      const [t, list] = await Promise.all([trips.get(tripId), tripItems.listByTrip(tripId)])
+      setTrip(t)
+      setItems(list)
 
-    if (user) {
-      const rs = await reservations.listByUser(user.id)
-      const map: Record<string, '예약 확정'> = {}
-      for (const r of rs) if (r.status === 'confirmed') map[r.place_id] = '예약 확정'
-      setStatusByPlace(map)
+      if (user) {
+        const rs = await reservations.listByUser(user.id)
+        const map: Record<string, '예약 확정'> = {}
+        for (const r of rs) if (r.status === 'confirmed') map[r.place_id] = '예약 확정'
+        setStatusByPlace(map)
+      }
+    } catch {
+      setLoadFailed(true)
+    } finally {
+      // 성공이든 실패든 반드시 끈다. 이게 없으면 '불러오는 중'에서 영영 멈춘다
+      setLoading(false)
     }
-    setLoading(false)
   }, [tripId, user])
 
   useEffect(() => {
@@ -78,6 +87,13 @@ export function TimelinePage() {
     () => [...items].sort((a, b) => a.sort_order - b.sort_order),
     [items],
   )
+
+  /** 리뷰를 쓰면 visited 로 바뀐다. 전부 쓴 여행만 플랜으로 올릴 수 있다 (Q19) */
+  const unreviewed = useMemo(
+    () => items.filter((it) => it.status !== 'visited').length,
+    [items],
+  )
+  const canPublish = profile?.role === 'admin' || unreviewed === 0
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -152,6 +168,14 @@ export function TimelinePage() {
   }
 
   if (loading) return <Loading />
+  if (loadFailed)
+    return (
+      <EmptyState
+        icon="📡"
+        title="불러오지 못했습니다"
+        description="네트워크 상태를 확인한 뒤 다시 열어 주세요."
+      />
+    )
   if (!trip)
     return (
       <EmptyState
@@ -277,12 +301,27 @@ export function TimelinePage() {
         )}
 
         {/* SHARE-06-03 — 잘 짠 하루를 남에게 넘기는 입구.
-            올리기는 스냅샷 복사라 날짜·소감·별점은 넘어가지 않는다 */}
+            올리기는 스냅샷 복사라 날짜·소감·별점은 넘어가지 않는다.
+
+            다녀와서 전부 리뷰를 쓴 뒤에만 열린다 (Q19). 막는 대신 몇 곳
+            남았는지를 적는다 — 버튼만 흐려 두면 왜 안 되는지 알 수 없다.
+            관리자는 예외다. */}
         {orderedItems.length >= MIN_PLAN_PLACES && (
           <div className="mt-3">
-            <Link to={`/trips/${tripId}/share`} className="btn-outline w-full">
-              플랜으로 올리기
-            </Link>
+            {canPublish ? (
+              <Link to={`/trips/${tripId}/share`} className="btn-outline w-full">
+                플랜으로 올리기
+              </Link>
+            ) : (
+              <>
+                <button type="button" disabled className="btn-outline w-full">
+                  플랜으로 올리기
+                </button>
+                <p className="hint mt-1.5 text-center">
+                  리뷰를 쓰지 않은 장소가 {unreviewed}곳 남았습니다
+                </p>
+              </>
+            )}
           </div>
         )}
 

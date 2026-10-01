@@ -1,5 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { tripItems, trips } from '@/lib/db'
 import { optimizeOrder, routeDistanceKm, routeMinutes } from '@/lib/geo'
 import { TRANSPORT_LABEL, regionLabel, type Place, type Trip, type TripItem } from '@/lib/types'
@@ -11,6 +28,15 @@ import { CategoryDot } from '@/components/PlaceCard'
  * TRIP-03-02 · 03. 나의 여행 > 3.2 경로 최적화 > 동선 최적화 지도
  * 등록 장소의 위경도를 배열로 모아 Polyline 으로 잇고,
  * [경로 최적화] 클릭 시 최단 거리 기준으로 방문 순서를 자동 재정렬한다.
+ *
+ * 순서 조정은 **드래그**다 (Q18). 원래는 위/아래 화살표 버튼이었고, 핸드폰에서
+ * 드래그가 스크롤 제스처와 충돌한다는 게 이유였다. 실제로는 내 타임라인이
+ * 드래그라 같은 일을 화면마다 다르게 하고 있었고, 충돌은 핸들에만 드래그를
+ * 걸고(touch-none) 6px 이동 후 시작하게 하는 것으로 막는다.
+ *
+ * 저장 방식은 타임라인과 다르다. 여기서는 화면에서만 순서를 바꾸고 '순서
+ * 저장하기' 를 눌러야 반영된다 — 최적화 결과를 보고 되돌릴 수 있어야 하는
+ * 화면이기 때문이다.
  */
 export function RoutePage() {
   const { tripId = '' } = useParams()
@@ -25,15 +51,27 @@ export function RoutePage() {
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  // 조회가 실패한 것과 여행이 없는 것은 다르다. 둘을 같게 다루면 네트워크가
+  // 끊겼을 때 "여행을 찾을 수 없습니다"가 떠서 사용자가 여행이 지워진 줄 안다.
+  const [loadFailed, setLoadFailed] = useState(false)
 
   useEffect(() => {
     let alive = true
-    void Promise.all([trips.get(tripId), tripItems.listByTrip(tripId)]).then(([t, list]) => {
-      if (!alive) return
-      setTrip(t)
-      setItems([...list].sort((a, b) => a.sort_order - b.sort_order))
-      setLoading(false)
-    })
+    setLoadFailed(false)
+    Promise.all([trips.get(tripId), tripItems.listByTrip(tripId)])
+      .then(([t, list]) => {
+        if (!alive) return
+        setTrip(t)
+        setItems([...list].sort((a, b) => a.sort_order - b.sort_order))
+      })
+      .catch(() => {
+        if (alive) setLoadFailed(true)
+      })
+      .finally(() => {
+        // 성공이든 실패든 반드시 끈다. 이게 없으면 화면이 '불러오는 중'에
+        // 영영 멈춘다 — 2026-10-01 에 실제로 그랬다.
+        if (alive) setLoading(false)
+      })
     return () => {
       alive = false
     }
@@ -53,16 +91,22 @@ export function RoutePage() {
   const totalKm = routeDistanceKm(points)
   const totalMin = trip ? routeMinutes(points, trip.transport) : 0
 
-  /** 인접한 두 항목의 순서를 맞바꾼다 — 드래그 대신 위/아래 버튼을 쓰는 이유는
-   *  핸드폰에서 드래그가 화면 스크롤 제스처와 자주 충돌해 손가락으로 정확히
-   *  집어 옮기기 어렵기 때문이다. 버튼은 오탐 없이 항상 정확히 한 칸씩 움직인다.
-   *  화면에서만 순서를 바꾸고, 실제 저장은 '저장' 버튼을 눌러야 이뤄진다. */
-  function move(index: number, direction: -1 | 1) {
-    const target = index + direction
-    if (target < 0 || target >= items.length) return
-    const next = [...items]
-    ;[next[index], next[target]] = [next[target], next[index]]
-    setItems(next.map((it, i) => ({ ...it, sort_order: i })))
+  const sensors = useSensors(
+    // 드래그는 6px 움직인 뒤에야 시작된다. 핸드폰에서 세로 스크롤과 충돌하지
+    // 않게 하는 값이고, 핸들에 touch-none 을 걸어 브라우저가 그 영역의
+    // 스크롤 제스처를 가져가지 않게 한다. 내 타임라인과 같은 설정이다.
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  /** 끌어서 순서를 바꾼다. 화면에서만 바뀌고 저장은 '순서 저장하기' 를 눌러야 한다 */
+  function onDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const from = items.findIndex((it) => it.place_id === active.id)
+    const to = items.findIndex((it) => it.place_id === over.id)
+    if (from < 0 || to < 0) return
+    setItems(arrayMove(items, from, to).map((it, i) => ({ ...it, sort_order: i })))
     setSaved(null)
     setDirty(true)
   }
@@ -102,6 +146,14 @@ export function RoutePage() {
   }
 
   if (loading) return <Loading />
+  if (loadFailed)
+    return (
+      <EmptyState
+        icon="📡"
+        title="불러오지 못했습니다"
+        description="네트워크 상태를 확인한 뒤 다시 열어 주세요."
+      />
+    )
   if (!trip) return <EmptyState title="여행을 찾을 수 없습니다" />
 
   return (
@@ -164,91 +216,45 @@ export function RoutePage() {
               </p>
             )}
 
-            <ol className="flex flex-col gap-2">
-              {routePlaces.map((place, i) => {
-                const legMin =
-                  i > 0
-                    ? routeMinutes(
-                        [
-                          { lat: routePlaces[i - 1].lat, lng: routePlaces[i - 1].lng },
-                          { lat: place.lat, lng: place.lng },
-                        ],
-                        trip.transport,
-                      )
-                    : null
-                return (
-                  <li key={place.id}>
-                    {legMin !== null && (
-                      <div className="flex items-center gap-2 py-1 pl-3.5 text-[11.5px] text-ink-400">
-                        <span className="h-4 w-px bg-ink-300" />
-                        {TRANSPORT_LABEL[trip.transport]} 약 {legMin}분
-                      </div>
-                    )}
-                    <div
-                      className={`card flex w-full items-center gap-2 p-3 ${
-                        selectedId === place.id ? 'ring-2 ring-brand-400' : ''
-                      }`}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setSelectedId(place.id)}
-                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                      >
-                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-500 text-[13px] font-extrabold text-white">
-                          {i + 1}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5">
-                            <CategoryDot category={place.category} />
-                            <p className="truncate text-[14.5px] font-bold text-ink-800">
-                              {place.name}
-                            </p>
-                          </div>
-                          <p className="truncate text-[12px] text-ink-500">{place.address}</p>
-                        </div>
-                      </button>
-
-                      <div className="flex shrink-0 flex-col gap-1">
-                        <button
-                          type="button"
-                          onClick={() => move(i, -1)}
-                          disabled={i === 0}
-                          aria-label="위로 이동"
-                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-ink-200 text-ink-500 disabled:opacity-30"
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-                            <path
-                              d="M5 15l7-7 7 7"
-                              stroke="currentColor"
-                              strokeWidth="2.2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => move(i, 1)}
-                          disabled={i === routePlaces.length - 1}
-                          aria-label="아래로 이동"
-                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-ink-200 text-ink-500 disabled:opacity-30"
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-                            <path
-                              d="M5 9l7 7 7-7"
-                              stroke="currentColor"
-                              strokeWidth="2.2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  </li>
-                )
-              })}
-            </ol>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={onDragEnd}
+            >
+              <SortableContext
+                items={routePlaces.map((p) => p.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <ol className="flex flex-col gap-2">
+                  {routePlaces.map((place, i) => {
+                    const legMin =
+                      i > 0
+                        ? routeMinutes(
+                            [
+                              { lat: routePlaces[i - 1].lat, lng: routePlaces[i - 1].lng },
+                              { lat: place.lat, lng: place.lng },
+                            ],
+                            trip.transport,
+                          )
+                        : null
+                    return (
+                      <SortableStop
+                        key={place.id}
+                        place={place}
+                        index={i}
+                        legLabel={
+                          legMin === null
+                            ? null
+                            : `${TRANSPORT_LABEL[trip.transport]} 약 ${legMin}분`
+                        }
+                        selected={selectedId === place.id}
+                        onSelect={() => setSelectedId(place.id)}
+                      />
+                    )
+                  })}
+                </ol>
+              </SortableContext>
+            </DndContext>
           </div>
         </>
       )}
@@ -261,5 +267,83 @@ export function RoutePage() {
         </div>
       )}
     </>
+  )
+}
+
+/**
+ * 경로의 한 정거장. 끌어서 순서를 바꾼다.
+ *
+ * 핸들은 카드 전체가 아니라 점 여섯 개 아이콘에만 붙인다 — 카드 본문은 지도의
+ * 핀을 고르는 버튼이라, 카드를 통째로 끌 수 있게 하면 고르려다 끌려 버린다.
+ */
+function SortableStop({
+  place,
+  index,
+  legLabel,
+  selected,
+  onSelect,
+}: {
+  place: Place
+  index: number
+  legLabel: string | null
+  selected: boolean
+  onSelect: () => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: place.id,
+  })
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={isDragging ? 'opacity-60' : ''}
+    >
+      {legLabel && (
+        <div className="flex items-center gap-2 py-1 pl-3.5 text-[11.5px] text-ink-400">
+          <span className="h-4 w-px bg-ink-300" />
+          {legLabel}
+        </div>
+      )}
+      <div
+        className={`card flex w-full items-center gap-2 p-3 ${
+          selected ? 'ring-2 ring-brand-400' : ''
+        }`}
+      >
+        <button
+          type="button"
+          onClick={onSelect}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        >
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-500 text-[13px] font-extrabold text-white">
+            {index + 1}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <CategoryDot category={place.category} />
+              <p className="truncate text-[14.5px] font-bold text-ink-800">{place.name}</p>
+            </div>
+            <p className="truncate text-[12px] text-ink-500">{place.address}</p>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          aria-label="순서 변경 핸들"
+          className="shrink-0 cursor-grab touch-none rounded-lg p-1.5 text-ink-300 hover:bg-ink-100 active:cursor-grabbing"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+            <circle cx="5" cy="4" r="1.4" />
+            <circle cx="11" cy="4" r="1.4" />
+            <circle cx="5" cy="8" r="1.4" />
+            <circle cx="11" cy="8" r="1.4" />
+            <circle cx="5" cy="12" r="1.4" />
+            <circle cx="11" cy="12" r="1.4" />
+          </svg>
+        </button>
+      </div>
+    </li>
   )
 }

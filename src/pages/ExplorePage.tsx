@@ -350,7 +350,7 @@ export function ExplorePage() {
                 </div>
                 <p className="mt-0.5 text-[12.5px] text-ink-500">{selected.address}</p>
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-2 text-[12.5px] text-ink-500">
-                  {selected.source_rating !== null && (
+                  {selected.source_rating != null && (
                     <>
                       <span className="font-bold text-ink-700">
                         ★ {selected.source_rating.toFixed(1)}

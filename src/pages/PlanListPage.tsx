@@ -186,7 +186,7 @@ export function PlanCard({ plan }: { plan: SharedPlan }) {
         담아 간 사람 {plan.clone_count}명
         {/* 평가가 없으면 평균이 null 이다. 0.0 으로 보여 주면 '평가 없음'이
             '최하점'처럼 읽힌다 */}
-        {plan.rating_avg !== null && ` · ★ ${plan.rating_avg.toFixed(1)}`}
+        {plan.rating_avg != null && ` · ★ ${plan.rating_avg.toFixed(1)}`}
       </p>
     </Link>
   )

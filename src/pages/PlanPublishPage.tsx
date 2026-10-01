@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useAuth } from '@/lib/auth'
 import { sharedPlans, tripItems, trips } from '@/lib/db'
 import {
   MIN_PLAN_PLACES,
@@ -15,6 +16,11 @@ import { EmptyState, Loading, PageHeader } from '@/components/ui'
  * 올리기는 라이브 공개가 아니라 스냅샷 복사다. 무엇이 넘어가고 무엇이 남는지
  * 올리기 전에 이 화면에서 그대로 보여 준다 — 사용자가 공개하려는 건 동선이지
  * 일기가 아니다.
+ *
+ * **다녀와서 전부 리뷰를 쓴 여행만 올릴 수 있다 (Q19).** 리뷰를 쓰면 그 항목이
+ * visited 로 바뀌므로, 모든 항목이 visited 인지로 판정한다. 가 보지도 않은
+ * 동선이 남에게 "가 볼 만한 하루"로 건네지는 걸 막는 장치다. 관리자는 예외다 —
+ * 큐레이션 플랜은 원래 아무도 안 다녀온 동선이고, 그 판단에 책임지는 자리다.
  */
 export function PlanPublishPage() {
   const { tripId } = useParams()
@@ -26,6 +32,8 @@ export function PlanPublishPage() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { profile } = useAuth()
+  const isAdmin = profile?.role === 'admin'
 
   const load = useCallback(async () => {
     if (!tripId) return
@@ -80,6 +88,25 @@ export function PlanPublishPage() {
 
   // 한 곳짜리는 플랜이 아니라 즐겨찾기다
   const tooFew = items.length < MIN_PLAN_PLACES
+
+  const unreviewed = useMemo(
+    () => items.filter((it) => it.status !== 'visited').length,
+    [items],
+  )
+  const needsReview = !isAdmin && unreviewed > 0
+  // 제목·설명 검사를 누른 뒤가 아니라 버튼 상태로 보여 준다. 눌러 봐야 아는
+  // 버튼은 무엇을 더 해야 하는지를 숨긴다.
+  const titleOk = title.trim().length >= 2
+  const descOk = description.trim().length >= 5
+  const canPublish = !busy && !needsReview && titleOk && descOk
+
+  const blockReason = needsReview
+    ? `아직 리뷰를 쓰지 않은 장소가 ${unreviewed}곳 있습니다. 다녀온 뒤 전부 리뷰를 써야 올릴 수 있습니다.`
+    : !titleOk
+      ? '공개용 제목을 2자 이상 입력해 주세요.'
+      : !descOk
+        ? '설명을 5자 이상 입력해 주세요.'
+        : null
 
   return (
     <>
@@ -154,11 +181,12 @@ export function PlanPublishPage() {
             <button
               type="button"
               onClick={publish}
-              disabled={busy}
+              disabled={!canPublish}
               className="btn-primary w-full"
             >
               {busy ? '올리는 중…' : '공개하기'}
             </button>
+            {blockReason && <p className="hint mt-2">{blockReason}</p>}
             {error && <p className="mt-2 text-[13px] text-red-600">{error}</p>}
           </>
         )}

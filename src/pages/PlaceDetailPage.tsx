@@ -37,15 +37,24 @@ export function PlaceDetailPage() {
   const [toast, setToast] = useState<string | null>(null)
   // 사진 URL이 죽어 있는 경우(TourAPI CDN 만료 등) 그라디언트 플레이스홀더로 되돌아간다
   const [imageFailed, setImageFailed] = useState(false)
+  // 조회 실패와 '없는 장소'는 다르다 (RoutePage 와 같은 이유)
+  const [loadFailed, setLoadFailed] = useState(false)
 
   useEffect(() => {
     let alive = true
     setImageFailed(false)
-    void placesApi.get(placeId).then((p) => {
-      if (!alive) return
-      setPlace(p)
-      setLoading(false)
-    })
+    setLoadFailed(false)
+    placesApi
+      .get(placeId)
+      .then((p) => {
+        if (alive) setPlace(p)
+      })
+      .catch(() => {
+        if (alive) setLoadFailed(true)
+      })
+      .finally(() => {
+        if (alive) setLoading(false)
+      })
     return () => {
       alive = false
     }
@@ -58,6 +67,14 @@ export function PlaceDetailPage() {
   }, [toast])
 
   if (loading) return <Loading />
+  if (loadFailed)
+    return (
+      <EmptyState
+        icon="📡"
+        title="불러오지 못했습니다"
+        description="네트워크 상태를 확인한 뒤 다시 열어 주세요."
+      />
+    )
   if (!place) return <EmptyState title="장소를 찾을 수 없습니다" />
 
   const deposit = party * DEPOSIT_PER_PERSON
@@ -141,7 +158,7 @@ export function PlaceDetailPage() {
           <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] text-ink-600">
             {/* 값이 없는 항목은 구분선까지 함께 숨긴다 — 빈 칸이 남은 화면이
                 그 영역이 아예 없는 화면보다 나쁘다 */}
-            {place.source_rating !== null && (
+            {place.source_rating != null && (
               <>
                 <span className="font-bold">★ {place.source_rating.toFixed(1)}</span>
                 <span className="text-ink-300">|</span>

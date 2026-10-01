@@ -25,7 +25,8 @@ function todayIso(offsetDays = 0): string {
  * SHARE-06-02 공용 플랜 상세.
  *
  * 순서 확인은 읽기 전용이다. 순서를 바꾸는 것은 담은 *뒤* 내 타임라인에서
- * ▲▼ 로 한다 — 담기는 편집 가능한 출발점이지 고정된 상품이 아니다.
+ * 드래그로 한다 — 담기는 편집 가능한 출발점이지 고정된 상품이 아니다.
+ * 운영자 편집 화면도 같은 조작이다 — 두 화면이 다르면 손이 헷갈린다.
  */
 export function PlanDetailPage() {
   const { planId } = useParams()
@@ -166,7 +167,7 @@ export function PlanDetailPage() {
             담아 간 사람 {plan.clone_count}명
             {/* 평가가 없으면 평균이 null 이다. 0.0 으로 보여 주면 '평가 없음'이
                 '최하점'처럼 읽힌다 */}
-            {plan.rating_avg !== null
+            {plan.rating_avg != null
               ? ` · 만족도 ★ ${plan.rating_avg.toFixed(1)} (${plan.rating_count}명)`
               : ' · 아직 평가 없음'}
           </p>
@@ -203,7 +204,7 @@ export function PlanDetailPage() {
             ))}
           </ol>
           <p className="hint mt-2">
-            순서는 담은 뒤 내 타임라인에서 ▲▼ 로 바꿀 수 있습니다.
+            순서는 담은 뒤 내 타임라인에서 끌어서 바꿀 수 있습니다.
           </p>
         </section>
 
@@ -211,7 +212,7 @@ export function PlanDetailPage() {
           <h2 className="section-title mb-2">
             만족도{' '}
             <span className="text-ink-400">
-              {plan.rating_avg !== null ? `★ ${plan.rating_avg.toFixed(1)}` : '없음'}
+              {plan.rating_avg != null ? `★ ${plan.rating_avg.toFixed(1)}` : '없음'}
             </span>
           </h2>
 

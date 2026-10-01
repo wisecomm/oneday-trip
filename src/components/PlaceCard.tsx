@@ -69,7 +69,7 @@ export function PlaceCard({
         )}
         <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-ink-500">
           {/* 평점이 없는 장소에 ★ 0.0 을 찍지 않는다 — '평점 없음'과 '0점'은 다르다 */}
-          {place.source_rating !== null && (
+          {place.source_rating != null && (
             <>
               <span className="font-semibold text-ink-700">★ {place.source_rating.toFixed(1)}</span>
               <span>·</span>

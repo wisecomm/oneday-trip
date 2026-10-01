@@ -220,7 +220,7 @@ export function RecommendPage() {
                     {place.summary && (
                       <p className="mt-0.5 truncate text-[12.5px] text-ink-500">{place.summary}</p>
                     )}
-                    {place.source_rating !== null && (
+                    {place.source_rating != null && (
                       <div className="mt-1 flex items-center gap-2 text-[12px] text-ink-500">
                         <span className="font-bold text-ink-700">
                           ★ {place.source_rating.toFixed(1)}
