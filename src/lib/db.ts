@@ -1,7 +1,7 @@
 import { isSupabaseConfigured, db as sb } from './supabase'
 import { mutateDb, readDb, uid } from './local-store'
 import { DEMO_REGIONS, DEMO_REGION_GROUPS, SEED_PLACES } from './seed'
-import { DEMO_AUTHOR_PROFILE, DEMO_PLANS } from './demo-plans'
+import { DEMO_PLANS } from './demo-plans'
 import type {
   Place,
   PlaceCategory,
@@ -495,19 +495,12 @@ export interface PlanFilter {
 /**
  * 지역 이름을 함께 가져온다.
  *
- * 작성자 닉네임은 여기서 조인하지 않는다. PostgREST 의 임베드는 외래키를
- * 근거로 관계를 찾는데, `shared_plans.author_user_id` 는 `auth.users` 를
- * 가리키고 `public_profiles` 는 뷰라 외래키가 없다. 실제로 임베드를 걸면
- * PGRST200 ("Could not find a relationship between 'shared_plans' and
- * 'public_profiles'") 으로 조회 자체가 400 이 된다.
- *
- * 닉네임을 얻자고 `shared_plans` 에 `profiles` 로 가는 외래키를 새로 다는
- * 방법도 있지만, 그러면 프로필이 아직 없는 사용자는 플랜을 올릴 수 없게
- * 된다. 조회를 한 번 더 하는 편이 싸다 — `attachAuthors` 가 한다.
+ * 작성자는 조회하지 않는다. 화면에는 '운영자' 아니면 '회원' 만 뜨고,
+ * 그 판정은 행 안의 `origin` 하나로 끝난다 (Q17).
  */
 const PLAN_SELECT = '*, group:region_groups!inner(name), region:regions(name)'
 
-type PlanRow = Omit<SharedPlan, 'group_name' | 'region_name' | 'author_nickname'> & {
+type PlanRow = Omit<SharedPlan, 'group_name' | 'region_name'> & {
   group?: { name: string } | null
   region?: { name: string } | null
 }
@@ -516,31 +509,9 @@ const flattenPlan = (row: PlanRow): SharedPlan => ({
   ...(row as unknown as SharedPlan),
   group_name: row.group?.name ?? '',
   region_name: row.region?.name ?? null,
-  author_nickname: null,
 })
 
-/**
- * 작성자 닉네임을 한 번의 추가 조회로 채운다.
- *
- * `public_profiles` 는 id·nickname 만 있는 뷰이고, 공개 플랜을 하나 이상
- * 올린 사용자만 들어 있다. `profiles` 본체를 열지 않으므로 `taste_tags` 는
- * 어떤 경로로도 새지 않는다. 운영자 플랜은 `author_user_id` 가 null 이라
- * 조회 대상에서 빠진다.
- */
-async function attachAuthors(plans: SharedPlan[]): Promise<SharedPlan[]> {
-  const ids = [...new Set(plans.map((p) => p.author_user_id).filter((id): id is string => !!id))]
-  if (ids.length === 0) return plans
-
-  const { data, error } = await sb().from('public_profiles').select('id, nickname').in('id', ids)
-  if (error) throw error
-
-  const byId = new Map((data ?? []).map((r) => [r.id as string, r.nickname as string]))
-  return plans.map((p) =>
-    p.author_user_id ? { ...p, author_nickname: byId.get(p.author_user_id) ?? null } : p,
-  )
-}
-
-/** 데모 모드에는 조인이 없으니 지역·작성자 이름을 직접 찾아 붙인다 */
+/** 데모 모드에는 조인이 없으니 지역 이름을 직접 찾아 붙인다 */
 function demoPlanNames(p: StoredPlan): SharedPlan {
   const g = DEMO_REGION_GROUPS.find((x) => x.tour_area_code === p.tour_area_code)
   const r =
@@ -550,19 +521,14 @@ function demoPlanNames(p: StoredPlan): SharedPlan {
           (x) =>
             x.tour_area_code === p.tour_area_code && x.tour_sigungu_code === p.tour_sigungu_code,
         )
-  const author =
-    p.author_user_id === null
-      ? null
-      : (readDb().profiles.find((x) => x.id === p.author_user_id)?.nickname ?? null)
   return {
     ...(p as SharedPlan),
     group_name: g?.name ?? '',
     region_name: r?.name ?? null,
-    author_nickname: author,
   }
 }
 
-type StoredPlan = Omit<SharedPlan, 'group_name' | 'region_name' | 'author_nickname' | 'items'>
+type StoredPlan = Omit<SharedPlan, 'group_name' | 'region_name' | 'items'>
 
 /** 여행을 공용 플랜으로 올릴 때 사용자가 새로 입력하는 값 */
 export interface PublishInput {
@@ -607,10 +573,6 @@ function ensureDemoPlans(): void {
   const d = readDb()
   if (d.shared_plans.length > 0 || d.shared_plan_items.length > 0) return
   mutateDb((draft) => {
-    // 작성자 프로필이 없으면 카드에 '알 수 없음'이 찍힌다
-    if (!draft.profiles.some((x) => x.id === DEMO_AUTHOR_PROFILE.id)) {
-      draft.profiles.push(DEMO_AUTHOR_PROFILE)
-    }
     draft.shared_plans.push(...DEMO_PLANS.plans)
     draft.shared_plan_items.push(...DEMO_PLANS.items)
   })
@@ -630,7 +592,7 @@ export const sharedPlans = {
           ? await query.order('created_at', { ascending: false })
           : await query.order('clone_count', { ascending: false })
       if (error) throw error
-      return attachAuthors(((data ?? []) as unknown as PlanRow[]).map(flattenPlan))
+      return ((data ?? []) as unknown as PlanRow[]).map(flattenPlan)
     }
 
     ensureDemoPlans()
@@ -671,7 +633,7 @@ export const sharedPlans = {
         .order('sort_order')
       if (itemsError) throw itemsError
 
-      const [plan] = await attachAuthors([flattenPlan(data as unknown as PlanRow)])
+      const plan = flattenPlan(data as unknown as PlanRow)
       return { ...plan, items: (items ?? []) as SharedPlanItem[] }
     }
 
@@ -702,7 +664,7 @@ export const sharedPlans = {
         .select(PLAN_SELECT)
         .order('created_at', { ascending: false })
       if (error) throw error
-      return attachAuthors(((data ?? []) as unknown as PlanRow[]).map(flattenPlan))
+      return ((data ?? []) as unknown as PlanRow[]).map(flattenPlan)
     }
     ensureDemoPlans()
     return readDb()
@@ -720,7 +682,7 @@ export const sharedPlans = {
         .eq('author_user_id', userId)
         .order('created_at', { ascending: false })
       if (error) throw error
-      return attachAuthors(((data ?? []) as unknown as PlanRow[]).map(flattenPlan))
+      return ((data ?? []) as unknown as PlanRow[]).map(flattenPlan)
     }
     ensureDemoPlans()
     return readDb()
@@ -765,7 +727,7 @@ export const sharedPlans = {
         .select(PLAN_SELECT)
         .single()
       if (error) throw error
-      const [plan] = await attachAuthors([flattenPlan(data as unknown as PlanRow)])
+      const plan = flattenPlan(data as unknown as PlanRow)
       const { error: itemsError } = await sb().from('shared_plan_items').insert(
         items.map((it) => ({
           plan_id: plan.id,
@@ -832,7 +794,7 @@ export const sharedPlans = {
         .select(PLAN_SELECT)
         .single()
       if (error) throw error
-      const [plan] = await attachAuthors([flattenPlan(data as unknown as PlanRow)])
+      const plan = flattenPlan(data as unknown as PlanRow)
       const { error: itemsError } = await sb().from('shared_plan_items').insert(
         input.items.map((it, i) => ({
           plan_id: plan.id,
@@ -1184,15 +1146,7 @@ export const planRatings = {
       .order('updated_at', { ascending: false })
     if (error) throw error
 
-    const rows = (data ?? []) as PlanRating[]
-    const ids = [...new Set(rows.map((r) => r.user_id))]
-    if (ids.length === 0) return rows
-
-    // 작성자 닉네임과 같은 이유로 public_profiles 를 따로 읽는다 — 임베드는
-    // 외래키를 근거로 하는데 뷰에는 외래키가 없다.
-    const { data: people } = await sb().from('public_profiles').select('id, nickname').in('id', ids)
-    const byId = new Map((people ?? []).map((r) => [r.id as string, r.nickname as string]))
-    return rows.map((r) => ({ ...r, author_nickname: byId.get(r.user_id) ?? null }))
+    return (data ?? []) as PlanRating[]
   },
 
   /** 내가 이 플랜에 남긴 평가 (없으면 null) */

@@ -70,15 +70,6 @@ export interface Profile {
   created_at: string
 }
 
-/**
- * 공개된 작성자 정보. `profiles` 본체가 아니라 `public_profiles` 뷰에서 온다 —
- * 그 뷰에는 id·nickname 뿐이고, 공개 플랜을 하나 이상 올린 사용자만 들어 있다.
- */
-export interface PublicProfile {
-  id: string
-  nickname: string
-}
-
 export interface Trip {
   id: string
   user_id: string
@@ -214,8 +205,6 @@ export interface SharedPlan {
   origin: PlanOrigin
   /** origin='admin' 이면 null. 화면은 '운영자'로 고정 표시한다 */
   author_user_id: string | null
-  /** public_profiles 뷰에서 조인해 채운다. 운영자 플랜이면 null */
-  author_nickname: string | null
   title: string
   description: string
   tour_area_code: number
@@ -281,14 +270,19 @@ export interface PlanRating {
   comment: string | null
   created_at: string
   updated_at: string
-  /** 조회 시 public_profiles 에서 붙인다 */
-  author_nickname?: string | null
 }
 
-/** 작성자 표시 문구 — 운영자 플랜과 사용자 플랜을 한 줄로 다룬다 */
-export function planAuthorLabel(plan: Pick<SharedPlan, 'origin' | 'author_nickname'>): string {
-  if (plan.origin === 'admin') return '운영자'
-  return plan.author_nickname ?? '알 수 없음'
+/**
+ * 작성자 표시 문구.
+ *
+ * 누가 올렸는지는 보여 주지 않는다 — '운영자' 아니면 '회원' 두 가지뿐이다.
+ * 닉네임을 띄우려면 profiles 를 내보내는 창이 하나 필요한데, 그 창을 좁게
+ * 만들면 숨겨진 플랜의 작성자가 창에서 빠져 '알 수 없음' 이 뜨고, 넓게
+ * 만들면 안 내보내도 될 것까지 나간다. 읽는 사람에게 닉네임이 주는 값이
+ * 그 비용만큼 크지 않다고 보고 아예 내리지 않기로 했다 (Q17).
+ */
+export function planAuthorLabel(plan: Pick<SharedPlan, 'origin'>): string {
+  return plan.origin === 'admin' ? '운영자' : '회원'
 }
 
 export const PLAN_HIDDEN_REASON_LABEL: Record<PlanHiddenReason, string> = {

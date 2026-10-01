@@ -487,23 +487,6 @@ create trigger shared_plan_items_place_removed
   after delete on public.shared_plan_items
   for each row execute function public.shared_plan_items_hide_parent();
 
--- ── 작성자 닉네임 노출 ──────────────────────────────────────────────
--- profiles 에 using(true) select 정책을 열면 taste_tags 까지 딸려 나간다.
--- RLS 는 행 단위라 컬럼을 가려 주지 않는다. 그래서 뷰 하나만 공개하고,
--- 노출 범위도 '공개된 플랜을 하나 이상 올린 사용자'로 좁힌다.
--- 뷰는 소유자 권한으로 돌아 profiles 의 RLS 를 통과한다(security_invoker 를
--- 켜지 않는다).
-create or replace view public.public_profiles as
-  select p.id, p.nickname
-    from public.profiles p
-   where exists (
-     select 1 from public.shared_plans sp
-      where sp.author_user_id = p.id
-        and sp.is_hidden = false
-   );
-
-grant select on public.public_profiles to anon, authenticated;
-
 -- ── 담기 (복제) ─────────────────────────────────────────────────────
 -- 인기순 정렬에 clone_count 가 필요한데 RLS 아래에서 사용자는 남의 행을
 -- update 할 수 없다. 클라이언트가 update 를 시도하다 조용히 실패하는 구조를

@@ -157,9 +157,16 @@ export function PlanCard({ plan }: { plan: SharedPlan }) {
     <Link to={`/plans/${plan.id}`} className="card block p-4">
       <div className="flex items-start gap-2">
         <p className="min-w-0 flex-1 text-[16px] font-extrabold text-ink-800">{plan.title}</p>
-        {plan.origin === 'admin' && (
-          <span className="badge shrink-0 bg-brand-50 text-brand-700">운영자</span>
-        )}
+        {/* 작성자는 '운영자' 아니면 '회원' 둘뿐이다(Q17). 한쪽에만 배지를
+            달면 다른 쪽은 작성자가 없는 것처럼 보이므로 둘 다 단다. 운영자만
+            브랜드색인 이유는 그쪽이 고를 때 근거가 되는 신호이기 때문이다. */}
+        <span
+          className={`badge shrink-0 ${
+            plan.origin === 'admin' ? 'bg-brand-50 text-brand-700' : 'bg-ink-100 text-ink-600'
+          }`}
+        >
+          {planAuthorLabel(plan)}
+        </span>
       </div>
 
       <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-ink-500">
@@ -176,7 +183,7 @@ export function PlanCard({ plan }: { plan: SharedPlan }) {
       </div>
 
       <p className="mt-2 text-[12px] text-ink-400">
-        {planAuthorLabel(plan)} · 담아 간 사람 {plan.clone_count}명
+        담아 간 사람 {plan.clone_count}명
         {/* 평가가 없으면 평균이 null 이다. 0.0 으로 보여 주면 '평가 없음'이
             '최하점'처럼 읽힌다 */}
         {plan.rating_avg !== null && ` · ★ ${plan.rating_avg.toFixed(1)}`}

@@ -1,5 +1,5 @@
 import { SEED_PLACES } from './seed'
-import type { PlaceCategory, Profile, SharedPlanItem } from './types'
+import type { PlaceCategory, SharedPlanItem } from './types'
 import type { StoredSharedPlan } from './local-store'
 
 /**
@@ -14,19 +14,6 @@ import type { StoredSharedPlan } from './local-store'
  */
 
 const DEMO_AUTHOR_ID = 'demo-user'
-
-/**
- * 사용자 플랜의 작성자. 이 행이 없으면 닉네임을 찾지 못해 카드에 '알 수 없음'
- * 이 찍힌다 — 데모에서 사용자 플랜과 운영자 플랜을 구분해 보여 주는 게
- * 목적인데 그러면 구분이 안 된다.
- */
-export const DEMO_AUTHOR_PROFILE: Profile = {
-  id: DEMO_AUTHOR_ID,
-  nickname: '하루여행자',
-  taste_tags: [],
-  role: 'user',
-  created_at: new Date(0).toISOString(),
-}
 
 /**
  * 장소가 넉넉한 시군구를 고르되 **시/도가 겹치지 않게** 먼저 채운다.

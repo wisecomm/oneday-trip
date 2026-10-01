@@ -237,7 +237,7 @@ export function PlanDetailPage() {
                   <p className="text-[13px] font-bold text-ink-700">
                     ★ {r.rating}{' '}
                     <span className="font-normal text-ink-400">
-                      {PLAN_RATING_LABEL[r.rating]} · {r.author_nickname ?? '익명'}
+                      {PLAN_RATING_LABEL[r.rating]}
                     </span>
                   </p>
                   {r.comment && <p className="hint mt-1">{r.comment}</p>}

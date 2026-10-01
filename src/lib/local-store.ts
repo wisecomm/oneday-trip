@@ -21,7 +21,7 @@ export type StoredTrip = Omit<Trip, 'group_name' | 'region_name'>
 /** 플랜도 같은 이유로 지역 이름과 작성자 닉네임을 저장하지 않는다 */
 export type StoredSharedPlan = Omit<
   SharedPlan,
-  'group_name' | 'region_name' | 'author_nickname' | 'items'
+  'group_name' | 'region_name' | 'items'
 >
 
 export interface LocalDb {
