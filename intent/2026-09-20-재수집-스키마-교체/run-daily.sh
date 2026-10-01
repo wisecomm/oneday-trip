@@ -17,11 +17,34 @@ cd "$(dirname "$0")" || exit 1
 # launchd·cron 은 PATH 가 거의 비어 있다
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
+# PATH 만으로는 부족하다. node 를 nvm 으로 깔면 ~/.nvm 아래에 있는데 그 경로는
+# 로그인 셸의 .zshrc 가 깔아주는 것이라 launchd 환경에는 없다. 2026-09-23 부터
+# 2026-09-30 까지 예약 실행이 전부 "node: command not found"(종료코드 127) 로
+# 죽은 원인이 이것이다. 그래서 여기서 직접 찾는다.
+NODE=""
+for cand in \
+  "$(command -v node 2>/dev/null)" \
+  /opt/homebrew/bin/node \
+  /usr/local/bin/node \
+  /usr/bin/node
+do
+  if [ -n "$cand" ] && [ -x "$cand" ]; then NODE="$cand"; break; fi
+done
+if [ -z "$NODE" ]; then
+  # nvm: 가장 최신 버전을 고른다 (v10 < v9 로 정렬되지 않도록 -V 사용)
+  NODE="$(ls -1d "$HOME"/.nvm/versions/node/v*/bin/node 2>/dev/null | sort -V | tail -1)"
+fi
+if [ -z "$NODE" ] || [ ! -x "$NODE" ]; then
+  echo "node 를 찾지 못했습니다. run-daily.sh 의 NODE 탐색 목록에 경로를 추가하세요." >&2
+  echo "  (터미널에서 'command -v node' 로 확인한 절대경로)" >&2
+  exit 127
+fi
+
 LOG_DIR="raw/logs"
 mkdir -p "$LOG_DIR"
 
 progress() {
-  node -e '
+  "$NODE" -e '
 const fs=require("fs");
 const D="raw";
 if(!fs.existsSync(D+"/area-codes.json")){ console.log("아직 시작 전"); process.exit(0); }
@@ -66,7 +89,7 @@ LOG="$LOG_DIR/run-$STAMP.log"
   echo "--- 실행 전 ---"
   progress
   echo
-  node collect.mjs
+  "$NODE" collect.mjs
   CODE=$?
   echo
   echo "--- 실행 후 (종료코드 $CODE) ---"
