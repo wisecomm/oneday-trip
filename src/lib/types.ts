@@ -96,6 +96,14 @@ export interface Trip {
   end_time: string
   companions: Companion[]
   transport: Transport
+  /**
+   * 담아 온 플랜. 직접 만든 여행이면 null 이다.
+   *
+   * 출처 표시에도 쓰지만 더 중요한 건 '담은 사람만 평가' 판정이다 — 이
+   * 값이 없으면 누가 담았는지 알 수 없어 담지도 않은 사람의 별점을 막을
+   * 방법이 없다. 플랜이 지워지면 null 이 되고 여행은 그대로 남는다.
+   */
+  source_plan_id: string | null
   created_at: string
 }
 
@@ -229,6 +237,13 @@ export interface SharedPlan {
   was_visited: boolean
   /** 담은 수. source_rating 이 전부 null 이라 이것이 첫 번째 인기 신호다 */
   clone_count: number
+  /**
+   * 만족도 평균. 평가가 없으면 **0 이 아니라 null** 이다 — 0 이면 '평가 없음'과
+   * '최하점'이 구분되지 않는다. 담은 수가 '고르게 만드는 힘'이라면 이쪽은
+   * '실제로 좋았는지'다.
+   */
+  rating_avg: number | null
+  rating_count: number
   is_hidden: boolean
   hidden_reason: PlanHiddenReason | null
   source_trip_id: string | null
@@ -252,6 +267,24 @@ export interface SharedPlanItem {
   /** 공개용 한 줄 팁. 개인 리뷰(note)를 대신한다 */
   tip: string | null
   place?: Place
+}
+
+/**
+ * 플랜 만족도 (SHARE-06-07).
+ *
+ * 그 플랜을 담은 적 있는 사람만 남길 수 있고, 자기 플랜은 평가할 수 없다.
+ * 사람당 플랜당 1건이며 고칠 수는 있다. 판정은 DB 의 RLS 가 한다.
+ */
+export interface PlanRating {
+  id: string
+  plan_id: string
+  user_id: string
+  rating: number
+  comment: string | null
+  created_at: string
+  updated_at: string
+  /** 조회 시 public_profiles 에서 붙인다 */
+  author_nickname?: string | null
 }
 
 export interface PlanReport {
@@ -287,6 +320,15 @@ export const MIN_PLAN_PLACES = 2
 
 /** 이 수만큼 서로 다른 사람이 신고하면 자동으로 내려간다 (DB 트리거) */
 export const REPORT_HIDE_THRESHOLD = 3
+
+/** 만족도 별점을 말로 바꿔 준다. 숫자만 있으면 무슨 뜻인지 매번 가늠해야 한다 */
+export const PLAN_RATING_LABEL: Record<number, string> = {
+  1: '아쉬웠어요',
+  2: '그저 그랬어요',
+  3: '괜찮았어요',
+  4: '좋았어요',
+  5: '아주 좋았어요',
+}
 
 /* ───────────────── PLACE-07 장소 등록 요청 ───────────────── */
 

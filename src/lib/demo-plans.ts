@@ -157,6 +157,9 @@ function build(): { plans: StoredSharedPlan[]; items: SharedPlanItem[] } {
       // 데모에서 나란히 볼 수 있어야 한다
       was_visited: t.origin === 'user',
       clone_count: [12, 5, 3][i] ?? 0,
+      // 데모에도 만족도를 넣어 둔다 — 세 번째는 평가가 없는 상태를 보여 준다
+      rating_avg: [4.5, 4.0, null][i] ?? null,
+      rating_count: [8, 3, 0][i] ?? 0,
       is_hidden: false,
       hidden_reason: null,
       source_trip_id: null,

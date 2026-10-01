@@ -262,6 +262,20 @@ export function TimelinePage() {
           </div>
         )}
 
+        {/* 담아 온 여행이면 어디서 왔는지 보여 준다. 플랜이 지워졌으면
+            source_plan_id 가 null 이 되어 이 줄이 사라진다 */}
+        {trip.source_plan_id && (
+          <div className="mt-3">
+            <Link
+              to={`/plans/${trip.source_plan_id}`}
+              className="flex items-center justify-between rounded-xl bg-brand-50 px-4 py-3 text-[13px] font-semibold text-brand-700"
+            >
+              이 플랜에서 담아 왔습니다 — 다녀온 뒤 평가 남기기
+              <span aria-hidden>›</span>
+            </Link>
+          </div>
+        )}
+
         {/* SHARE-06-03 — 잘 짠 하루를 남에게 넘기는 입구.
             올리기는 스냅샷 복사라 날짜·소감·별점은 넘어가지 않는다 */}
         {orderedItems.length >= MIN_PLAN_PLACES && (

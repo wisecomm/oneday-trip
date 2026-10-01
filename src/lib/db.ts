@@ -10,6 +10,7 @@ import type {
   Region,
   RegionGroup,
   Reservation,
+  PlanRating,
   Season,
   SharedPlan,
   SharedPlanItem,
@@ -193,8 +194,14 @@ export const profiles = {
 
 /* ───────────────── Trips (TRIP-02-01 / TRIP-02-02) ───────────────── */
 
-/** 저장할 때는 코드만 넘긴다. 이름은 조회 시 조인해서 채운다 */
-export type TripInput = Omit<Trip, 'id' | 'created_at' | 'group_name' | 'region_name'>
+/**
+ * 저장할 때는 코드만 넘긴다. 이름은 조회 시 조인해서 채운다.
+ * `source_plan_id` 는 담기로 만들어질 때만 채워지므로 선택이다.
+ */
+export type TripInput = Omit<
+  Trip,
+  'id' | 'created_at' | 'group_name' | 'region_name' | 'source_plan_id'
+> & { source_plan_id?: string | null }
 
 /** 여행도 장소와 같은 이유로 지역 이름을 함께 가져온다 */
 const TRIP_SELECT = '*, group:region_groups!inner(name), region:regions(name)'
@@ -261,7 +268,12 @@ export const trips = {
       if (error) throw error
       return flattenTrip(data as unknown as TripRow)
     }
-    const row = { ...input, id: uid('trip'), created_at: nowIso() }
+    const row = {
+      ...input,
+      source_plan_id: input.source_plan_id ?? null,
+      id: uid('trip'),
+      created_at: nowIso(),
+    }
     mutateDb((d) => void d.trips.push(row))
     return demoTripNames(row)
   },
@@ -772,6 +784,8 @@ export const sharedPlans = {
       id: uid('plan'),
       duration_minutes: null,
       clone_count: 0,
+      rating_avg: null,
+      rating_count: 0,
       is_hidden: false,
       hidden_reason: null,
       created_at: nowIso(),
@@ -840,6 +854,8 @@ export const sharedPlans = {
       id: uid('plan'),
       duration_minutes: null,
       clone_count: 0,
+      rating_avg: null,
+      rating_count: 0,
       is_hidden: false,
       hidden_reason: null,
       created_at: nowIso(),
@@ -888,6 +904,7 @@ export const sharedPlans = {
 
     const trip = await trips.create({
       user_id: opts.userId,
+      source_plan_id: plan.id,
       title: opts.title ?? plan.title,
       tour_area_code: plan.tour_area_code,
       tour_sigungu_code: plan.tour_sigungu_code,
@@ -1008,6 +1025,51 @@ function metersBetween(aLat: number, aLng: number, bLat: number, bLng: number): 
   return Math.sqrt(dLat * dLat + dLng * dLng)
 }
 
+/** 관리자가 직접 등록할 때 넘기는 값. 요청과 같은 모양에서 메모만 빠진다 */
+export type AdminPlaceInput = Pick<
+  PlaceRequest,
+  'name' | 'category' | 'address' | 'lat' | 'lng' | 'image_url' | 'tour_area_code' | 'tour_sigungu_code'
+>
+
+export const adminPlaces = {
+  /**
+   * 관리자 직접 등록 — 승인 단계 없이 바로 `places` 에 들어간다 (4-3).
+   *
+   * id 는 클라이언트가 만들지 않는다. 'm-000001' 규약과 시퀀스의 주인이
+   * 둘이 되면 사용자 요청 승인이 매기는 번호와 어긋나므로, 두 경로가
+   * 같은 서버 함수의 시퀀스를 쓴다.
+   */
+  async create(input: AdminPlaceInput): Promise<string> {
+    if (!isSupabaseConfigured) {
+      throw new Error('데모 모드에서는 장소를 등록할 수 없습니다')
+    }
+    const { data, error } = await sb().rpc('admin_create_place', {
+      p_name: input.name,
+      p_category: input.category,
+      p_address: input.address,
+      p_lat: input.lat,
+      p_lng: input.lng,
+      p_tour_area_code: input.tour_area_code,
+      p_tour_sigungu_code: input.tour_sigungu_code,
+      p_image_url: input.image_url,
+    })
+    if (error) throw error
+    return data as string
+  },
+
+  /** 수동 등록 장소만 모아 본다. 연동 행은 배치가 관리하므로 섞지 않는다 */
+  async listManual(): Promise<Place[]> {
+    if (!isSupabaseConfigured) return []
+    const { data, error } = await sb()
+      .from('places')
+      .select(PLACE_SELECT)
+      .eq('source', 'manual')
+      .order('id', { ascending: false })
+    if (error) throw error
+    return ((data ?? []) as unknown as PlaceRow[]).map(flattenPlace)
+  },
+}
+
 export const placeRequests = {
   /** 내 등록 요청 (PLACE-07-03). 반려된 것도 사유와 함께 보인다 */
   async listMine(userId: string): Promise<PlaceRequest[]> {
@@ -1120,6 +1182,99 @@ export const placeRequests = {
       p_request_id: requestId,
       p_reason: reason,
     })
+    if (error) throw error
+  },
+}
+
+/* ─────────────────── Plan ratings (SHARE-06-07) ─────────────────── */
+
+/**
+ * 플랜 만족도.
+ *
+ * 담은 수는 "고르게 만드는 힘"은 재지만 "실제로 좋았는지"는 재지 못한다.
+ * 표지와 제목이 그럴듯하면 담기까지는 간다. 그래서 두 번째 신호가 필요하다.
+ *
+ * 자격 판정(담은 적 있는 사람만, 자기 플랜은 불가)은 전부 DB 의 RLS 가
+ * 한다. 화면은 버튼을 가릴 뿐이고, 가려진 버튼을 뚫어도 서버가 거부한다.
+ */
+export const planRatings = {
+  async listByPlan(planId: string): Promise<PlanRating[]> {
+    if (!isSupabaseConfigured) return []
+    const { data, error } = await sb()
+      .from('plan_ratings')
+      .select('*')
+      .eq('plan_id', planId)
+      .order('updated_at', { ascending: false })
+    if (error) throw error
+
+    const rows = (data ?? []) as PlanRating[]
+    const ids = [...new Set(rows.map((r) => r.user_id))]
+    if (ids.length === 0) return rows
+
+    // 작성자 닉네임과 같은 이유로 public_profiles 를 따로 읽는다 — 임베드는
+    // 외래키를 근거로 하는데 뷰에는 외래키가 없다.
+    const { data: people } = await sb().from('public_profiles').select('id, nickname').in('id', ids)
+    const byId = new Map((people ?? []).map((r) => [r.id as string, r.nickname as string]))
+    return rows.map((r) => ({ ...r, author_nickname: byId.get(r.user_id) ?? null }))
+  },
+
+  /** 내가 이 플랜에 남긴 평가 (없으면 null) */
+  async mine(planId: string, userId: string): Promise<PlanRating | null> {
+    if (!isSupabaseConfigured) return null
+    const { data, error } = await sb()
+      .from('plan_ratings')
+      .select('*')
+      .eq('plan_id', planId)
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (error) throw error
+    return (data as PlanRating) ?? null
+  },
+
+  /**
+   * 이 사람이 이 플랜을 담은 적이 있는가 — 평가 버튼을 보일지 판단한다.
+   *
+   * 자기 여행만 보이는 RLS 아래에서 세므로, 남이 담았는지는 알 수 없고
+   * 알 필요도 없다.
+   */
+  async canRate(planId: string, userId: string): Promise<boolean> {
+    if (!isSupabaseConfigured) return false
+    const { count, error } = await sb()
+      .from('trips')
+      .select('id', { count: 'exact', head: true })
+      .eq('source_plan_id', planId)
+      .eq('user_id', userId)
+    if (error) throw error
+    return (count ?? 0) > 0
+  },
+
+  /** 한 사람이 한 플랜에 하나. 다시 남기면 덮어쓴다 */
+  async save(planId: string, userId: string, rating: number, comment: string): Promise<void> {
+    if (!isSupabaseConfigured) {
+      throw new Error('데모 모드에서는 만족도를 남길 수 없습니다')
+    }
+    const { error } = await sb()
+      .from('plan_ratings')
+      .upsert(
+        {
+          plan_id: planId,
+          user_id: userId,
+          rating,
+          comment: comment.trim() || null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'plan_id,user_id' },
+      )
+    if (error) throw error
+  },
+
+  async remove(planId: string, userId: string): Promise<void> {
+    if (!isSupabaseConfigured) return
+    const { error } = await sb()
+      .from('plan_ratings')
+      .delete()
+      .eq('plan_id', planId)
+      .eq('user_id', userId)
     if (error) throw error
   },
 }

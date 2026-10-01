@@ -120,6 +120,19 @@ export function MyPage() {
                 </Link>
               </li>
             )}
+            {profile?.role === 'admin' && (
+              <li>
+                <Link
+                  to="/admin/places"
+                  className="flex items-center justify-between px-4 py-3.5 text-[14px] font-semibold text-ink-700"
+                >
+                  장소 등록 관리
+                  <span aria-hidden className="text-ink-300">
+                    ›
+                  </span>
+                </Link>
+              </li>
+            )}
           </ul>
         </section>
 

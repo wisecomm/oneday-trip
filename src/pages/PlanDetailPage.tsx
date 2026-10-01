@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
-import { sharedPlans } from '@/lib/db'
+import { planRatings, sharedPlans } from '@/lib/db'
 import {
   CATEGORY_ICON,
   CATEGORY_LABEL,
   COMPANION_LABEL,
   TRANSPORT_LABEL,
+  PLAN_RATING_LABEL,
   planAuthorLabel,
   regionLabel,
+  type PlanRating,
   type SharedPlan,
 } from '@/lib/types'
 import { BottomSheet, EmptyState, Loading, PageHeader } from '@/components/ui'
@@ -38,15 +40,40 @@ export function PlanDetailPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // 만족도 (SHARE-06-07)
+  const [ratings, setRatings] = useState<PlanRating[]>([])
+  const [myRating, setMyRating] = useState<PlanRating | null>(null)
+  const [canRate, setCanRate] = useState(false)
+  const [rateOpen, setRateOpen] = useState(false)
+  const [score, setScore] = useState(5)
+  const [comment, setComment] = useState('')
+
   const load = useCallback(async () => {
     if (!planId) return
     setLoading(true)
     try {
-      setPlan(await sharedPlans.get(planId))
+      const [p, rs] = await Promise.all([
+        sharedPlans.get(planId),
+        planRatings.listByPlan(planId),
+      ])
+      setPlan(p)
+      setRatings(rs)
+      if (user) {
+        const [mine, able] = await Promise.all([
+          planRatings.mine(planId, user.id),
+          planRatings.canRate(planId, user.id),
+        ])
+        setMyRating(mine)
+        setCanRate(able)
+        if (mine) {
+          setScore(mine.rating)
+          setComment(mine.comment ?? '')
+        }
+      }
     } finally {
       setLoading(false)
     }
-  }, [planId])
+  }, [planId, user])
 
   useEffect(() => {
     void load()
@@ -70,6 +97,21 @@ export function PlanDetailPage() {
       navigate(`/trips/${tripId}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : '담기에 실패했습니다.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function saveRating() {
+    if (!plan || !user) return
+    setBusy(true)
+    setError(null)
+    try {
+      await planRatings.save(plan.id, user.id, score, comment)
+      setRateOpen(false)
+      await load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '만족도 저장에 실패했습니다.')
     } finally {
       setBusy(false)
     }
@@ -137,7 +179,14 @@ export function PlanDetailPage() {
               <span className="badge bg-emerald-50 text-emerald-700">다녀옴</span>
             )}
           </div>
-          <p className="mt-2 text-[12px] text-ink-400">담아 간 사람 {plan.clone_count}명</p>
+          <p className="mt-2 text-[12px] text-ink-400">
+            담아 간 사람 {plan.clone_count}명
+            {/* 평가가 없으면 평균이 null 이다. 0.0 으로 보여 주면 '평가 없음'이
+                '최하점'처럼 읽힌다 */}
+            {plan.rating_avg !== null
+              ? ` · 만족도 ★ ${plan.rating_avg.toFixed(1)} (${plan.rating_count}명)`
+              : ' · 아직 평가 없음'}
+          </p>
         </section>
 
         <section className="mt-4">
@@ -173,6 +222,46 @@ export function PlanDetailPage() {
           <p className="hint mt-2">
             순서는 담은 뒤 내 타임라인에서 ▲▼ 로 바꿀 수 있습니다.
           </p>
+        </section>
+
+        <section className="mt-5">
+          <h2 className="section-title mb-2">
+            만족도{' '}
+            <span className="text-ink-400">
+              {plan.rating_avg !== null ? `★ ${plan.rating_avg.toFixed(1)}` : '없음'}
+            </span>
+          </h2>
+
+          {/* 담은 적 있는 사람만 평가할 수 있다. 담지도 않은 사람의 점수가
+              섞이면 그 숫자는 믿을 게 못 된다. 판정은 DB 가 하고 여기서는
+              버튼을 가릴 뿐이다 */}
+          {canRate ? (
+            <button
+              type="button"
+              onClick={() => setRateOpen(true)}
+              className="btn-outline w-full !py-2 text-[13px]"
+            >
+              {myRating ? '내 평가 고치기' : '다녀온 뒤 평가 남기기'}
+            </button>
+          ) : (
+            <p className="hint">담아서 다녀온 분만 평가를 남길 수 있습니다.</p>
+          )}
+
+          {ratings.length > 0 && (
+            <ul className="mt-3 flex flex-col gap-2">
+              {ratings.map((r) => (
+                <li key={r.id} className="card p-3">
+                  <p className="text-[13px] font-bold text-ink-700">
+                    ★ {r.rating}{' '}
+                    <span className="font-normal text-ink-400">
+                      {PLAN_RATING_LABEL[r.rating]} · {r.author_nickname ?? '익명'}
+                    </span>
+                  </p>
+                  {r.comment && <p className="hint mt-1">{r.comment}</p>}
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
         <div className="mt-5 flex gap-2">
@@ -212,6 +301,50 @@ export function PlanDetailPage() {
           className="btn-primary mt-4 w-full"
         >
           {busy ? '담는 중…' : '담기'}
+        </button>
+      </BottomSheet>
+
+      <BottomSheet open={rateOpen} onClose={() => setRateOpen(false)} title="이 플랜 어땠나요?">
+        <div className="mb-3 flex gap-1.5">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => setScore(n)}
+              aria-label={`${n}점`}
+              className={`flex-1 rounded-xl py-3 text-[18px] ${
+                score >= n ? 'bg-brand-50 text-brand-600' : 'bg-ink-100 text-ink-300'
+              }`}
+            >
+              ★
+            </button>
+          ))}
+        </div>
+        <p className="mb-3 text-center text-[13px] font-semibold text-ink-600">
+          {PLAN_RATING_LABEL[score]}
+        </p>
+
+        <label className="label" htmlFor="rating-comment">
+          한 줄 (선택)
+        </label>
+        <input
+          id="rating-comment"
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          maxLength={200}
+          placeholder="다음 사람에게 도움이 될 한마디"
+          className="field"
+        />
+        <p className="hint mt-2">
+          한 플랜에 한 번만 남길 수 있고, 언제든 고칠 수 있습니다.
+        </p>
+        <button
+          type="button"
+          onClick={saveRating}
+          disabled={busy}
+          className="btn-primary mt-4 w-full"
+        >
+          {busy ? '저장 중…' : myRating ? '고치기' : '남기기'}
         </button>
       </BottomSheet>
 

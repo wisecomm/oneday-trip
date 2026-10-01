@@ -173,19 +173,13 @@ create trigger places_region_manual
   for each row execute function public.places_mark_region_manual();
 
 -- ── TRIP-02-01 / TRIP-02-02 여행 ─────────────────────────────────────
+-- 컬럼 순서가 논리적 순서와 다른 이유: 이 파일은 마이그레이션을 전부 적용한
+-- 결과의 스냅샷이고, 나중에 alter table 로 붙은 컬럼은 뒤에 쌓이기 때문이다.
+-- 읽기 좋게 재배열하면 스냅샷이 실제 DB 와 어긋난다.
 create table public.trips (
   id                 uuid primary key default gen_random_uuid(),
   user_id            uuid not null references auth.users on delete cascade,
   title              text not null,
-  tour_area_code     smallint not null references public.region_groups(tour_area_code),
-  -- null 이면 '시/도 전체'. 사용자가 의도적으로 고른 값이지 '모름'이 아니다.
-  -- (모름을 뜻하는 -1 은 places 에만 쓰이고 trips 에는 나타나지 않는다)
-  tour_sigungu_code  smallint,
-  -- 당일치기 서비스이므로 기간이 아닌 날짜 하나를 갖는다
-  trip_date          date not null,
-  -- 하루 동선의 시작·종료 시각 (기본 09:00~20:00)
-  start_time         time not null default '09:00',
-  end_time           time not null default '20:00',
   -- 정의되지 않은 값이 들어가면 화면이 라벨을 찾지 못해 조용히 빈 칸이 된다.
   -- `<@` 는 포함 검사이고 빈 배열은 통과한다.
   companions         text[] not null default '{}'
@@ -193,11 +187,22 @@ create table public.trips (
     check (companions <@ array['solo', 'couple', 'friends', 'family', 'pet']::text[]),
   transport          transport_type not null default 'transit',
   created_at         timestamptz not null default now(),
+  -- 당일치기 서비스이므로 기간이 아닌 날짜 하나를 갖는다
+  trip_date          date not null,
+  -- 하루 동선의 시작·종료 시각 (기본 09:00~20:00)
+  start_time         time not null default '09:00',
+  end_time           time not null default '20:00',
+  tour_area_code     smallint not null references public.region_groups(tour_area_code),
+  -- null 이면 '시/도 전체'. 사용자가 의도적으로 고른 값이지 '모름'이 아니다.
+  -- (모름을 뜻하는 -1 은 places 에만 쓰이고 trips 에는 나타나지 않는다)
+  tour_sigungu_code  smallint,
   -- 복합 FK 는 기본이 MATCH SIMPLE 이라 참조 컬럼 중 하나라도 null 이면 검사를
   -- 건너뛴다. 그래서 '전체' 선택은 통과하고 구를 지정한 경우에만 검증된다.
   constraint trips_region_fkey foreign key (tour_area_code, tour_sigungu_code)
     references public.regions (tour_area_code, tour_sigungu_code)
 );
+-- trips.source_plan_id 는 shared_plans 가 만들어진 뒤에 붙인다 (아래 SHARE-06 절).
+-- 이 파일은 위에서 아래로 한 번에 적용되므로 순서가 곧 의존성이다.
 
 create index trips_user_idx on public.trips (user_id, trip_date desc);
 
@@ -209,10 +214,11 @@ create table public.trip_items (
   sort_order   smallint not null default 0,
   planned_time time,
   status       trip_item_status not null default 'planned',
-  -- 방문 리뷰(소감 + 별점). 작성/수정만 있고 별도 이력은 남기지 않는다(덮어쓰기)
+  created_at   timestamptz not null default now(),
+  -- 방문 리뷰(소감 + 별점). 작성/수정만 있고 별도 이력은 남기지 않는다(덮어쓰기).
+  -- 컬럼 순서가 created_at 뒤인 것은 나중에 alter 로 붙였기 때문이다.
   note         text,
-  rating       smallint check (rating between 1 and 5),
-  created_at   timestamptz not null default now()
+  rating       smallint check (rating between 1 and 5)
 );
 
 create index trip_items_trip_idx on public.trip_items (trip_id, sort_order);
@@ -276,6 +282,12 @@ create table public.shared_plans (
   source_updated_at  timestamptz,
   created_at         timestamptz not null default now(),
   updated_at         timestamptz not null default now(),
+  -- 만족도 집계(14-2). 평가가 없으면 0 이 아니라 null 이다 — 0 이면
+  -- '평가 없음'과 '최하점'이 구분되지 않는다. places.source_rating 에서
+  -- 이미 겪었다. (컬럼 순서가 끝인 것은 마이그레이션이 alter 로 붙였기
+  --  때문이다. 이 파일은 적용 결과의 스냅샷이라 그 순서를 따른다)
+  rating_avg         numeric(2,1),
+  rating_count       integer not null default 0,
 
   constraint shared_plans_author_matches_origin check (
     (origin = 'admin' and author_user_id is null) or
@@ -321,6 +333,62 @@ create table public.plan_reports (
 );
 
 create index plan_reports_open_idx on public.plan_reports (plan_id) where resolved = false;
+
+-- 담아 온 플랜. on delete set null 이라 플랜이 지워져도 여행은 남는다 —
+-- 담기는 복제이지 참조가 아니다(7-D4). 이 값은 출처 표시와 '담은 사람만
+-- 평가'(14-2) 판정에 쓴다. 없으면 누가 담았는지 알 수 없어 담지도 않은
+-- 사람의 별점을 막을 방법이 없다.
+alter table public.trips
+  add column source_plan_id uuid references public.shared_plans on delete set null;
+create index trips_source_plan_idx on public.trips (source_plan_id);
+
+-- ── SHARE-06-07 플랜 만족도 ─────────────────────────────────────────
+create table public.plan_ratings (
+  id         uuid primary key default gen_random_uuid(),
+  plan_id    uuid not null references public.shared_plans on delete cascade,
+  user_id    uuid not null references auth.users on delete cascade,
+  rating     smallint not null check (rating between 1 and 5),
+  -- 한 줄 소감. 별점만 있으면 왜 그런지 다음 사람이 알 수 없다.
+  comment    text check (comment is null or char_length(comment) <= 200),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  -- 한 사람이 한 플랜에 한 번. 여러 번 담아도 평가는 하나다.
+  unique (plan_id, user_id)
+);
+
+create index plan_ratings_plan_idx on public.plan_ratings (plan_id);
+create index plan_ratings_user_idx on public.plan_ratings (user_id);
+
+-- security definer 여야 하는 이유: 평가자는 남의 shared_plans 행을 update 할
+-- 권한이 없다. 호출자 권한으로 돌면 RLS 에 막혀 집계가 조용히 갱신되지
+-- 않는다 — 오류도 나지 않아 한참 뒤에야 알게 된다.
+create or replace function public.plan_ratings_refresh()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_plan uuid := coalesce(new.plan_id, old.plan_id);
+begin
+  update public.shared_plans p
+     set rating_count = agg.n,
+         -- 평가가 없으면 0 이 아니라 null 이다. 0 으로 두면 '평가 없음'과
+         -- '최하점'이 구분되지 않는다 — places.source_rating 에서 이미 겪었다.
+         rating_avg   = case when agg.n = 0 then null else round(agg.avg, 1) end,
+         updated_at   = now()
+    from (
+      select count(*)::integer as n, avg(rating)::numeric as avg
+        from public.plan_ratings where plan_id = v_plan
+    ) agg
+   where p.id = v_plan;
+  return null;
+end;
+$$;
+
+create trigger plan_ratings_refresh_trigger
+  after insert or update or delete on public.plan_ratings
+  for each row execute function public.plan_ratings_refresh();
 
 -- ── PLACE-07 장소 등록 요청 ──────────────────────────────────────────
 -- 사용자가 넣은 값은 승인 전까지 places 에 들어가지 않는다. 그 덕분에 places
@@ -476,11 +544,11 @@ begin
 
   insert into public.trips
     (user_id, title, tour_area_code, tour_sigungu_code,
-     trip_date, start_time, end_time, companions, transport)
+     trip_date, start_time, end_time, companions, transport, source_plan_id)
   values
     (v_user, coalesce(p_title, v_plan.title), v_plan.tour_area_code,
      v_plan.tour_sigungu_code, p_trip_date, v_plan.start_time, v_plan.end_time,
-     v_plan.companions, v_plan.transport)
+     v_plan.companions, v_plan.transport, p_plan_id)
   returning id into v_trip;
 
   -- status 는 전부 planned 로, note·rating 은 비운 채로 들어간다.
@@ -550,6 +618,62 @@ $$;
 revoke all on function public.approve_place_request(uuid) from public;
 grant execute on function public.approve_place_request(uuid) to authenticated;
 
+-- ── 관리자 직접 등록 ────────────────────────────────────────────────
+-- 클라이언트가 id 를 만들게 두지 않는다. 'm-000001' 규약과 시퀀스의 주인이
+-- 둘이 되면 approve_place_request 가 매기는 번호와 어긋난다. 두 경로가 같은
+-- 시퀀스를 쓴다.
+--
+-- 지역 코드를 integer 로 받는 이유: PostgREST 는 JSON 숫자를 integer 로
+-- 넘기므로 smallint 로 선언하면 함수를 찾지 못할 수 있다.
+create or replace function public.admin_create_place(
+  p_name              text,
+  p_category          place_category,
+  p_address           text,
+  p_lat               double precision,
+  p_lng               double precision,
+  p_tour_area_code    integer,
+  p_tour_sigungu_code integer,
+  p_image_url         text default null
+)
+returns text
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_place_id text;
+begin
+  if not public.is_admin() then
+    raise exception '관리자만 장소를 등록할 수 있습니다' using errcode = '42501';
+  end if;
+
+  -- 미판정(-1)은 판정에 실패한 수집 행을 격리하는 자리다. 사람이 고른
+  -- 지역에는 나타날 수 없다.
+  if p_tour_sigungu_code < 0 then
+    raise exception '시군구를 골라 주세요' using errcode = '22023';
+  end if;
+
+  v_place_id := 'm-' || lpad(nextval('public.manual_place_seq')::text, 6, '0');
+
+  insert into public.places
+    (id, name, category, tour_area_code, tour_sigungu_code, address, lat, lng,
+     image_url, source, created_by, region_source)
+  values
+    (v_place_id, p_name, p_category, p_tour_area_code::smallint,
+     p_tour_sigungu_code::smallint, p_address, p_lat, p_lng,
+     p_image_url, 'manual', auth.uid(), 'manual');
+
+  return v_place_id;
+end;
+$$;
+
+revoke all on function public.admin_create_place(
+  text, place_category, text, double precision, double precision, integer, integer, text
+) from public;
+grant execute on function public.admin_create_place(
+  text, place_category, text, double precision, double precision, integer, integer, text
+) to authenticated;
+
 -- 거절해도 지우지 않는다. 같은 곳을 다시 요청할 때 "전에 이런 이유로
 -- 거절됐다"를 보여 주기 위해서다. 요청을 고치는 건 안 되고 새로 내는 것만 된다.
 create or replace function public.reject_place_request(
@@ -610,6 +734,7 @@ alter table public.shared_plans      enable row level security;
 alter table public.shared_plan_items enable row level security;
 alter table public.plan_reports      enable row level security;
 alter table public.place_requests    enable row level security;
+alter table public.plan_ratings      enable row level security;
 
 -- 지역·장소는 비로그인(Guest 모드)에서도 열람 가능해야 한다
 create policy "region groups are readable by everyone"
@@ -757,6 +882,39 @@ create policy "admins update places"
 create policy "admins delete places"
   on public.places for delete
   using (public.is_admin());
+
+-- ── SHARE-06-07 만족도 ───────────────────────────────────────────────
+-- 별점은 공개 정보다. 몇 점인지 모르면 고를 근거가 없다.
+create policy "ratings are readable"
+  on public.plan_ratings for select
+  using (true);
+
+-- 담은 적 있는 사람만 평가한다. 담지도 않은 사람의 점수가 섞이면 그 숫자는
+-- 믿을 게 못 된다. 자기 플랜은 평가할 수 없다.
+-- trips 를 참조하지만 재귀 위험은 없다 — 다른 테이블이고, 평가자는 자기
+-- 여행만 보이므로 trips 의 RLS 를 그대로 통과한다.
+create policy "rate what i cloned"
+  on public.plan_ratings for insert
+  with check (
+    user_id = auth.uid()
+    and exists (
+      select 1 from public.trips t
+       where t.source_plan_id = plan_id and t.user_id = auth.uid()
+    )
+    and not exists (
+      select 1 from public.shared_plans p
+       where p.id = plan_id and p.author_user_id = auth.uid()
+    )
+  );
+
+create policy "update my rating"
+  on public.plan_ratings for update
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+create policy "delete my rating"
+  on public.plan_ratings for delete
+  using (user_id = auth.uid());
 
 -- =====================================================================
 -- 실시간 구독

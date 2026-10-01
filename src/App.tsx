@@ -23,6 +23,7 @@ import { PlanPublishPage } from '@/pages/PlanPublishPage'
 import { MyPlansPage } from '@/pages/MyPlansPage'
 import { AdminPlansPage } from '@/pages/AdminPlansPage'
 import { AdminPlanEditPage } from '@/pages/AdminPlanEditPage'
+import { AdminPlacesPage } from '@/pages/AdminPlacesPage'
 
 /**
  * 관리자 화면 가드.
@@ -167,6 +168,14 @@ export default function App() {
             element={
               <RequireAdmin>
                 <AdminPlanEditPage />
+              </RequireAdmin>
+            }
+          />
+          <Route
+            path="admin/places"
+            element={
+              <RequireAdmin>
+                <AdminPlacesPage />
               </RequireAdmin>
             }
           />
