@@ -9,7 +9,7 @@
 -- ── 열거형 ───────────────────────────────────────────────────────────
 create type place_category   as enum ('babzip', 'cafe', 'sulzip', 'spot');
 create type transport_type   as enum ('walk', 'transit', 'car');
-create type trip_item_status as enum ('planned', 'reserved', 'waiting', 'visited');
+create type trip_item_status as enum ('planned', 'reserved', 'visited');
 create type reservation_status as enum ('confirmed', 'cancelled');
 
 -- 장소의 지역을 어느 순위로 판정했는지. 실패한 행을 성공 경로로 적어 두면

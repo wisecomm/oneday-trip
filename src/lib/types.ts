@@ -153,7 +153,11 @@ export interface TripDraft {
   companions: Companion[]
 }
 
-export type TripItemStatus = 'planned' | 'reserved' | 'waiting' | 'visited'
+/**
+ * 'waiting'(웨이팅)은 기능과 함께 2026-10-01 에 enum 에서도 뺐다.
+ * visited 는 리뷰를 쓰면 붙고, 플랜 올리기 조건이 이 값을 본다 (Q19).
+ */
+export type TripItemStatus = 'planned' | 'reserved' | 'visited'
 
 export interface TripItem {
   id: string

@@ -54,6 +54,37 @@ TourAPI 수집 배치가 채웁니다.
 **공유** — `shared_plans` → `shared_plan_items`, 거기 붙는 `plan_ratings`.
 공개 읽기이고, 개인 덩어리와는 **복사로만** 오갑니다.
 
+### 우리가 만들지 않은 테이블 — `auth.users`
+
+ERD 맨 위의 `auth_users` 는 **우리 테이블이 아닙니다.** Supabase Auth(GoTrue)가
+프로젝트를 만들 때 `auth` 스키마에 깔아 둔 것이고, 이후 모양이 바뀌는 것도
+Supabase 가 합니다. 그래서 `supabase/migrations/` 에도 `schema.sql` 에도 없습니다 —
+우리 마이그레이션은 이 테이블이 **이미 있다고 가정하고** 쓰여 있습니다. 같은
+스키마에 `auth.sessions`, `auth.refresh_tokens`, `auth.identities`(소셜 연결)도
+함께 있습니다.
+
+**비밀번호는 여기 있습니다.** `auth.users.encrypted_password` 에 bcrypt 해시로
+들어 있고, 우리 `public` 스키마 어디에도 비밀번호 관련 컬럼은 없습니다. PostgREST
+가 `public` 만 노출하므로 브라우저에서는 유효한 세션이 있어도 그 행에 닿지
+못합니다. 그래서 이 테이블은 RLS 설계 대상에서도 빠져 있습니다.
+
+지켜야 할 선이 셋입니다.
+
+**고치지 않습니다.** 컬럼을 더하거나 트리거를 다는 건 가능하지만 Supabase 가
+자기 마이그레이션으로 덮을 수 있는 영역이고, 그러면 로그인 전체가 멈춥니다.
+사용자에 딸린 정보가 필요하면 `public.profiles` 에 붙입니다.
+
+**`id` 한 방향으로만 참조합니다.** `profiles.id uuid references auth.users on
+delete cascade` 가 두 세계를 잇는 유일한 연결이고, 나머지 개인 테이블은
+`profiles` 나 `auth.uid()` 를 통해 간접적으로 걸립니다. 탈퇴하면 cascade 로
+프로필과 그 아래가 함께 사라집니다.
+
+**읽지 않습니다.** 이메일이 필요하면 세션의 `user.email` 을 씁니다.
+
+> 이 테이블이 없는 환경에서 마이그레이션을 재생하려면 스텁이 필요합니다.
+> 2026-10-01 검증 때 임시 Postgres 에 `auth.users` 와 `auth.uid()` 를 직접
+> 만들어 넣어야 했습니다.
+
 ---
 
 ## 2. 테이블별
