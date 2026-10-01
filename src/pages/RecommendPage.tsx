@@ -7,7 +7,7 @@ import { contextLabel, fetchWeather, recommend, type Scored, type TripContext } 
 import { regionLabel, type Trip } from '@/lib/types'
 import { CategoryDot, PlaceThumb } from '@/components/PlaceCard'
 import { BottomSheet, EmptyState, Loading, PageHeader } from '@/components/ui'
-import { formatTripDate } from './TripCreatePage'
+import { formatTripDate } from '@/lib/trip-date'
 
 /** 하위 지역(구/시) 선택 대신 상위 지역 전체를 보고 싶을 때 쓰는 표식값 — 실제 지역명이 아니다 */
 /** 시군구 드롭다운에서 '전체'를 뜻하는 값 */

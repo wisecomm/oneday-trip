@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/auth'
 import { tripItems, trips } from '@/lib/db'
 import { TRANSPORT_LABEL, type Trip } from '@/lib/types'
 import { EmptyState, Loading, PageHeader } from '@/components/ui'
-import { formatTripDate } from './TripCreatePage'
+import { formatTripDate } from '@/lib/trip-date'
 
 export function TripListPage() {
   const { user } = useAuth()

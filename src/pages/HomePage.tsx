@@ -5,7 +5,7 @@ import { places as placesApi, reservations, trips } from '@/lib/db'
 import type { Place, Reservation, Trip } from '@/lib/types'
 import { PlaceCard } from '@/components/PlaceCard'
 import { Loading } from '@/components/ui'
-import { formatTripDate } from './TripCreatePage'
+import { formatTripDate } from '@/lib/trip-date'
 
 /**
  * 지역별로 고르게 섞어 count 개를 뽑는다.

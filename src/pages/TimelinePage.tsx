@@ -25,7 +25,7 @@ import { CategoryDot, PlaceThumb } from '@/components/PlaceCard'
 import { BottomSheet, EmptyState, Loading, PageHeader } from '@/components/ui'
 import { VisitShareSheet } from '@/components/VisitShareSheet'
 import type { VisitCardInput } from '@/lib/share-card'
-import { formatTripDate } from './TripCreatePage'
+import { formatTripDate } from '@/lib/trip-date'
 
 /**
  * TRIP-03-01 · 03. 나의 여행 > 3.1 타임라인 관리 > 여행 리스트

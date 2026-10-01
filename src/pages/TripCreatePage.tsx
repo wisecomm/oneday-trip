@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/auth'
 import { trips } from '@/lib/db'
 import { useRegions } from '@/hooks/useRegions'
 import { COMPANION_LABEL, type Companion, type TripDraft } from '@/lib/types'
+import { formatMonthDay, formatTripDate } from '@/lib/trip-date'
 import { Loading, PageHeader, StepGuide } from '@/components/ui'
 
 /** 하위 지역(구/시) 선택 대신 상위 지역 전체를 목적지로 삼을 때 쓰는 표식값 — 실제 지역명이 아니다 */
@@ -14,19 +15,6 @@ function todayIso(offsetDays = 0): string {
   const d = new Date()
   d.setDate(d.getDate() + offsetDays)
   return d.toISOString().slice(0, 10)
-}
-
-/** 날짜를 '8월 24일 (월)' 형태로 표기 */
-export function formatTripDate(iso: string): string {
-  const d = new Date(`${iso}T00:00:00`)
-  const weekday = ['일', '월', '화', '수', '목', '금', '토'][d.getDay()]
-  return `${d.getMonth() + 1}월 ${d.getDate()}일 (${weekday})`
-}
-
-/** 날짜를 'MM-DD' 형태로 표기 — 제목 끝에 붙는 짧은 표기 */
-function formatMonthDay(iso: string): string {
-  const d = new Date(`${iso}T00:00:00`)
-  return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 /**
