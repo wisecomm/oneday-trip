@@ -121,15 +121,11 @@ export function MyPlansPage() {
                   </p>
                 )}
 
-                {/* 원본을 고쳐도 공개본은 바뀌지 않는다. 다시 올려야 반영된다 */}
-                {p.source_trip_id && (
-                  <Link
-                    to={`/trips/${p.source_trip_id}/share`}
-                    className="btn-outline mt-3 w-full !py-2 text-[13px]"
-                  >
-                    원본 여행에서 다시 올리기
-                  </Link>
-                )}
+                {/* 공개본은 스냅샷이라 원본 여행을 고쳐도 바뀌지 않는다.
+                    반영하려면 그 여행에서 다시 올려야 하는데, 지금은 '다시
+                    올리기'가 기존 플랜을 갱신하지 않고 하나 더 만든다. 그
+                    경로를 제대로 만들기 전까지는 링크를 두지 않는다 — 누르면
+                    중복 플랜이 생기기 때문이다. */}
 
                 <div className="mt-2 flex gap-2">
                   {/* 신고로 내려간 플랜은 작성자가 되살릴 수 없다 — 그러면

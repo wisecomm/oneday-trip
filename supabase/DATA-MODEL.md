@@ -41,7 +41,6 @@ erDiagram
     shared_plans ||--o{ plan_ratings : "만족도"
     shared_plans ||--o{ plan_reports : "신고"
     shared_plans ||--o{ trips : "담아 간 여행(source_plan_id)"
-    trips ||--o| shared_plans : "올린 원본(source_trip_id)"
     places ||--o| place_requests : "승인으로 생긴 장소"
 
     profiles ||--|| public_profiles : "뷰 (id·nickname 만)"
@@ -145,10 +144,12 @@ TourAPI 수집 배치가 채웁니다.
 리스트·상세·담기·신고가 전부 두 벌이 됩니다. 운영자 플랜은
 `author_user_id` 가 null 입니다.
 
-**스냅샷입니다.** 원본 여행을 고쳐도 공개본은 바뀌지 않고, 관리 화면의
-"다시 올리기"로만 갱신됩니다. 운영자 플랜은 원본 자체가 없어
-(`source_trip_id` 가 null) `trips` 에 플래그를 다는 구조로는 표현할 수
-없었습니다.
+**스냅샷입니다.** 올리는 순간 `trip_items` 를 그대로 베껴 넣고, 그 뒤로
+원본 여행을 고쳐도 공개본은 바뀌지 않습니다. 원본으로 되돌아가는 링크도
+없습니다 — `source_trip_id` 는 2026-10-01 에 뺐습니다. 비공개 여행의 id 를
+전체 공개 테이블에 적는 셈이었고, 읽는 쪽은 "다시 올리기" 링크 하나뿐인데
+그 경로가 갱신이 아니라 **중복 플랜 생성**이었기 때문입니다. 고친 동선을
+올리려면 지금은 새로 올리고 옛 플랜을 내립니다.
 
 `rating_avg` 는 평가가 없으면 **0 이 아니라 null** 입니다. `places.source_rating`
 에서 겪은 것과 같은 함정입니다.

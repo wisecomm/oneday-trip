@@ -162,8 +162,6 @@ function build(): { plans: StoredSharedPlan[]; items: SharedPlanItem[] } {
       rating_count: [8, 3, 0][i] ?? 0,
       is_hidden: false,
       hidden_reason: null,
-      source_trip_id: null,
-      source_updated_at: null,
       created_at: new Date(Date.now() - (i + 1) * 86_400_000).toISOString(),
       updated_at: new Date(Date.now() - (i + 1) * 86_400_000).toISOString(),
     })

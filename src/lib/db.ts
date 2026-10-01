@@ -755,8 +755,6 @@ export const sharedPlans = {
       place_count: items.length,
       // 원본을 나중에 다시 조회해 알아낼 수는 없다 — 올리는 이 시점에 계산한다
       was_visited: items.some((it) => it.status === 'visited'),
-      source_trip_id: trip.id,
-      source_updated_at: nowIso(),
     }
 
     if (isSupabaseConfigured) {
@@ -807,7 +805,7 @@ export const sharedPlans = {
     return demoPlanNames(stored)
   },
 
-  /** 운영자가 원본 여행 없이 만든다. source_trip_id 가 null 인 플랜이다 */
+  /** 운영자가 원본 여행 없이 만든다 — 담긴 장소를 직접 엮는다 */
   async createByAdmin(input: AdminPlanInput): Promise<SharedPlan> {
     const row = {
       origin: 'admin' as const,
@@ -824,8 +822,6 @@ export const sharedPlans = {
       season: input.season ?? null,
       place_count: input.items.length,
       was_visited: false,
-      source_trip_id: null,
-      source_updated_at: null,
     }
 
     if (isSupabaseConfigured) {

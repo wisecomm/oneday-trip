@@ -326,8 +326,6 @@ create table public.shared_plans (
   clone_count        integer not null default 0 check (clone_count >= 0),
   is_hidden          boolean not null default false,
   hidden_reason      plan_hidden_reason,
-  source_trip_id     uuid references public.trips on delete set null,
-  source_updated_at  timestamptz,
   created_at         timestamptz not null default now(),
   updated_at         timestamptz not null default now(),
   -- 만족도 집계(14-2). 평가가 없으면 0 이 아니라 null 이다 — 0 이면
@@ -352,7 +350,6 @@ create index shared_plans_recent_idx
   on public.shared_plans (created_at desc)
   where is_hidden = false;
 create index shared_plans_author_idx on public.shared_plans (author_user_id);
-create index shared_plans_source_trip_idx on public.shared_plans (source_trip_id);
 
 -- trip_items 와 같은 모양이다. 개인 기록(status·note·rating)만 빠지고 공개용
 -- 한 줄 팁이 들어간다. 같은 모양이라야 올리기/담기가 대칭 변환이 된다.

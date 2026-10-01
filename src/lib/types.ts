@@ -246,8 +246,6 @@ export interface SharedPlan {
   rating_count: number
   is_hidden: boolean
   hidden_reason: PlanHiddenReason | null
-  source_trip_id: string | null
-  source_updated_at: string | null
   created_at: string
   updated_at: string
   /** 상세 조회에서만 채운다 */
