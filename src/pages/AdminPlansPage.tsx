@@ -38,7 +38,7 @@ export function AdminPlansPage() {
   async function setHidden(id: string, hidden: boolean) {
     setBusy(id)
     try {
-      await sharedPlans.setHidden(id, hidden)
+      await sharedPlans.setHidden(id, hidden, 'admin')
       await load()
     } finally {
       setBusy(null)

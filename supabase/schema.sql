@@ -30,7 +30,7 @@ create type user_role as enum ('user', 'admin');
 -- 영원히 부정확해진다.
 create type place_source_kind    as enum ('tour', 'manual');
 create type plan_origin          as enum ('admin', 'user');
-create type plan_hidden_reason   as enum ('reported', 'place_removed', 'admin');
+create type plan_hidden_reason   as enum ('place_removed', 'admin');
 create type place_request_status as enum ('pending', 'approved', 'rejected');
 
 -- ── SYS-01-02 사용자 프로필 ──────────────────────────────────────────
@@ -366,19 +366,6 @@ create table public.shared_plan_items (
 create index shared_plan_items_plan_idx on public.shared_plan_items (plan_id, sort_order);
 create index shared_plan_items_place_idx on public.shared_plan_items (place_id);
 
-create table public.plan_reports (
-  id          uuid primary key default gen_random_uuid(),
-  plan_id     uuid not null references public.shared_plans on delete cascade,
-  reporter_id uuid not null references auth.users on delete cascade,
-  reason      text not null check (char_length(reason) between 2 and 300),
-  resolved    boolean not null default false,
-  created_at  timestamptz not null default now(),
-  -- 혼자 세 번 눌러 남의 플랜을 내릴 수 없게 한다
-  unique (plan_id, reporter_id)
-);
-
-create index plan_reports_open_idx on public.plan_reports (plan_id) where resolved = false;
-
 -- 담아 온 플랜. on delete set null 이라 플랜이 지워져도 여행은 남는다 —
 -- 담기는 복제이지 참조가 아니다(7-D4). 이 값은 출처 표시와 '담은 사람만
 -- 평가'(14-2) 판정에 쓴다. 없으면 누가 담았는지 알 수 없어 담지도 않은
@@ -499,46 +486,6 @@ $$;
 create trigger shared_plan_items_place_removed
   after delete on public.shared_plan_items
   for each row execute function public.shared_plan_items_hide_parent();
-
--- ── 신고 3건이면 자동으로 내린다 ────────────────────────────────────
--- 자동 숨김만 두고 복구는 자동화하지 않는다. 잘못 숨긴 플랜의 피해는
--- "안 보인다" 한 줄이고, 잘못 남겨 둔 플랜의 피해는 그걸 본 모든 사람에게
--- 간다. 사람이 붙어야 하는 쪽은 되살릴 때다.
-create or replace function public.plan_reports_autohide()
-returns trigger
-language plpgsql
-security definer
-set search_path = public, pg_temp
-as $$
-declare
-  open_count integer;
-  plan_origin_value plan_origin;
-begin
-  select origin into plan_origin_value
-    from public.shared_plans where id = new.plan_id;
-
-  -- 운영자 플랜은 신고를 받되 자동으로 내리지 않는다. 관리자 화면에만 올린다.
-  if plan_origin_value = 'admin' then
-    return new;
-  end if;
-
-  select count(*) into open_count
-    from public.plan_reports
-   where plan_id = new.plan_id and resolved = false;
-
-  if open_count >= 3 then
-    update public.shared_plans
-       set is_hidden = true, hidden_reason = 'reported', updated_at = now()
-     where id = new.plan_id and is_hidden = false;
-  end if;
-
-  return new;
-end;
-$$;
-
-create trigger plan_reports_autohide_trigger
-  after insert on public.plan_reports
-  for each row execute function public.plan_reports_autohide();
 
 -- ── 작성자 닉네임 노출 ──────────────────────────────────────────────
 -- profiles 에 using(true) select 정책을 열면 taste_tags 까지 딸려 나간다.
@@ -777,7 +724,6 @@ alter table public.trip_items   enable row level security;
 alter table public.reservations enable row level security;
 alter table public.shared_plans      enable row level security;
 alter table public.shared_plan_items enable row level security;
-alter table public.plan_reports      enable row level security;
 alter table public.place_requests    enable row level security;
 alter table public.plan_ratings      enable row level security;
 
@@ -879,19 +825,6 @@ create policy "plan items are written by the plan owner"
          and (p.author_user_id = auth.uid() or public.is_admin())
     )
   );
-
-create policy "own reports"
-  on public.plan_reports for select
-  using (reporter_id = auth.uid() or public.is_admin());
-
-create policy "report as myself"
-  on public.plan_reports for insert
-  with check (reporter_id = auth.uid());
-
-create policy "admins resolve reports"
-  on public.plan_reports for update
-  using (public.is_admin())
-  with check (public.is_admin());
 
 -- ── PLACE-07 장소 등록 요청 ──────────────────────────────────────────
 create policy "own place requests"

@@ -6,6 +6,7 @@ import type {
   Place,
   PlaceCategory,
   PlaceRequest,
+  PlanHiddenReason,
   Profile,
   Region,
   RegionGroup,
@@ -18,7 +19,7 @@ import type {
   TripItem,
   TripItemStatus,
 } from './types'
-import { DUPLICATE_RADIUS_M, REPORT_HIDE_THRESHOLD } from './types'
+import { DUPLICATE_RADIUS_M } from './types'
 
 /**
  * 데이터 접근 계층.
@@ -932,12 +933,24 @@ export const sharedPlans = {
     return trip.id
   },
 
-  /** 작성자·관리자만 내린다. 이미 담아 간 사람의 여행은 복사본이라 그대로 남는다 */
-  async setHidden(id: string, hidden: boolean): Promise<void> {
+  /**
+   * 작성자·관리자만 내린다. 이미 담아 간 사람의 여행은 복사본이라 그대로 남는다.
+   *
+   * reason 은 "누가 내렸는가"를 적는 칸이다. 작성자가 스스로 내리면 null 이고,
+   * 운영자가 내리면 'admin' 이다. 이 구분이 있어야 작성자 화면에서 "다시 공개"
+   * 버튼을 내보낼지 판단할 수 있다 — 운영자가 내린 것을 작성자가 바로 되살리면
+   * 운영자 조치가 의미를 잃는다.
+   */
+  async setHidden(
+    id: string,
+    hidden: boolean,
+    reason: PlanHiddenReason | null = null,
+  ): Promise<void> {
+    const hiddenReason = hidden ? reason : null
     if (isSupabaseConfigured) {
       const { error } = await sb()
         .from('shared_plans')
-        .update({ is_hidden: hidden, hidden_reason: hidden ? 'admin' : null })
+        .update({ is_hidden: hidden, hidden_reason: hiddenReason })
         .eq('id', id)
       if (error) throw error
       return
@@ -948,7 +961,7 @@ export const sharedPlans = {
         d.shared_plans[i] = {
           ...d.shared_plans[i],
           is_hidden: hidden,
-          hidden_reason: hidden ? 'admin' : null,
+          hidden_reason: hiddenReason,
         }
     })
   },
@@ -965,38 +978,6 @@ export const sharedPlans = {
     })
   },
 
-  /**
-   * 신고. 같은 사람이 같은 플랜을 여러 번 신고할 수 없다(DB unique).
-   * 서로 다른 사람의 신고가 3건 쌓이면 DB 트리거가 자동으로 내린다.
-   */
-  async report(planId: string, reporterId: string, reason: string): Promise<void> {
-    if (isSupabaseConfigured) {
-      const { error } = await sb()
-        .from('plan_reports')
-        .insert({ plan_id: planId, reporter_id: reporterId, reason })
-      if (error) throw error
-      return
-    }
-    mutateDb((d) => {
-      if (d.plan_reports.some((r) => r.plan_id === planId && r.reporter_id === reporterId)) {
-        throw new Error('이미 신고한 플랜입니다')
-      }
-      d.plan_reports.push({
-        id: uid('report'),
-        plan_id: planId,
-        reporter_id: reporterId,
-        reason,
-        resolved: false,
-        created_at: nowIso(),
-      })
-      // 데모도 서버 트리거와 같은 임계값을 따른다. 한 건에 바로 내려가면
-      // 데모를 본 사람이 규칙을 틀리게 이해한다.
-      const open = d.plan_reports.filter((r) => r.plan_id === planId && !r.resolved).length
-      const i = d.shared_plans.findIndex((p) => p.id === planId)
-      if (i >= 0 && d.shared_plans[i].origin === 'user' && open >= REPORT_HIDE_THRESHOLD)
-        d.shared_plans[i] = { ...d.shared_plans[i], is_hidden: true, hidden_reason: 'reported' }
-    })
-  },
 }
 
 /* ─────────────────── Place requests (PLACE-07) ─────────────────── */

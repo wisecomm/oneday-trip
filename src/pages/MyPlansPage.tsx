@@ -14,8 +14,8 @@ import { EmptyState, Loading, PageHeader } from '@/components/ui'
  * SHARE-06-04 내가 올린 플랜.
  *
  * 내려간 플랜도 보여 준다 — 왜 내려갔는지 모르면 작성자가 할 수 있는 일이
- * 없다. 신고 누적인지, 담긴 장소가 카탈로그에서 사라졌는지, 운영자가
- * 내렸는지를 구분해 적는다.
+ * 없다. 담긴 장소가 카탈로그에서 사라졌는지, 운영자가 내렸는지를 구분해
+ * 적는다. 작성자가 스스로 내린 것은 사유가 없다.
  */
 export function MyPlansPage() {
   const { user } = useAuth()
@@ -116,8 +116,8 @@ export function MyPlansPage() {
                     내려간 사유: {PLAN_HIDDEN_REASON_LABEL[p.hidden_reason]}
                     {p.hidden_reason === 'place_removed' &&
                       ' — 담긴 장소가 카탈로그에서 사라졌습니다. 다시 올리려면 여행을 고쳐 새로 올려 주세요.'}
-                    {p.hidden_reason === 'reported' &&
-                      ' — 운영자 확인 후 복구됩니다. 작성자가 직접 되살릴 수는 없습니다.'}
+                    {p.hidden_reason === 'admin' &&
+                      ' — 운영자가 내린 플랜입니다. 복구는 운영자에게 문의해 주세요.'}
                   </p>
                 )}
 
@@ -128,9 +128,10 @@ export function MyPlansPage() {
                     중복 플랜이 생기기 때문이다. */}
 
                 <div className="mt-2 flex gap-2">
-                  {/* 신고로 내려간 플랜은 작성자가 되살릴 수 없다 — 그러면
-                      자동 숨김이 아무 의미가 없어진다 */}
-                  {p.hidden_reason !== 'reported' && (
+                  {/* 운영자가 내린 플랜은 작성자가 되살릴 수 없다 — 그러면
+                      운영자 조치가 아무 의미가 없어진다. 작성자가 스스로
+                      내린 것은 hidden_reason 이 null 이라 여기 걸리지 않는다. */}
+                  {p.hidden_reason !== 'admin' && (
                     <button
                       type="button"
                       onClick={() => setHidden(p.id, !p.is_hidden)}

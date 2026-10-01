@@ -34,9 +34,7 @@ export function PlanDetailPage() {
   const [plan, setPlan] = useState<SharedPlan | null>(null)
   const [loading, setLoading] = useState(true)
   const [cloneOpen, setCloneOpen] = useState(false)
-  const [reportOpen, setReportOpen] = useState(false)
   const [tripDate, setTripDate] = useState(todayIso(7))
-  const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -112,21 +110,6 @@ export function PlanDetailPage() {
       await load()
     } catch (e) {
       setError(e instanceof Error ? e.message : '만족도 저장에 실패했습니다.')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function submitReport() {
-    if (!plan || !user) return
-    setBusy(true)
-    setError(null)
-    try {
-      await sharedPlans.report(plan.id, user.id, reason.trim())
-      setReportOpen(false)
-      setReason('')
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '신고에 실패했습니다.')
     } finally {
       setBusy(false)
     }
@@ -264,16 +247,9 @@ export function PlanDetailPage() {
           )}
         </section>
 
-        <div className="mt-5 flex gap-2">
-          <button type="button" onClick={startClone} className="btn-primary flex-1">
+        <div className="mt-5">
+          <button type="button" onClick={startClone} className="btn-primary w-full">
             내 여행으로 담기
-          </button>
-          <button
-            type="button"
-            onClick={() => (user ? setReportOpen(true) : navigate('/login'))}
-            className="btn-ghost !px-3 text-[13px] text-ink-500"
-          >
-            신고
           </button>
         </div>
         {error && <p className="mt-2 text-[13px] text-red-600">{error}</p>}
@@ -348,31 +324,6 @@ export function PlanDetailPage() {
         </button>
       </BottomSheet>
 
-      <BottomSheet open={reportOpen} onClose={() => setReportOpen(false)} title="신고하기">
-        <label className="label" htmlFor="report-reason">
-          어떤 점이 문제인가요?
-        </label>
-        <input
-          id="report-reason"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          maxLength={300}
-          placeholder="예: 설명이 광고입니다"
-          className="field"
-        />
-        <p className="hint mt-2">
-          여러 사람이 신고하면 자동으로 내려가고 운영자가 확인합니다. 한 플랜에 한 번만 신고할
-          수 있습니다.
-        </p>
-        <button
-          type="button"
-          onClick={submitReport}
-          disabled={busy || reason.trim().length < 2}
-          className="btn-primary mt-4 w-full"
-        >
-          {busy ? '보내는 중…' : '신고 보내기'}
-        </button>
-      </BottomSheet>
     </>
   )
 }

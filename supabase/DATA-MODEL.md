@@ -22,7 +22,6 @@ erDiagram
     auth_users ||--o{ reservations : "소유"
     auth_users ||--o{ shared_plans : "작성(사용자 플랜만)"
     auth_users ||--o{ plan_ratings : "평가"
-    auth_users ||--o{ plan_reports : "신고"
     auth_users ||--o{ place_requests : "요청"
 
     region_groups ||--o{ regions : "시/도 → 시군구"
@@ -39,7 +38,6 @@ erDiagram
     shared_plans ||--o{ shared_plan_items : "공개 동선"
     places ||--o{ shared_plan_items : "담긴 장소"
     shared_plans ||--o{ plan_ratings : "만족도"
-    shared_plans ||--o{ plan_reports : "신고"
     shared_plans ||--o{ trips : "담아 간 여행(source_plan_id)"
     places ||--o| place_requests : "승인으로 생긴 장소"
 
@@ -54,8 +52,8 @@ TourAPI 수집 배치가 채웁니다.
 **개인** — `profiles`, `trips` → `trip_items`, `reservations`. 전부
 `auth.uid()` 소유자만 접근합니다. **관리자도 남의 것을 읽지 못합니다.**
 
-**공유** — `shared_plans` → `shared_plan_items`, 거기 붙는 `plan_ratings` ·
-`plan_reports`. 공개 읽기이고, 개인 덩어리와는 **복사로만** 오갑니다.
+**공유** — `shared_plans` → `shared_plan_items`, 거기 붙는 `plan_ratings`.
+공개 읽기이고, 개인 덩어리와는 **복사로만** 오갑니다.
 
 ---
 
@@ -138,10 +136,10 @@ TourAPI 수집 배치가 채웁니다.
 **RLS** `is_hidden = false` 면 누구나 읽기(비로그인 포함). 쓰기는
 `origin='user'` 면 작성자, `origin='admin'` 이면 관리자.
 
-**주의** 세 가지입니다.
+**주의** 네 가지입니다.
 
 `origin` 하나로 운영자 플랜과 사용자 플랜을 가릅니다. 테이블을 나누면
-리스트·상세·담기·신고가 전부 두 벌이 됩니다. 운영자 플랜은
+리스트·상세·담기가 전부 두 벌이 됩니다. 운영자 플랜은
 `author_user_id` 가 null 입니다.
 
 **스냅샷입니다.** 올리는 순간 `trip_items` 를 그대로 베껴 넣고, 그 뒤로
@@ -153,6 +151,14 @@ TourAPI 수집 배치가 채웁니다.
 
 `rating_avg` 는 평가가 없으면 **0 이 아니라 null** 입니다. `places.source_rating`
 에서 겪은 것과 같은 함정입니다.
+
+**`hidden_reason` 은 "누가 내렸는가"입니다.** 작성자가 스스로 내리면 null,
+운영자가 내리면 `admin`, 담긴 장소가 사라져 트리거가 내리면 `place_removed`
+입니다. 이 구분이 있어야 작성자 화면에서 "다시 공개" 버튼을 내보낼지
+판단할 수 있습니다 — 운영자가 내린 것을 작성자가 바로 되살리면 운영자
+조치가 의미를 잃습니다. 네 번째 값이던 `reported` 는 2026-10-01 에
+신고 기능을 통째로 걷어내면서 없앴습니다 — 사용자가 공유하면 확인 없이
+바로 뜨고, 사후 통제는 운영자 조치만 남습니다.
 
 ### `plan_ratings` — 플랜 만족도
 
@@ -168,20 +174,6 @@ TourAPI 수집 배치가 채웁니다.
 그 트리거는 `security definer` 여야 합니다. 평가자는 남의 `shared_plans` 를
 update 할 권한이 없어서, 호출자 권한으로 돌면 **RLS 에 막혀 집계가 오류 없이
 조용히 갱신되지 않습니다.**
-
-### `plan_reports` — 신고
-
-**담는 것** 신고자·플랜·사유. `(plan_id, reporter_id)` 가 unique 라
-혼자 여러 번 눌러 남의 플랜을 내릴 수 없습니다.
-
-**쓰는 화면** `PlanDetailPage`(신고) · `AdminPlansPage`(처리).
-
-**RLS** 본인 것과 관리자만 읽기. 처리는 관리자만.
-
-**주의** 서로 다른 사람의 신고가 3건 쌓이면 트리거가 자동으로 내립니다.
-**복구는 자동화하지 않습니다** — 잘못 숨긴 피해는 "안 보인다" 한 줄이고,
-잘못 남겨 둔 피해는 그걸 본 모든 사람에게 갑니다. 운영자 플랜은 신고를
-받되 자동으로 내려가지 않고 관리자 화면에만 올라갑니다.
 
 ### `place_requests` — 장소 등록 요청 **(현재 보류)**
 
@@ -228,12 +220,12 @@ RLS 는 행 단위라 컬럼을 가려 주지 않습니다. 그래서 뷰만 공
 | RoutePage | trips, trip_items |
 | TripListPage | trips, trip_items |
 | PlanListPage | shared_plans, regions |
-| PlanDetailPage | shared_plans, shared_plan_items, places, plan_ratings, plan_reports |
+| PlanDetailPage | shared_plans, shared_plan_items, places, plan_ratings |
 | PlanPublishPage | trips, trip_items → shared_plans, shared_plan_items |
 | MyPlansPage | shared_plans |
 | MyPage | profiles, reservations |
 | ProfileSetupPage | profiles |
-| AdminPlansPage | shared_plans, plan_reports |
+| AdminPlansPage | shared_plans |
 | AdminPlanEditPage | places, regions, shared_plans, shared_plan_items |
 | AdminPlacesPage | places, place_requests, regions |
 
@@ -269,7 +261,6 @@ update 한 번으로 바꾸는 단순 속성입니다. 복합 FK 는 `MATCH SIMP
 | `approve_place_request()` | 요청 읽기·`places` 쓰기·상태 갱신이 한 트랜잭션이어야 함 |
 | `reject_place_request()` | 요청자는 자기 요청의 상태를 바꿀 수 없음 |
 | `admin_create_place()` | 같은 시퀀스로 id 를 매겨야 함 |
-| `plan_reports_autohide()` | 신고자가 남의 `shared_plans` 를 내릴 수 없음 |
 | `plan_ratings_refresh()` | 평가자가 남의 `shared_plans` 를 update 할 수 없음 |
 | `shared_plan_items_hide_parent()` | 같은 이유 |
 | `profiles_guard_role()` | **반대로 definer 면 안 됨** — 정의자 권한 안에서는 `current_user` 가 호출자가 아니라 함수 소유자가 되어 판정이 항상 통과 |

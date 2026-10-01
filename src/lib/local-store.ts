@@ -1,6 +1,5 @@
 import type {
   PlaceRequest,
-  PlanReport,
   Profile,
   Reservation,
   SharedPlan,
@@ -32,7 +31,6 @@ export interface LocalDb {
   reservations: Reservation[]
   shared_plans: StoredSharedPlan[]
   shared_plan_items: SharedPlanItem[]
-  plan_reports: PlanReport[]
   /**
    * 데모에는 승인하는 주체가 없다. 요청은 pending 으로 쌓이고 거기서 멈춘다 —
    * "승인 후에만 저장된다"가 이 기능의 핵심 규칙이라, 데모가 그 규칙을
@@ -50,7 +48,6 @@ const EMPTY: LocalDb = {
   reservations: [],
   shared_plans: [],
   shared_plan_items: [],
-  plan_reports: [],
   place_requests: [],
 }
 

@@ -197,7 +197,7 @@ export interface Reservation {
 export type PlanOrigin = 'admin' | 'user'
 
 /** 플랜이 왜 내려갔는지 — 관리자 화면의 분류축 */
-export type PlanHiddenReason = 'reported' | 'place_removed' | 'admin'
+export type PlanHiddenReason = 'place_removed' | 'admin'
 
 export type Season = 'spring' | 'summer' | 'autumn' | 'winter'
 
@@ -285,15 +285,6 @@ export interface PlanRating {
   author_nickname?: string | null
 }
 
-export interface PlanReport {
-  id: string
-  plan_id: string
-  reporter_id: string
-  reason: string
-  resolved: boolean
-  created_at: string
-}
-
 /** 작성자 표시 문구 — 운영자 플랜과 사용자 플랜을 한 줄로 다룬다 */
 export function planAuthorLabel(plan: Pick<SharedPlan, 'origin' | 'author_nickname'>): string {
   if (plan.origin === 'admin') return '운영자'
@@ -301,7 +292,6 @@ export function planAuthorLabel(plan: Pick<SharedPlan, 'origin' | 'author_nickna
 }
 
 export const PLAN_HIDDEN_REASON_LABEL: Record<PlanHiddenReason, string> = {
-  reported: '신고 누적',
   place_removed: '장소 삭제',
   admin: '관리자 조치',
 }
@@ -315,9 +305,6 @@ export const SEASON_LABEL: Record<Season, string> = {
 
 /** 플랜으로 인정하는 최소 장소 수. 한 곳짜리는 플랜이 아니라 즐겨찾기다 */
 export const MIN_PLAN_PLACES = 2
-
-/** 이 수만큼 서로 다른 사람이 신고하면 자동으로 내려간다 (DB 트리거) */
-export const REPORT_HIDE_THRESHOLD = 3
 
 /** 만족도 별점을 말로 바꿔 준다. 숫자만 있으면 무슨 뜻인지 매번 가늠해야 한다 */
 export const PLAN_RATING_LABEL: Record<number, string> = {
