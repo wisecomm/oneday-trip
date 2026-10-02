@@ -10,7 +10,7 @@ npm install && npm run dev
 ```
 
 `.env` 없이 바로 실행됩니다. 이 경우 앱은 **데모 모드**로 동작하며,
-Supabase 대신 localStorage 를, 카카오맵 대신 SVG 폴백 지도를 사용합니다.
+Supabase 대신 localStorage 를, 네이버 지도 대신 SVG 폴백 지도를 사용합니다.
 모든 화면과 로직은 동일하게 작동합니다.
 
 ## 기능 코드 ↔ 구현 매핑
@@ -23,17 +23,33 @@ Supabase 대신 localStorage 를, 카카오맵 대신 SVG 폴백 지도를 사�
 | TRIP-02-02 | 방문 제약 조건 지정 | `/trips/:id/rules` | [TripRulesPage.tsx](src/pages/TripRulesPage.tsx) |
 | TRIP-03-01 | 일자별 여행 리스트 | `/trips/:id` | [TimelinePage.tsx](src/pages/TimelinePage.tsx) |
 | TRIP-03-02 | 동선 최적화 지도 | `/trips/:id/route` | [RoutePage.tsx](src/pages/RoutePage.tsx) |
-| MAP-04-01 | 실시간 지도 홈 | `/map` | [ExplorePage.tsx](src/pages/ExplorePage.tsx) |
+| MAP-04-01 | 실시간 지도 홈 (장소 이름 검색 포함) | `/map` | [ExplorePage.tsx](src/pages/ExplorePage.tsx) |
 | MAP-04-02 | 맥락 인지 추천 피드 | `/recommend` | [RecommendPage.tsx](src/pages/RecommendPage.tsx) |
 | RSV-05-01 | 레스토랑 상세 및 예약 | `/places/:id` | [PlaceDetailPage.tsx](src/pages/PlaceDetailPage.tsx) |
+| SHARE-06-01 | 공용 플랜 목록 | `/plans` | [PlanListPage.tsx](src/pages/PlanListPage.tsx) |
+| SHARE-06-02 | 공용 플랜 상세 · 내 여행으로 담기 | `/plans/:id` | [PlanDetailPage.tsx](src/pages/PlanDetailPage.tsx) |
+| SHARE-06-03 | 내 여행을 공용 플랜으로 올리기 | `/trips/:id/share` | [PlanPublishPage.tsx](src/pages/PlanPublishPage.tsx) |
+| SHARE-06-04 | 내가 올린 플랜 | `/me/plans` | [MyPlansPage.tsx](src/pages/MyPlansPage.tsx) |
+| SHARE-06-06 | 운영자 플랜 관리 | `/admin/plans` | [AdminPlansPage.tsx](src/pages/AdminPlansPage.tsx) |
+| SHARE-06-07 | 플랜 만족도 | `/plans/:id` 안 | [PlanDetailPage.tsx](src/pages/PlanDetailPage.tsx) |
+| PLACE-07-01 | 운영자 장소 등록 | `/admin/places` | [AdminPlacesPage.tsx](src/pages/AdminPlacesPage.tsx) |
+
+기능 코드가 붙지 않은 화면도 있습니다 — 홈([HomePage.tsx](src/pages/HomePage.tsx)),
+내 여행 목록([TripListPage.tsx](src/pages/TripListPage.tsx)),
+마이페이지([MyPage.tsx](src/pages/MyPage.tsx)),
+가입([SignupPage.tsx](src/pages/SignupPage.tsx)),
+소셜 로그인 콜백([AuthCallbackPage.tsx](src/pages/AuthCallbackPage.tsx)),
+계정 문제 안내([AccountHelpPage.tsx](src/pages/AccountHelpPage.tsx)).
 
 ### 기획 조건 반영 지점
 
-- **Guest 모드** — 로그인 화면 하단 '가입 없이 서비스 둘러보기'. `/map`, `/places/:id` 는 비로그인 열람 가능
+- **Guest 모드** — 로그인 화면 하단 '가입 없이 서비스 둘러보기'. `/map`, `/places/:id`, `/plans`, `/plans/:id` 는 비로그인 열람 가능. 공유 링크를 받은 사람이 로그인 벽을 먼저 만나면 공유가 성립하지 않으므로, 플랜은 보여 주고 '담기'를 누를 때 로그인으로 보냅니다
 - **소셜 가입 시 닉네임 자동 연동** — [auth.tsx](src/lib/auth.tsx) 의 `suggestedNickname`, DB 측은 `handle_new_user()` 트리거
 - **이동수단별 소요 시간** — [geo.ts](src/lib/geo.ts) `travelMinutes()`, 직선 거리에 1.3배 우회 계수 적용
 - **동선 최적화** — 최근접 이웃 + 2-opt ([geo.ts](src/lib/geo.ts) `optimizeOrder()`). 순서 변경 시 요약이 즉시 재계산
 - **예약 상태 배지 바인딩** — 타임라인 카드에 '예약 확정' 자동 표시
+- **플랜 작성자 표기** — 닉네임을 쓰지 않고 '운영자' 또는 '회원'으로만 표시합니다 ([types.ts](src/lib/types.ts) `planAuthorLabel()`)
+- **순서 바꾸기** — 타임라인·동선 최적화·플랜 올리기 세 화면 모두 드래그 핸들로 통일했습니다 (dnd-kit). 화살표 버튼은 쓰지 않습니다
 - **장소 상세 전화 연결** — TourAPI 로 받아온 `places.phone` 이 있으면 상세 페이지에 `tel:` 링크 버튼으로 노출 ([PlaceDetailPage.tsx](src/pages/PlaceDetailPage.tsx))
 
 ## Supabase 연결
@@ -84,39 +100,65 @@ Authentication > Sign In / Providers > Email 에 비슷한 토글이 나란히 �
 
 ### 데이터 모델
 
-| 테이블 | 용도 |
-|---|---|
-| `profiles` | 닉네임 · 취향 태그 (SYS-01-02) |
-| `region_groups` | 상위 목적지 지역(시/도). 비로그인 읽기 허용 |
-| `regions` | 하위 목적지 지역(구/시). `group_name` 이 `region_groups.name` 을 참조. 비로그인 읽기 허용 |
-| `places` | 장소 카탈로그. `region` 이 `regions.name`(하위 지역)을 참조. 비로그인 읽기 허용 |
-| `trips` | 여행 날짜(당일치기) · 목적지 · 이동수단. `destination` 이 `regions.name`(leaf) 또는 `region_groups.name`('전체' 선택 시) 을 참조 |
-| `trip_items` | 방문 순서 (`sort_order`) — 당일치기라 일자 구분이 없다 |
-| `reservations` | 예약 (RSV-05-01) |
+**[supabase/DATA-MODEL.md](supabase/DATA-MODEL.md) 가 정본입니다.** 관계도, 테이블별
+설계 근거, 화면→테이블 대응, RLS 가 실제로 막는 것이 거기 있습니다. 여기 표를 두면
+스키마가 바뀔 때마다 두 곳이 어긋나므로 — 실제로 한동안 어긋나 있었습니다 —
+방향만 적습니다.
 
-RLS 는 전 테이블에 적용되어 있고, 사용자는 자신의 행만 읽고 쓸 수 있습니다.
+테이블은 열 개입니다. 지역 둘(`region_groups` · `regions`), 장소 하나(`places`),
+사용자 하나(`profiles`), 개인 여행 둘(`trips` · `trip_items`), 예약 하나
+(`reservations`), 공용 플랜 셋(`shared_plans` · `shared_plan_items` ·
+`plan_ratings`).
+
+**지역 키는 이름이 아니라 TourAPI 코드 복합키입니다.** `(tour_area_code,
+tour_sigungu_code)` 로 `regions` 를 참조합니다. 이름으로 참조하던 옛 구조는
+REGION-07 에서 걷어냈습니다 —
+[intent/2026-09-20-재수집-스키마-교체/intent.md](intent/2026-09-20-재수집-스키마-교체/intent.md)
+에 왜 그렇게 했는지가 있습니다.
+
+RLS 는 전 테이블에 걸려 있습니다. 지역과 장소는 비로그인도 읽을 수 있고, 나머지는
+자기 행만 읽고 씁니다. 공용 플랜은 올린 사람이 아니어도 읽을 수 있습니다.
 
 ### 장소 데이터 출처
 
-`places` 시드 339곳(전국 17개 시/도)은 [한국관광공사 TourAPI](https://www.data.go.kr)
-(KorService2)에서 가져왔습니다. 지역기반 목록(`areaBasedList2`) · 상세소개
-(`detailCommon2`) · 영업시간(`detailIntro2`) 세 오퍼레이션을 조합해 이름·주소·좌표·
-사진·한 줄 소개·영업시간을 채웠습니다.
+`places` 는 [한국관광공사 TourAPI](https://www.data.go.kr)(KorService2)에서 가져온
+**전국 15,518곳**입니다. 지역기반 목록(`areaBasedList2`) · 상세소개(`detailCommon2`) ·
+영업시간(`detailIntro2`) 세 오퍼레이션을 조합해 이름·주소·좌표·사진·한 줄 소개·
+영업시간·전화를 채웁니다.
 
-첫 4개 지역(서울·제주·부산·경북, 79곳)을 지역당 20~30곳 규모로 수집한 뒤, 나머지
-13개 시/도를 지역당 20곳씩 추가했습니다(`20260825000000_tourapi_places.sql` →
-`20260825020000_nationwide_regions.sql`).
+**상세는 아직 채우는 중입니다.** 목록 수집은 전국 234개 시군구가 모두 끝났고,
+장소별 상세는 일일 호출 한도(1,000건 수준) 때문에 하루 1,000곳씩 받습니다.
+2026-10-02 기준 5,000곳(32.2%)입니다. 상세가 비어 있는 장소는 소개·영업시간·전화
+칸이 화면에서 통째로 사라집니다 — 빈 제목만 남는 쪽이 더 나쁘다고 보았습니다.
+
+수집은 매일 자정 launchd 로 자동 실행됩니다
+([run-daily.sh](intent/2026-09-20-재수집-스키마-교체/run-daily.sh) ·
+[plist](intent/2026-09-20-재수집-스키마-교체/com.danyoh.oneday-trip.collect.plist)).
+한도에 걸려 죽어도 이미 받은 것은 건너뛰고 다음 날 그 자리에서 이어받습니다.
+받은 결과를 앱이 쓰는 SQL 로 바꾸는 것은
+[load.mjs](intent/2026-09-20-재수집-스키마-교체/load.mjs) 이고, 결과물이
+`supabase/seed.sql` 입니다.
 
 **TourAPI 가 주지 않는 값은 정직하게 비워 뒀습니다.**
 
-- `rating` — 전부 0. TourAPI 는 평점을 제공하지 않는 공공데이터라 리뷰 기반 점수가 없습니다.
-  AI 추천(MAP-04-02) 점수식이 `rating × 2` 를 기본 점수로 쓰므로, 이 장소들은 취향 태그
-  매칭·시간대/날씨 보너스에만 의존해 추천됩니다.
+- `source_rating` — 전부 null. TourAPI 는 평점을 제공하지 않는 공공데이터라 리뷰 기반
+  점수가 없습니다. **0 이 아니라 null 인 것이 중요합니다** — 0 으로 두면 '평점 없음'과
+  '0점'이 구분되지 않아 전 장소가 `★ 0.0` 으로 보입니다. 화면 네 곳이 null 을 보고
+  별점 영역을 통째로 숨깁니다. AI 추천(MAP-04-02) 점수식은 평점이 없는 장소를
+  취향 태그 매칭·시간대/날씨 보너스로만 평가합니다.
 - `tags` — 전부 빈 배열. TASTE_TAGS 와 매칭할 신뢰할 만한 원천이 없어 추측해 채우지
   않았습니다.
-- **술집(`sulzip`) 카테고리는 전국에 4곳뿐입니다.** TourAPI 는 관광·가족 단위 콘텐츠
-  위주라 주점 분류(FD04)가 원래 희박합니다(전국 조회 결과 총 7건, 사진 있는 것만
-  4건). 카카오 로컬 API 등 다른 소스로 보충하기 전까지는 이 상태가 유지됩니다.
+- **술집(`sulzip`) 카테고리가 희박합니다.** TourAPI 는 관광·가족 단위 콘텐츠 위주라
+  주점 분류(FD04)가 원래 적습니다. 카카오 로컬 API 등 다른 소스로 보충하기 전까지는
+  이 상태가 유지됩니다.
+
+**판정하지 못한 장소는 버리지 않고 격리합니다.** 시군구를 정하지 못한 장소는 코드
+`-1` 에 `region_source = 'unresolved'` 로 두고, 왜 실패했는지를 `region_note` 에
+적습니다. 현재 30곳이고 전부 TourAPI 원본의 좌표가 한국 범위 밖인 경우입니다.
+이 장소들은 드롭다운·지도·추천 어디에도 나오지 않습니다 — 제외 조건은
+[db.ts](src/lib/db.ts) 한 곳에만 있습니다. 코드를 손으로 고치면 `region_source` 가
+`manual` 로 자동 전환되어 바로 서비스에 등장하고, 재수집을 다시 돌려도 그 값이
+덮어써지지 않습니다.
 
 **수집 중 발견한, 최근 실제 행정구역 개편도 데이터에 반영돼 있습니다.**
 2026년 7월 인천에 제물포구·영종구·검단구가 신설됐고, 같은 달 광주·전남이
@@ -130,16 +172,8 @@ RLS 는 전 테이블에 적용되어 있고, 사용자는 자신의 행만 읽�
 한누리대로 288'), 주소 2번째 토큰으로 구/읍/면을 파싱하는 방식이 도로명을
 잘못 뽑아내는 문제가 있었습니다.
 
-위 339곳을 가져온 배치의 스크립트는 남아 있지 않습니다(1회성 작업이었고,
-`supabase/migrations/` 의 두 마이그레이션이 그 결과물입니다).
-
-**지금 진행 중인 전국 재수집의 스크립트는 저장소에 있습니다** —
-[intent/2026-09-20-재수집-스키마-교체/collect.mjs](intent/2026-09-20-재수집-스키마-교체/collect.mjs)
-입니다. 앱 빌드와 무관한 1회성 도구라 `src/` 가 아니라 그 작업의 문서 옆에 두었고,
-무엇을 왜 그렇게 수집하는지는 같은 폴더의
-[intent.md](intent/2026-09-20-재수집-스키마-교체/intent.md) 에 있습니다. 이 재수집은
-지역 키를 이름 문자열에서 TourAPI 코드 복합키로 바꾸는 스키마 교체와 함께 진행되므로,
-아래 '목적지 지역 추가하기' 절의 SQL 예시는 교체 이후 달라집니다.
+무엇을 왜 그렇게 수집하는지는
+[intent.md](intent/2026-09-20-재수집-스키마-교체/intent.md) 에 있습니다.
 
 ### 목적지 지역 추가하기
 
@@ -147,32 +181,51 @@ RLS 는 전 테이블에 적용되어 있고, 사용자는 자신의 행만 읽�
 두 단계 드롭다운입니다 — 첫 선택 시 하위는 항상 '전체'가 기본값이고, 시/도를 바꾸면
 다시 '전체'로 돌아갑니다.
 
-**기존 상위 지역에 하위 지역을 추가하는 경우** (예: 부산에 '동래구' 추가):
+**키는 이름이 아니라 TourAPI 코드입니다.** 그래서 추가할 때 코드를 함께 정해야 하고,
+대신 이름은 나중에 `update` 한 줄로 바꿀 수 있습니다.
+
+기존 상위 지역에 하위 지역을 추가하는 경우 (예: 부산에 '동래구' 추가):
 
 ```sql
-insert into public.regions (name, lat, lng, sort_order, group_name)
-values ('부산 동래구', 35.2048, 129.0788, 11, '부산');
+insert into public.regions
+  (tour_area_code, tour_sigungu_code, name, ldong_cd, lat, lng, sort_order)
+values (6, 12, '동래구', '2626000000', 35.2048, 129.0788, 12);
 ```
 
-하위 지역 이름은 `'부산 동래구'`처럼 상위 지역명을 접두어로 붙입니다 — 접두어 없이
-'서구'만 쓰면 '강서구'처럼 다른 구 이름에 부분 문자열로 포함된 이름과 뒤섞일 수 있어서입니다.
+**이름에 시/도 접두어를 붙이지 마세요.** `'부산 동래구'` 가 아니라 `'동래구'` 입니다.
+옛 구조에서는 이름이 키여서 서울 강서구와 부산 강서구를 구분하려고 접두어를 붙였지만,
+지금은 `(tour_area_code, tour_sigungu_code)` 가 키라 같은 이름이 시/도마다 따로 있어도
+됩니다. 접두어를 붙이면 화면에 '부산 부산 동래구'처럼 나옵니다.
 
-**새 상위 지역(시/도)을 통째로 추가하는 경우**엔 `region_groups` 에도 행을 먼저 넣어야
-합니다:
+`tour_sigungu_code` 는 그 시/도 안에서만 유일하면 됩니다. TourAPI 가 실제로 쓰는
+코드를 넣는 것이 원칙입니다 — 손으로 지어낸 코드를 쓰면 다음 재수집 때 그 구의
+장소가 들어오지 못합니다. 코드는 `sigunguCode2` 오퍼레이션으로 확인할 수 있고,
+받아 둔 결과가
+[raw/sigungu-*.json](intent/2026-09-20-재수집-스키마-교체/) 에 있습니다.
+
+새 상위 지역(시/도)을 통째로 추가하는 경우엔 `region_groups` 에 먼저 넣습니다:
 
 ```sql
-insert into public.region_groups (name, lat, lng, sort_order) values ('강원', 37.8228, 128.1555, 4);
-insert into public.regions (name, lat, lng, sort_order, group_name) values ('강원 강릉시', 37.7519, 128.8761, 0, '강원');
+insert into public.region_groups (tour_area_code, name, lat, lng, sort_order)
+values (32, '강원', 37.8228, 128.1555, 9);
+
+insert into public.regions
+  (tour_area_code, tour_sigungu_code, name, ldong_cd, lat, lng, sort_order)
+values (32, 1, '강릉시', '5115000000', 37.7519, 128.8761, 1);
 ```
 
 앱은 `regionGroups.list()` · `regions.list()` ([db.ts](src/lib/db.ts))로 두 테이블을
-읽어 드롭다운을 채우므로, 새로고침만으로 반영됩니다. `places.region` 과
-`trips.destination` 이 `regions.name`(하위 지역)을 외래키로 참조하므로, 장소나 여행에
-쓸 지역명은 여기 등록된 이름과 정확히 일치해야 합니다.
+읽어 드롭다운을 채우므로, 새로고침만으로 반영됩니다. 음수 코드는 미판정 전용이라
+목록에서 제외되니 쓰지 마세요.
+
+보통은 이 SQL 을 직접 쓸 일이 없습니다. 지역은 `supabase/seed.sql` 이 통째로 관리하고,
+그 파일은 `load.mjs` 가 수집 결과에서 생성합니다. 손으로 넣은 지역은 다음 재적재 때
+이름·좌표가 수집값으로 덮어써집니다 — 수집에 없는 지역을 유지하려면 TourAPI 코드표에
+있는 코드를 쓰는 것이 유일한 방법입니다.
 
 데모 모드(Supabase 미연결)에서는 [seed.ts](src/lib/seed.ts) 의 `DEMO_REGION_GROUPS` ·
-`DEMO_REGIONS` 를 대신 씁니다 — 지역을 추가했다면 데모 모드에서도 보이게 하고 싶은 경우
-이 배열들도 함께 갱신하세요.
+`DEMO_REGIONS` 를 대신 씁니다. 이 파일도 `load.mjs --demo` 가 생성하므로 손으로 고치지
+말고 다시 생성하세요.
 
 ## 네이버 지도 연결
 
@@ -213,3 +266,14 @@ Open-Meteo (날씨, 인증 불필요)
 
 - **결제** — 예약금 결제는 UI 만 있고 실제 PG 연동은 없습니다. [PlaceDetailPage.tsx](src/pages/PlaceDetailPage.tsx) 의 예약 시트에 연동 위치를 표시해 두었습니다.
 - **카카오톡 공유** — Kakao SDK 대신 Web Share API(미지원 시 클립보드 복사)를 사용합니다. 템플릿 카드가 필요하면 Kakao JavaScript SDK 의 `Kakao.Share.sendDefault()` 로 교체하세요.
+- **추천 피드에 공용 플랜 섞기** — 추천은 장소 단위로 점수를 매기는데 플랜은 장소 묶음이라 점수식을 공통 단위로 다시 짜야 합니다. 담은 수(`clone_count`)가 쌓이기 전에는 정렬할 근거가 없어 미뤘습니다.
+
+### 만들었다가 닫은 것
+
+되살리려다 같은 길을 다시 걷지 않도록 남깁니다. 셋 다 코드와 테이블을 통째로
+걷어냈습니다 — 화면에서만 가리면 아무도 쓰지 않는 `security definer` 쓰기 경로가
+DB 에 남기 때문입니다.
+
+- **플랜 신고** — 공유하면 확인 없이 바로 목록에 뜨는 쪽을 택했습니다. 플랜을 내리는 길은 둘만 남습니다. 장소가 지워져 동선이 깨질 때 트리거가 자동으로 거는 것과, 운영자가 직접 내리는 것입니다.
+- **사용자 장소 등록 요청** — 사용자가 올리고 운영자가 검수하는 흐름을 닫았습니다. 장소가 들어오는 길은 운영자 수동 등록(PLACE-07-01) 하나입니다.
+- **닉네임 노출** — 플랜 작성자는 '운영자' 또는 '회원'으로만 표시합니다. 작성자를 조회하려고 열어 둔 `public_profiles` 뷰도 함께 걷어냈습니다.
