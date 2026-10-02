@@ -4,7 +4,7 @@ import type { Place, Region, RegionGroup } from './types'
  * 데모 모드(Supabase 미연결) 데이터 — load.mjs --demo 가 생성한다.
  * 손으로 고치지 말고 수집 원본에서 다시 생성하세요.
  *
- * 생성: 2026-10-02T04:59:06.502Z
+ * 생성: 2026-10-02T05:09:18.005Z
  * 지역은 전량, 장소는 몇 개 시군구만 골라 담았다. 상세가 채워진 서울 구와
  * 아직 비어 있는 부산·제주를 섞어, 빈 값을 숨기는 처리도 데모에서 확인된다.
  */
@@ -13,7 +13,7 @@ export const DEMO_REGION_GROUPS: RegionGroup[] = [
   { tour_area_code: 1, name: "서울", lat: 37.546235, lng: 127.000687, sort_order: 0 },
   { tour_area_code: 2, name: "인천", lat: 37.517982, lng: 126.524428, sort_order: 2 },
   { tour_area_code: 3, name: "대전", lat: 36.355935, lng: 127.39648, sort_order: 7 },
-  { tour_area_code: 4, name: "대구", lat: 35.881162, lng: 128.593131, sort_order: 6 },
+  { tour_area_code: 4, name: "대구", lat: 35.880912, lng: 128.591135, sort_order: 6 },
   { tour_area_code: 5, name: "광주", lat: 35.156083, lng: 126.882476, sort_order: 8 },
   { tour_area_code: 6, name: "부산", lat: 35.175483, lng: 129.097466, sort_order: 3 },
   { tour_area_code: 7, name: "울산", lat: 35.539392, lng: 129.294318, sort_order: 9 },
@@ -23,9 +23,9 @@ export const DEMO_REGION_GROUPS: RegionGroup[] = [
   { tour_area_code: 33, name: "충북", lat: 36.7815, lng: 127.791127, sort_order: 11 },
   { tour_area_code: 34, name: "충남", lat: 36.555184, lng: 126.825778, sort_order: 12 },
   { tour_area_code: 35, name: "경북", lat: 36.269677, lng: 128.937753, sort_order: 15 },
-  { tour_area_code: 36, name: "경남", lat: 35.175669, lng: 128.358386, sort_order: 16 },
+  { tour_area_code: 36, name: "경남", lat: 35.175674, lng: 128.359697, sort_order: 16 },
   { tour_area_code: 37, name: "전북", lat: 35.734985, lng: 127.062768, sort_order: 13 },
-  { tour_area_code: 38, name: "전남", lat: 34.862533, lng: 126.918484, sort_order: 14 },
+  { tour_area_code: 38, name: "전남", lat: 34.861073, lng: 126.918974, sort_order: 14 },
   { tour_area_code: 39, name: "제주", lat: 33.399522, lng: 126.532304, sort_order: 4 },
   { tour_area_code: -1, name: "미판정", lat: 36.5, lng: 127.8, sort_order: 999 },
 ]
@@ -81,9 +81,9 @@ export const DEMO_REGIONS: Region[] = [
   { tour_area_code: 4, tour_sigungu_code: 4, name: "동구", ldong_cd: "27140", lat: 35.947594, lng: 128.663801, sort_order: 4 },
   { tour_area_code: 4, tour_sigungu_code: 5, name: "북구", ldong_cd: "27230", lat: 35.917114, lng: 128.578673, sort_order: 5 },
   { tour_area_code: 4, tour_sigungu_code: 6, name: "서구", ldong_cd: "27170", lat: 35.868123, lng: 128.560351, sort_order: 6 },
-  { tour_area_code: 4, tour_sigungu_code: 7, name: "수성구", ldong_cd: "27260", lat: 35.851822, lng: 128.656746, sort_order: 7 },
+  { tour_area_code: 4, tour_sigungu_code: 7, name: "수성구", ldong_cd: "27260", lat: 35.849219, lng: 128.641927, sort_order: 7 },
   { tour_area_code: 4, tour_sigungu_code: 8, name: "중구", ldong_cd: "27110", lat: 35.867109, lng: 128.59332, sort_order: 8 },
-  { tour_area_code: 4, tour_sigungu_code: -1, name: "미판정", ldong_cd: null, lat: 35.881162, lng: 128.593131, sort_order: 999 },
+  { tour_area_code: 4, tour_sigungu_code: -1, name: "미판정", ldong_cd: null, lat: 35.880912, lng: 128.591135, sort_order: 999 },
   { tour_area_code: 5, tour_sigungu_code: 1, name: "광산구", ldong_cd: "12330", lat: 35.186345, lng: 126.794817, sort_order: 0 },
   { tour_area_code: 5, tour_sigungu_code: 2, name: "남구", ldong_cd: "12270", lat: 35.121021, lng: 126.890748, sort_order: 1 },
   { tour_area_code: 5, tour_sigungu_code: 3, name: "동구", ldong_cd: "12210", lat: 35.141, lng: 126.934445, sort_order: 2 },
@@ -229,13 +229,13 @@ export const DEMO_REGIONS: Region[] = [
   { tour_area_code: 36, tour_sigungu_code: 12, name: "의령군", ldong_cd: "48720", lat: 35.374003, lng: 128.258133, sort_order: 9 },
   { tour_area_code: 36, tour_sigungu_code: 13, name: "진주시", ldong_cd: "48170", lat: 35.186951, lng: 128.105092, sort_order: 10 },
   { tour_area_code: 36, tour_sigungu_code: 15, name: "창녕군", ldong_cd: "48740", lat: 35.504512, lng: 128.500602, sort_order: 11 },
-  { tour_area_code: 36, tour_sigungu_code: 16, name: "창원시", ldong_cd: "48125", lat: 35.192979, lng: 128.616744, sort_order: 12 },
+  { tour_area_code: 36, tour_sigungu_code: 16, name: "창원시", ldong_cd: "48125", lat: 35.193086, lng: 128.625417, sort_order: 12 },
   { tour_area_code: 36, tour_sigungu_code: 17, name: "통영시", ldong_cd: "48220", lat: 34.817719, lng: 128.406893, sort_order: 13 },
   { tour_area_code: 36, tour_sigungu_code: 18, name: "하동군", ldong_cd: "48850", lat: 35.140139, lng: 127.74236, sort_order: 14 },
   { tour_area_code: 36, tour_sigungu_code: 19, name: "함안군", ldong_cd: "48730", lat: 35.285353, lng: 128.4401, sort_order: 15 },
   { tour_area_code: 36, tour_sigungu_code: 20, name: "함양군", ldong_cd: "48870", lat: 35.541804, lng: 127.730885, sort_order: 16 },
   { tour_area_code: 36, tour_sigungu_code: 21, name: "합천군", ldong_cd: "48890", lat: 35.594357, lng: 128.125632, sort_order: 17 },
-  { tour_area_code: 36, tour_sigungu_code: -1, name: "미판정", ldong_cd: null, lat: 35.175669, lng: 128.358386, sort_order: 999 },
+  { tour_area_code: 36, tour_sigungu_code: -1, name: "미판정", ldong_cd: null, lat: 35.175674, lng: 128.359697, sort_order: 999 },
   { tour_area_code: 37, tour_sigungu_code: 1, name: "고창군", ldong_cd: "52790", lat: 35.469141, lng: 126.61925, sort_order: 0 },
   { tour_area_code: 37, tour_sigungu_code: 2, name: "군산시", ldong_cd: "52130", lat: 35.951005, lng: 126.674611, sort_order: 1 },
   { tour_area_code: 37, tour_sigungu_code: 3, name: "김제시", ldong_cd: "52210", lat: 35.795151, lng: 126.940499, sort_order: 2 },
@@ -264,7 +264,7 @@ export const DEMO_REGIONS: Region[] = [
   { tour_area_code: 38, tour_sigungu_code: 11, name: "순천시", ldong_cd: "12150", lat: 34.934918, lng: 127.486806, sort_order: 10 },
   { tour_area_code: 38, tour_sigungu_code: 12, name: "신안군", ldong_cd: "12870", lat: 34.84622, lng: 126.026578, sort_order: 11 },
   { tour_area_code: 38, tour_sigungu_code: 13, name: "여수시", ldong_cd: "12130", lat: 34.672464, lng: 127.684308, sort_order: 12 },
-  { tour_area_code: 38, tour_sigungu_code: 16, name: "영광군", ldong_cd: "12830", lat: 35.335589, lng: 126.44904, sort_order: 13 },
+  { tour_area_code: 38, tour_sigungu_code: 16, name: "영광군", ldong_cd: "12830", lat: 35.312231, lng: 126.449816, sort_order: 13 },
   { tour_area_code: 38, tour_sigungu_code: 17, name: "영암군", ldong_cd: "12800", lat: 34.784627, lng: 126.651884, sort_order: 14 },
   { tour_area_code: 38, tour_sigungu_code: 18, name: "완도군", ldong_cd: "12850", lat: 34.290023, lng: 126.797384, sort_order: 15 },
   { tour_area_code: 38, tour_sigungu_code: 19, name: "장성군", ldong_cd: "12840", lat: 35.33323, lng: 126.791382, sort_order: 16 },
@@ -273,7 +273,7 @@ export const DEMO_REGIONS: Region[] = [
   { tour_area_code: 38, tour_sigungu_code: 22, name: "함평군", ldong_cd: "12820", lat: 35.110813, lng: 126.522827, sort_order: 19 },
   { tour_area_code: 38, tour_sigungu_code: 23, name: "해남군", ldong_cd: "12790", lat: 34.502178, lng: 126.540881, sort_order: 20 },
   { tour_area_code: 38, tour_sigungu_code: 24, name: "화순군", ldong_cd: "12760", lat: 35.048753, lng: 127.009344, sort_order: 21 },
-  { tour_area_code: 38, tour_sigungu_code: -1, name: "미판정", ldong_cd: null, lat: 34.862533, lng: 126.918484, sort_order: 999 },
+  { tour_area_code: 38, tour_sigungu_code: -1, name: "미판정", ldong_cd: null, lat: 34.861073, lng: 126.918974, sort_order: 999 },
   { tour_area_code: 39, tour_sigungu_code: 3, name: "서귀포시", ldong_cd: "50130", lat: 33.296364, lng: 126.548569, sort_order: 0 },
   { tour_area_code: 39, tour_sigungu_code: 4, name: "제주시", ldong_cd: "50110", lat: 33.473843, lng: 126.520586, sort_order: 1 },
   { tour_area_code: 39, tour_sigungu_code: -1, name: "미판정", ldong_cd: null, lat: 33.399522, lng: 126.532304, sort_order: 999 },

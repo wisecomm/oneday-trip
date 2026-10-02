@@ -117,6 +117,30 @@ const REGION_KEPT = {
   2614852: '입석대(무등산권 국가지질공원) — 무등산 주상절리대가 광주와 화순에 걸쳐 있다',
 }
 
+/**
+ * 좌표가 믿을 수 없는 행 — contentid → 사유.
+ *
+ * 한국 범위 밖은 `inKorea()` 가 이미 걸러낸다. 여기 적는 것은 범위 안이지만
+ * 엉뚱한 곳을 가리키는 경우다. 코드와 주소는 서로 맞아서 코드↔주소 대조에
+ * 걸리지 않고, 좌표만 틀렸다.
+ *
+ * 왜 서비스에서 빼는가. 지도에 잘못 찍히는 것으로 끝나지 않는다. 이 앱은
+ * 하루 동선을 짜는 도구라, 안민고개를 창원 일정에 넣으면 동선이 170km 서쪽으로
+ * 끌려간다. **틀린 좌표는 없는 장소보다 나쁘다.** 범위 밖 좌표를 미판정으로
+ * 보내는 것과 같은 이유이고, 같은 길로 보낸다 — 데이터는 남으므로 좌표가
+ * 고쳐지면 바로 돌아온다.
+ *
+ * 왜 자동 판정으로 하지 않는가. "자기 시군구에서 너무 멀다"를 규칙으로 걸면
+ * 언젠가 멀쩡한 장소를 조용히 지운다 — 새로 생긴 섬의 가게 하나가 그 이유로
+ * 사라지면 아무도 모른다. 사람이 보고 넣는 목록으로 두고, 적응형 검사는
+ * 리포트에 남겨 새것이 생기면 알려 주는 파수꾼만 맡긴다 (아래 좌표 이상치).
+ */
+const COORD_SUSPECT = {
+  1955582: '좌표가 포항 오천읍을 가리킨다 — TourAPI 에 포항·대구 두 건이 있는데 대구 쪽이 포항 좌표를 달고 있다',
+  127384: '좌표의 경도가 128.7 이어야 할 자리에 126.7 이 들어가 광주 근처를 가리킨다',
+  129216: '좌표가 충남 보령 근처를 가리킨다 — 영광 백수읍과 115km 떨어져 있다',
+}
+
 const AREA_NAME = {
   세종특별자치시: '세종',
   경기도: '경기',
@@ -283,9 +307,12 @@ async function main() {
           let source = 'tour'
           let note = null
 
-          // 좌표가 한국 범위 밖이면 다른 값이 멀쩡해도 서비스에 낼 수 없다.
-          // 지역 판정보다 먼저 걸러 미판정으로 보낸다.
-          if (!inKorea(lat, lng)) {
+          // 좌표를 믿을 수 없으면 다른 값이 멀쩡해도 서비스에 낼 수 없다.
+          // 지역 판정보다 먼저 걸러 미판정으로 보낸다. 여기서 빼므로 지역
+          // 중심 좌표 누적에도 들어가지 않는다 — 안 그러면 174km 떨어진 한
+          // 점이 그 시군구의 중심을 끌고 간다.
+          const suspect = COORD_SUSPECT[it.contentid]
+          if (!inKorea(lat, lng) || suspect) {
             const d0 = detail[it.contentid]
             stats.badCoord++
             stats.unresolved++
@@ -306,7 +333,9 @@ async function main() {
               phone: phoneOf(d0?.intro, d0?.common) || null,
               modified: it.modifiedtime ?? null,
               source: 'unresolved',
-              note: `좌표가 한국 범위 밖(${lat}, ${lng}) — TourAPI 원본 오류. 주소로 좌표를 고쳐야 한다`,
+              note: suspect
+                ? `${suspect} (${lat}, ${lng}) — 주소로 좌표를 고쳐야 한다`
+                : `좌표가 한국 범위 밖(${lat}, ${lng}) — TourAPI 원본 오류. 주소로 좌표를 고쳐야 한다`,
             })
             continue
           }
@@ -525,6 +554,67 @@ async function main() {
   L.push('commit;')
   const sql = L.join('\n')
 
+  // ── 좌표 이상치 파수꾼 ───────────────────────────────────────────
+  //
+  // 코드와 주소가 서로 맞으면 코드↔주소 대조는 통과한다. 그래서 **좌표만
+  // 틀린 경우**는 그 다리로 잡히지 않는다. 경계 데이터로 역지오코딩을 하는
+  // 것이 정석이지만 그 데이터가 2026년 7월 개편을 반영하지 못했다(Q8).
+  //
+  // 대신 장소들이 모여 있는 모양을 쓴다. 각 시군구가 자기 장소들로 중앙값과
+  // p90 퍼짐을 내고, 그 5배이자 20km 를 넘는 점만 본다. 섬이 흩어진 곳은
+  // p90 자체가 커서 걸리지 않는다 — 옹진군은 백령도까지 170km 뻗어 있고
+  // 신안군도 마찬가지다. 고정 거리(30km)로 재면 231건이 나오는데 대부분
+  // 지리적 사실이고, 시/도 중심과 견주면 85건이 나오는데 문경·상주가 경북
+  // 중심보다 충북 중심에 가까운 것도 사실이다. 그래서 상대 기준이 맞다.
+  //
+  // 여기서 걸린 것을 자동으로 빼지는 않는다. 사람이 보고 COORD_SUSPECT 에
+  // 넣는다 — 그 이유는 그 상수 주석에 있다.
+  const medOf = (xs) => {
+    const a = [...xs].sort((x, y) => x - y)
+    return a[Math.floor(a.length / 2)]
+  }
+  const qOf = (xs, p) => {
+    const a = [...xs].sort((x, y) => x - y)
+    return a[Math.min(a.length - 1, Math.floor(a.length * p))]
+  }
+  const haversineKm = (a, b) => {
+    const R = 6371
+    const rad = (x) => (x * Math.PI) / 180
+    const dLat = rad(b[0] - a[0])
+    const dLng = rad(b[1] - a[1])
+    const h =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(rad(a[0])) * Math.cos(rad(b[0])) * Math.sin(dLng / 2) ** 2
+    return 2 * R * Math.asin(Math.sqrt(h))
+  }
+
+  const placesByLeaf = new Map()
+  for (const p of places) {
+    if (p.source === 'unresolved') continue
+    const k = `${p.area}-${p.sigungu}`
+    ;(placesByLeaf.get(k) ?? placesByLeaf.set(k, []).get(k)).push(p)
+  }
+  const coordOutliers = []
+  for (const [k, ps] of placesByLeaf) {
+    if (ps.length < 8) continue // 표본이 적으면 중앙값도 퍼짐도 믿을 수 없다
+    const c = [medOf(ps.map((p) => p.lat)), medOf(ps.map((p) => p.lng))]
+    const ds = ps.map((p) => haversineKm(c, [p.lat, p.lng]))
+    const limit = Math.max(20, qOf(ds, 0.9) * 5)
+    ps.forEach((p, i) => {
+      if (ds[i] > limit) {
+        coordOutliers.push({
+          id: p.id,
+          name: p.name,
+          leaf: k,
+          km: Math.round(ds[i]),
+          limitKm: Math.round(limit),
+          address: p.address,
+        })
+      }
+    })
+  }
+  coordOutliers.sort((a, b) => b.km / b.limitKm - a.km / a.limitKm)
+
   // ── 코드 ↔ 주소 대조 ─────────────────────────────────────────────
   //
   // 1순위(sigunguCode)가 코드표에 있으면 거기서 판정을 끝낸다. 빠르고 대개
@@ -615,6 +705,7 @@ async function main() {
           byKind,
           byArea,
           rows: mismatches,
+          coordOutliers,
         },
         null,
         2,
@@ -665,6 +756,16 @@ async function main() {
     console.log(`  ⚠ PLACE_REGION_FIX ${fixMisses.length}건이 적용되지 않았습니다 — 코드표를 확인하세요`)
     for (const m of fixMisses) console.log(`    · ${m}`)
   }
+  console.log('── 좌표 이상치 ──')
+  if (!coordOutliers.length) {
+    console.log('  자기 시군구의 평소 퍼짐을 크게 벗어난 좌표: 없음')
+  } else {
+    console.log(`  ⚠ ${coordOutliers.length}건 — 보고 나서 COORD_SUSPECT 에 넣을지 판단하세요`)
+    for (const o of coordOutliers.slice(0, 10)) {
+      console.log(`    · ${o.name} — 자기 시군구 중심에서 ${o.km}km (한계 ${o.limitKm}km) | ${o.address}`)
+    }
+  }
+  console.log('')
   console.log('── 코드 ↔ 주소 대조 ──')
   const mtot = mismatches.length
   console.log(
