@@ -1,31 +1,25 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { adminPlaces, placeRequests } from '@/lib/db'
+import { adminPlaces } from '@/lib/db'
 import { useRegions } from '@/hooks/useRegions'
 import {
   CATEGORY_ICON,
   CATEGORY_LABEL,
-  PLACE_REQUEST_STATUS_LABEL,
   regionLabel,
   type Place,
   type PlaceCategory,
-  type PlaceRequest,
 } from '@/lib/types'
 import { EmptyState, Loading, PageHeader } from '@/components/ui'
 
 /**
- * PLACE-07-01 장소 등록·검수 관리.
+ * PLACE-07-01 장소 등록 관리.
  *
- * 두 경로가 한 화면에 있다. 관리자가 직접 넣으면 승인 단계 없이 바로
- * `places` 에 들어가고, 사용자 요청은 승인해야 그때 행이 생긴다 (4-3).
- *
- * 미처리 요청 수를 맨 위에 둔다 — 요청자는 승인될 때까지 그 장소를 자기
- * 여행에 담을 수 없으므로, 검수를 정교하게 만드는 것보다 밀리지 않게 하는
- * 것이 중요하다 (11번).
+ * 카탈로그에 없는 가게를 넣는 **유일한 길**이다. 사용자 요청 경로는 만들지
+ * 않기로 했고(Q21), 검수 대기 섹션도 그때 함께 걷어냈다. 관리자가 넣으면
+ * 바로 `places` 에 들어간다.
  */
 export function AdminPlacesPage() {
   const { groups, regions, loading: regionsLoading } = useRegions()
 
-  const [pending, setPending] = useState<PlaceRequest[]>([])
   const [manual, setManual] = useState<Place[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
@@ -45,9 +39,7 @@ export function AdminPlacesPage() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [p, m] = await Promise.all([placeRequests.listPending(), adminPlaces.listManual()])
-      setPending(p)
-      setManual(m)
+      setManual(await adminPlaces.listManual())
     } finally {
       setLoading(false)
     }
@@ -66,34 +58,6 @@ export function AdminPlacesPage() {
     () => regions.filter((r) => r.tour_area_code === areaCode),
     [regions, areaCode],
   )
-
-  async function approve(id: string) {
-    setBusy(id)
-    setError(null)
-    try {
-      await placeRequests.approve(id)
-      await load()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '승인에 실패했습니다.')
-    } finally {
-      setBusy(null)
-    }
-  }
-
-  async function reject(id: string) {
-    const reason = window.prompt('반려 사유를 적어 주세요. 요청자가 다시 요청할 때 보입니다.')
-    if (!reason?.trim()) return
-    setBusy(id)
-    setError(null)
-    try {
-      await placeRequests.reject(id, reason.trim())
-      await load()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '반려에 실패했습니다.')
-    } finally {
-      setBusy(null)
-    }
-  }
 
   async function create() {
     const latNum = Number(lat)
@@ -138,7 +102,7 @@ export function AdminPlacesPage() {
     <>
       <PageHeader
         title="장소 등록 관리"
-        subtitle={`미처리 요청 ${pending.length}건`}
+        subtitle={`수동 등록 ${manual.length}곳`}
         back
         right={
           <button
@@ -270,55 +234,6 @@ export function AdminPlacesPage() {
             </button>
           </section>
         )}
-
-        <section className="mb-6">
-          <h2 className="section-title mb-2">
-            검수 대기 <span className="text-ink-400">{pending.length}</span>
-          </h2>
-          {pending.length === 0 ? (
-            <p className="hint">대기 중인 요청이 없습니다.</p>
-          ) : (
-            <ul className="flex flex-col gap-2">
-              {pending.map((r) => (
-                <li key={r.id} className="card p-4">
-                  <p className="text-[15px] font-extrabold text-ink-800">{r.name}</p>
-                  <p className="mt-0.5 text-[12.5px] text-ink-500">
-                    {CATEGORY_ICON[r.category]} {CATEGORY_LABEL[r.category]} · {r.address}
-                  </p>
-                  <p className="mt-0.5 text-[12px] text-ink-400">
-                    {r.lat.toFixed(5)}, {r.lng.toFixed(5)} · {PLACE_REQUEST_STATUS_LABEL[r.status]}
-                  </p>
-                  {r.memo && <p className="hint mt-1.5">“{r.memo}”</p>}
-                  {r.image_url && (
-                    <img
-                      src={r.image_url}
-                      alt=""
-                      className="mt-2 h-32 w-full rounded-lg object-cover"
-                    />
-                  )}
-                  <div className="mt-3 flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => approve(r.id)}
-                      disabled={busy === r.id}
-                      className="btn-primary flex-1 !py-2 text-[13px]"
-                    >
-                      승인
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => reject(r.id)}
-                      disabled={busy === r.id}
-                      className="btn-ghost !px-4 !py-2 text-[13px] text-ink-500"
-                    >
-                      반려
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
 
         <section>
           <h2 className="section-title mb-2">

@@ -35,7 +35,6 @@ create type user_role as enum ('user', 'admin');
 create type place_source_kind    as enum ('tour', 'manual');
 create type plan_origin          as enum ('admin', 'user');
 create type plan_hidden_reason   as enum ('place_removed', 'admin');
-create type place_request_status as enum ('pending', 'approved', 'rejected');
 
 -- ── SYS-01-02 사용자 프로필 ──────────────────────────────────────────
 create table public.profiles (
@@ -428,44 +427,6 @@ create trigger plan_ratings_refresh_trigger
   after insert or update or delete on public.plan_ratings
   for each row execute function public.plan_ratings_refresh();
 
--- ── PLACE-07 장소 등록 요청 ──────────────────────────────────────────
--- 사용자가 넣은 값은 승인 전까지 places 에 들어가지 않는다. 그 덕분에 places
--- 에 승인 상태 컬럼이 필요 없고 select 정책 using(true) 를 그대로 둘 수 있다.
--- 카탈로그에 있으면 공개된 것이다.
-create table public.place_requests (
-  id                uuid primary key default gen_random_uuid(),
-  requester_id      uuid not null references auth.users on delete cascade,
-  name              text not null check (char_length(name) between 1 and 60),
-  category          place_category not null,
-  address           text not null check (char_length(address) between 2 and 200),
-  -- 지도에서 핀을 찍어 받는다. 주소로 안 잡히는 새 가게·푸드트럭이 이 기능이
-  -- 겨냥하는 대상이라 지오코딩을 쓰지 않는다.
-  lat               double precision not null,
-  lng               double precision not null,
-  image_url         text,
-  -- 요청자가 드롭다운에서 고른 값. 역지오코딩은 넣지 않는다.
-  tour_area_code    smallint not null references public.region_groups(tour_area_code),
-  tour_sigungu_code smallint not null,
-  memo              text check (memo is null or char_length(memo) <= 200),
-  status            place_request_status not null default 'pending',
-  reject_reason     text,
-  reviewed_by       uuid references auth.users on delete set null,
-  reviewed_at       timestamptz,
-  created_place_id  text references public.places on delete set null,
-  created_at        timestamptz not null default now(),
-
-  constraint place_requests_region_fkey foreign key (tour_area_code, tour_sigungu_code)
-    references public.regions (tour_area_code, tour_sigungu_code)
-);
-
-create index place_requests_queue_idx
-  on public.place_requests (created_at)
-  where status = 'pending'::place_request_status;
-create index place_requests_requester_idx
-  on public.place_requests (requester_id, created_at desc);
-create index place_requests_created_place_idx
-  on public.place_requests (created_place_id);
-
 -- ── 장소가 사라지면 그 플랜을 내린다 ────────────────────────────────
 -- 항목만 조용히 지우면 3곳짜리 플랜이 2곳이 된 채 공개돼 있고 아무도 모른다.
 -- 반대로 FK 를 restrict 로 걸면 재수집 배치가 장소를 못 지워 통째로 실패한다.
@@ -551,58 +512,10 @@ $$;
 revoke all on function public.clone_shared_plan(uuid, date, text) from public;
 grant execute on function public.clone_shared_plan(uuid, date, text) to authenticated;
 
--- ── 장소 등록 요청 승인·거절 ────────────────────────────────────────
--- 요청을 읽고 places 에 넣고 요청 상태를 쓰는 것이 한 트랜잭션이어야 한다.
--- 중간에 끊기면 "승인은 됐는데 장소가 없는" 요청이 남는다.
-create or replace function public.approve_place_request(p_request_id uuid)
-returns text
-language plpgsql
-security definer
-set search_path = public, pg_temp
-as $$
-declare
-  v_req      public.place_requests%rowtype;
-  v_place_id text;
-begin
-  if not public.is_admin() then
-    raise exception '관리자만 승인할 수 있습니다' using errcode = '42501';
-  end if;
-
-  select * into v_req from public.place_requests
-   where id = p_request_id and status = 'pending';
-
-  if not found then
-    raise exception '대기 중인 요청이 아닙니다' using errcode = 'P0002';
-  end if;
-
-  v_place_id := 'm-' || lpad(nextval('public.manual_place_seq')::text, 6, '0');
-
-  insert into public.places
-    (id, name, category, tour_area_code, tour_sigungu_code, address, lat, lng,
-     image_url, source, created_by, region_source)
-  values
-    (v_place_id, v_req.name, v_req.category, v_req.tour_area_code,
-     v_req.tour_sigungu_code, v_req.address, v_req.lat, v_req.lng,
-     v_req.image_url, 'manual', v_req.requester_id, 'manual');
-
-  update public.place_requests
-     set status = 'approved',
-         reviewed_by = auth.uid(),
-         reviewed_at = now(),
-         created_place_id = v_place_id
-   where id = p_request_id;
-
-  return v_place_id;
-end;
-$$;
-
-revoke all on function public.approve_place_request(uuid) from public;
-grant execute on function public.approve_place_request(uuid) to authenticated;
-
 -- ── 관리자 직접 등록 ────────────────────────────────────────────────
 -- 클라이언트가 id 를 만들게 두지 않는다. 'm-000001' 규약과 시퀀스의 주인이
--- 둘이 되면 approve_place_request 가 매기는 번호와 어긋난다. 두 경로가 같은
--- 시퀀스를 쓴다.
+-- 둘이 되면 번호가 어긋난다. 지금은 이 함수가 유일한 수동 등록 경로이지만,
+-- manual_place_seq 를 함수 안에서만 돌리는 규약은 그대로 지킨다.
 --
 -- 지역 코드를 integer 로 받는 이유: PostgREST 는 JSON 숫자를 integer 로
 -- 넘기므로 smallint 로 선언하면 함수를 찾지 못할 수 있다.
@@ -655,38 +568,6 @@ grant execute on function public.admin_create_place(
   text, place_category, text, double precision, double precision, integer, integer, text
 ) to authenticated;
 
--- 거절해도 지우지 않는다. 같은 곳을 다시 요청할 때 "전에 이런 이유로
--- 거절됐다"를 보여 주기 위해서다. 요청을 고치는 건 안 되고 새로 내는 것만 된다.
-create or replace function public.reject_place_request(
-  p_request_id uuid,
-  p_reason     text
-)
-returns void
-language plpgsql
-security definer
-set search_path = public, pg_temp
-as $$
-begin
-  if not public.is_admin() then
-    raise exception '관리자만 거절할 수 있습니다' using errcode = '42501';
-  end if;
-
-  update public.place_requests
-     set status = 'rejected',
-         reject_reason = p_reason,
-         reviewed_by = auth.uid(),
-         reviewed_at = now()
-   where id = p_request_id and status = 'pending';
-
-  if not found then
-    raise exception '대기 중인 요청이 아닙니다' using errcode = 'P0002';
-  end if;
-end;
-$$;
-
-revoke all on function public.reject_place_request(uuid, text) from public;
-grant execute on function public.reject_place_request(uuid, text) to authenticated;
-
 -- ── 프로필 생성 시점에 대하여 ────────────────────────────────────────
 -- 가입 시 auth.users 트리거로 profiles 행을 자동 생성하지 않는다.
 --
@@ -713,7 +594,6 @@ alter table public.trip_items   enable row level security;
 alter table public.reservations enable row level security;
 alter table public.shared_plans      enable row level security;
 alter table public.shared_plan_items enable row level security;
-alter table public.place_requests    enable row level security;
 alter table public.plan_ratings      enable row level security;
 
 -- 지역·장소는 비로그인(Guest 모드)에서도 열람 가능해야 한다
@@ -815,28 +695,7 @@ create policy "plan items are written by the plan owner"
     )
   );
 
--- ── PLACE-07 장소 등록 요청 ──────────────────────────────────────────
-create policy "own place requests"
-  on public.place_requests for select
-  using (requester_id = auth.uid() or public.is_admin());
-
--- 요청은 언제나 pending 으로 시작한다. 클라이언트가 status 를 넣어 승인을
--- 건너뛰지 못하게 with check 에 박아 둔다.
-create policy "request as myself"
-  on public.place_requests for insert
-  with check (requester_id = auth.uid() and status = 'pending');
-
--- 요청자는 자기 요청을 고칠 수 없다. 관리자가 보고 있는 값과 저장된 값이
--- 다르면 승인 버튼이 무엇을 승인한 것인지 알 수 없다. 고치려면 새로 요청한다.
--- (정책이 없으면 update 는 오류 없이 0행이 된다 — 앱은 갱신 행 수로 판정한다)
-create policy "admins review requests"
-  on public.place_requests for update
-  using (public.is_admin())
-  with check (public.is_admin());
-
 -- places 의 select 정책("places are readable by everyone")은 그대로 둔다.
--- 미승인 장소는 place_requests 에 있으므로 읽기 쪽에서 가릴 것이 없다.
--- 사용자는 places 에 직접 쓰지 않는다 — 승인 함수(security definer)만 쓴다.
 create policy "admins write places"
   on public.places for insert
   with check (public.is_admin());

@@ -22,13 +22,11 @@ erDiagram
     auth_users ||--o{ reservations : "소유"
     auth_users ||--o{ shared_plans : "작성(사용자 플랜만)"
     auth_users ||--o{ plan_ratings : "평가"
-    auth_users ||--o{ place_requests : "요청"
 
     region_groups ||--o{ regions : "시/도 → 시군구"
     regions ||--o{ places : "복합키 (area, sigungu)"
     regions ||--o{ trips : "목적지"
     regions ||--o{ shared_plans : "목적지"
-    regions ||--o{ place_requests : "요청 지역"
 
     trips ||--o{ trip_items : "하루 동선"
     places ||--o{ trip_items : "담긴 장소"
@@ -39,7 +37,6 @@ erDiagram
     places ||--o{ shared_plan_items : "담긴 장소"
     shared_plans ||--o{ plan_ratings : "만족도"
     shared_plans ||--o{ trips : "담아 간 여행(source_plan_id)"
-    places ||--o| place_requests : "승인으로 생긴 장소"
 
 ```
 
@@ -216,22 +213,6 @@ current_database();` 를 먼저 보세요.
 update 할 권한이 없어서, 호출자 권한으로 돌면 **RLS 에 막혀 집계가 오류 없이
 조용히 갱신되지 않습니다.**
 
-### `place_requests` — 장소 등록 요청 **(현재 보류)**
-
-**담는 것** 사용자의 장소 등록 요청. 승인되기 전까지 값이 머무는 곳입니다.
-
-**쓰는 화면** `AdminPlacesPage`(검수)뿐입니다. **사용자 요청 화면
-(PLACE-07-02·03)은 만들지 않았습니다** — 입구가 없어 요청이 쌓이지 않습니다.
-자세한 사유는 `intent/2026-09-20-플랜-공유/intent.md` 4번.
-
-**RLS** 본인 것과 관리자만 읽기. 생성은 본인이고 `status` 는 `pending`
-으로 강제됩니다. 요청자는 자기 요청을 **고칠 수 없습니다** — 관리자가 보고
-있는 값과 저장된 값이 다르면 승인 버튼이 무엇을 승인한 것인지 알 수 없습니다.
-
-**주의** 승인될 때 비로소 `places` 에 행이 생깁니다. 이 선택 덕분에 `places`
-에 승인 상태 컬럼이 필요 없고, select 정책 `using(true)` 를 그대로 둘 수
-있습니다 — **카탈로그에 있으면 공개된 것**입니다.
-
 ---
 
 ## 3. 화면 → 테이블
@@ -253,7 +234,7 @@ update 할 권한이 없어서, 호출자 권한으로 돌면 **RLS 에 막혀 �
 | MyPage | profiles, reservations |
 | ProfileSetupPage | profiles |
 | AdminPlansPage | shared_plans |
-| AdminPlacesPage | places, place_requests, regions |
+| AdminPlacesPage | places, regions |
 
 ---
 
@@ -284,8 +265,6 @@ update 한 번으로 바꾸는 단순 속성입니다. 복합 FK 는 `MATCH SIMP
 |---|---|
 | `is_admin()` | 정책 안에서 `profiles` 를 읽으면 그 테이블의 RLS 가 또 평가돼 무한 재귀 |
 | `clone_shared_plan()` | RLS 아래에서 남의 `clone_count` 를 올릴 수 없음 |
-| `approve_place_request()` | 요청 읽기·`places` 쓰기·상태 갱신이 한 트랜잭션이어야 함 |
-| `reject_place_request()` | 요청자는 자기 요청의 상태를 바꿀 수 없음 |
 | `admin_create_place()` | 같은 시퀀스로 id 를 매겨야 함 |
 | `plan_ratings_refresh()` | 평가자가 남의 `shared_plans` 를 update 할 수 없음 |
 | `shared_plan_items_hide_parent()` | 같은 이유 |
@@ -319,7 +298,7 @@ cascade` 로 `places` 를 참조하는데, 항목만 조용히 지우면 3곳짜
 - 담지 않은 사람의 평가, `user_id` 를 속인 평가, 작성자의 자기 플랜 평가
 - 남의 평가 수정·삭제
 - `status='approved'` 로 요청 위조, 남의 요청 조회, 요청 자가 승인
-- 비관리자의 `admin_create_place()` · `approve_place_request()` 직접 호출
+- 비관리자의 `admin_create_place()` 직접 호출
 
 반대로 **열려 있어야 하는 것**: 비로그인의 지역·장소·공개 플랜·만족도 조회.
 공유 링크를 받은 사람이 로그인 벽을 먼저 만나면 공유가 성립하지 않습니다.

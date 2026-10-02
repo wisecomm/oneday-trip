@@ -313,49 +313,6 @@ export const PLAN_RATING_LABEL: Record<number, string> = {
   5: '아주 좋았어요',
 }
 
-/* ───────────────── PLACE-07 장소 등록 요청 ───────────────── */
-
-export type PlaceRequestStatus = 'pending' | 'approved' | 'rejected'
-
-/**
- * 사용자의 장소 등록 요청.
- *
- * 승인되기 전까지 값은 여기 머문다 — `places` 에 들어가지 않는다. 그래서
- * 카탈로그에 있으면 곧 공개된 것이고, 읽는 쪽에서 가릴 것이 없다.
- * 요청자도 승인 전에는 그 장소를 자기 여행에 담을 수 없다.
- */
-export interface PlaceRequest {
-  id: string
-  requester_id: string
-  name: string
-  category: PlaceCategory
-  address: string
-  /** 지도에서 핀을 찍어 받는다 — 주소 검색(지오코딩)은 쓰지 않는다 */
-  lat: number
-  lng: number
-  image_url: string | null
-  /** 요청자가 드롭다운에서 고른 값. 역지오코딩은 넣지 않는다 */
-  tour_area_code: number
-  tour_sigungu_code: number
-  memo: string | null
-  status: PlaceRequestStatus
-  /** 거절 사유. 같은 곳을 다시 요청할 때 보여 준다 */
-  reject_reason: string | null
-  reviewed_by: string | null
-  reviewed_at: string | null
-  created_place_id: string | null
-  created_at: string
-}
-
-export const PLACE_REQUEST_STATUS_LABEL: Record<PlaceRequestStatus, string> = {
-  pending: '확인 중',
-  approved: '등록됨',
-  rejected: '반려됨',
-}
-
-/** 중복 후보로 띄울 반경(m). 차단하지 않고 "혹시 이거 아닌가요?" 만 묻는다 */
-export const DUPLICATE_RADIUS_M = 100
-
 export const CATEGORY_LABEL: Record<PlaceCategory, string> = {
   babzip: '밥집',
   cafe: '카페',

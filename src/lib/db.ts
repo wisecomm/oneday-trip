@@ -4,7 +4,6 @@ import { demo } from './demo-data'
 import type {
   Place,
   PlaceCategory,
-  PlaceRequest,
   PlanHiddenReason,
   Profile,
   Region,
@@ -18,7 +17,6 @@ import type {
   TripItem,
   TripItemStatus,
 } from './types'
-import { DUPLICATE_RADIUS_M } from './types'
 
 /**
  * 데이터 접근 계층.
@@ -871,41 +869,26 @@ export const sharedPlans = {
 
 }
 
-/* ─────────────────── Place requests (PLACE-07) ─────────────────── */
+/* ─────────────────── 장소 직접 등록 (PLACE-07-01) ─────────────────── */
 
-export type PlaceRequestInput = Pick<
-  PlaceRequest,
-  | 'name'
-  | 'category'
-  | 'address'
-  | 'lat'
-  | 'lng'
-  | 'image_url'
-  | 'tour_area_code'
-  | 'tour_sigungu_code'
-  | 'memo'
->
-
-/** 위도 1도는 약 111km. 반경 100m 판정에는 이 근사로 충분하다 */
-function metersBetween(aLat: number, aLng: number, bLat: number, bLng: number): number {
-  const dLat = (aLat - bLat) * 111_000
-  const dLng = (aLng - bLng) * 111_000 * Math.cos((aLat * Math.PI) / 180)
-  return Math.sqrt(dLat * dLat + dLng * dLng)
+/** 관리자가 직접 등록할 때 넘기는 값 */
+export interface AdminPlaceInput {
+  name: string
+  category: PlaceCategory
+  address: string
+  lat: number
+  lng: number
+  image_url: string | null
+  tour_area_code: number
+  tour_sigungu_code: number
 }
-
-/** 관리자가 직접 등록할 때 넘기는 값. 요청과 같은 모양에서 메모만 빠진다 */
-export type AdminPlaceInput = Pick<
-  PlaceRequest,
-  'name' | 'category' | 'address' | 'lat' | 'lng' | 'image_url' | 'tour_area_code' | 'tour_sigungu_code'
->
 
 export const adminPlaces = {
   /**
    * 관리자 직접 등록 — 승인 단계 없이 바로 `places` 에 들어간다 (4-3).
    *
    * id 는 클라이언트가 만들지 않는다. 'm-000001' 규약과 시퀀스의 주인이
-   * 둘이 되면 사용자 요청 승인이 매기는 번호와 어긋나므로, 두 경로가
-   * 같은 서버 함수의 시퀀스를 쓴다.
+   * 둘이 되면 번호가 어긋나므로, 서버 함수 안에서만 시퀀스를 돌린다.
    */
   async create(input: AdminPlaceInput): Promise<string> {
     if (!isSupabaseConfigured) {
@@ -935,122 +918,6 @@ export const adminPlaces = {
       .order('id', { ascending: false })
     if (error) throw error
     return ((data ?? []) as unknown as PlaceRow[]).map(flattenPlace)
-  },
-}
-
-export const placeRequests = {
-  /** 내 등록 요청 (PLACE-07-03). 반려된 것도 사유와 함께 보인다 */
-  async listMine(userId: string): Promise<PlaceRequest[]> {
-    if (isSupabaseConfigured) {
-      const { data, error } = await sb()
-        .from('place_requests')
-        .select('*')
-        .eq('requester_id', userId)
-        .order('created_at', { ascending: false })
-      if (error) throw error
-      return (data ?? []) as PlaceRequest[]
-    }
-    return readDb()
-      .place_requests.filter((r) => r.requester_id === userId)
-      .sort((a, b) => b.created_at.localeCompare(a.created_at))
-  },
-
-  /** 검수 대기열 (PLACE-07-01). 승인이 밀리는 만큼 요청자가 기다린다 */
-  async listPending(): Promise<PlaceRequest[]> {
-    if (isSupabaseConfigured) {
-      const { data, error } = await sb()
-        .from('place_requests')
-        .select('*')
-        .eq('status', 'pending')
-        .order('created_at')
-      if (error) throw error
-      return (data ?? []) as PlaceRequest[]
-    }
-    return readDb()
-      .place_requests.filter((r) => r.status === 'pending')
-      .sort((a, b) => a.created_at.localeCompare(b.created_at))
-  },
-
-  /**
-   * 반경 100m 안의 같은 카테고리 장소 — "혹시 이거 아닌가요?" 로 띄운다.
-   *
-   * 막지는 않는다. 한 건물에 카페가 둘인 경우가 흔하고, 지점이 빠진 자리에
-   * 새 가게가 들어오기도 한다. 차단은 맞는 등록을 막는 쪽으로 틀리고,
-   * 그 실패는 사용자에게 "왜 안 되는지 모르겠다"로 남는다.
-   */
-  async findNearby(
-    lat: number,
-    lng: number,
-    category: PlaceCategory,
-    areaCode: number,
-    sigunguCode: number,
-  ): Promise<Place[]> {
-    const candidates = await places.list({
-      areaCode,
-      sigunguCode,
-      categories: [category],
-    })
-    return candidates
-      .filter((p) => metersBetween(lat, lng, p.lat, p.lng) <= DUPLICATE_RADIUS_M)
-      .slice(0, 5)
-  },
-
-  /**
-   * 등록 요청. 승인 전에는 `places` 에 들어가지 않으므로, 요청자도 그 장소를
-   * 자기 여행에 담을 수 없다. 대신 카탈로그에 있으면 곧 공개된 것이 된다.
-   */
-  async create(requesterId: string, input: PlaceRequestInput): Promise<PlaceRequest> {
-    if (isSupabaseConfigured) {
-      const { data, error } = await sb()
-        .from('place_requests')
-        // status 를 넘기지 않는다. 넘겨도 RLS 의 with check 가 pending 만 허용한다.
-        .insert({ ...input, requester_id: requesterId })
-        .select()
-        .single()
-      if (error) throw error
-      return data as PlaceRequest
-    }
-    const row: PlaceRequest = {
-      ...input,
-      id: uid('preq'),
-      requester_id: requesterId,
-      status: 'pending',
-      reject_reason: null,
-      reviewed_by: null,
-      reviewed_at: null,
-      created_place_id: null,
-      created_at: nowIso(),
-    }
-    mutateDb((d) => void d.place_requests.push(row))
-    return row
-  },
-
-  /**
-   * 승인 — 이때 비로소 `places` 에 행이 생긴다.
-   *
-   * 요청을 읽고, 장소를 넣고, 요청 상태를 쓰는 것이 한 트랜잭션이어야 한다.
-   * 중간에 끊기면 "승인은 됐는데 장소가 없는" 요청이 남으므로 서버 함수로 묶었다.
-   * 데모에는 승인하는 주체가 없어 이 경로를 막아 둔다.
-   */
-  async approve(requestId: string): Promise<string> {
-    if (!isSupabaseConfigured) {
-      throw new Error('데모 모드에서는 등록 요청을 승인할 수 없습니다')
-    }
-    const { data, error } = await sb().rpc('approve_place_request', { p_request_id: requestId })
-    if (error) throw error
-    return data as string
-  },
-
-  /** 반려해도 지우지 않는다. 같은 곳을 다시 요청할 때 사유를 보여 주기 위해서다 */
-  async reject(requestId: string, reason: string): Promise<void> {
-    if (!isSupabaseConfigured) {
-      throw new Error('데모 모드에서는 등록 요청을 반려할 수 없습니다')
-    }
-    const { error } = await sb().rpc('reject_place_request', {
-      p_request_id: requestId,
-      p_reason: reason,
-    })
-    if (error) throw error
   },
 }
 
