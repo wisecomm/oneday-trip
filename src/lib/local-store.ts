@@ -35,19 +35,72 @@ export interface LocalDb {
 const KEY = 'oneday-trip:db'
 
 /**
- * 저장본 형식 번호.
+ * 저장되는 행의 필드 목록.
  *
- * 데모 데이터는 한 번 심으면 localStorage 에 남고, 씨앗을 고쳐도 이미 심긴
- * 브라우저에는 옛 모양이 그대로 있다. 2026-10-01 에 이것 때문에 플랜 목록이
- * 통째로 하얗게 떴다 — 옛 행에 rating_avg 가 아예 없어 undefined.toFixed()
- * 에서 터졌다. 화면 쪽 방어도 함께 넣었지만, 근본은 낡은 저장본이다.
+ * 타입이 있는데 왜 값으로 또 적는가. 타입은 런타임에 사라져서, 저장본이 지금
+ * 코드와 같은 모양인지 코드가 스스로 확인할 수 없다. 그래서 목록을 값으로도
+ * 둔다.
  *
- * 저장되는 행의 모양이 바뀌면 이 번호를 올린다. 번호가 다르면 저장본을
- * 버리고 다시 심는다. 데모 데이터는 언제든 다시 만들 수 있으므로 옮겨 심지
- * 않고 버리는 쪽이 맞다.
+ * `satisfies Record<keyof T, true>` 로 묶어 두었으므로, 타입에 필드를 더하고
+ * 여기를 빠뜨리면 tsc 가 막는다. 저장본 형식이 바뀐 것을 사람이 알아채고
+ * 번호를 올리는 대신 컴파일러가 알려주는 것이 요점이다 — 고친 사람은 자기
+ * 브라우저를 비우고 테스트하니 멀쩡해 보이고, 저장본이 남은 사람만 깨진다.
+ * 2026-10-01 에 플랜 목록이 통째로 하얗게 뜬 것이 그 경우였다. 옛 행에
+ * `rating_avg` 가 아예 없어 `undefined.toFixed()` 에서 터졌다.
  */
-const VERSION = 2
-const VERSION_KEY = 'oneday-trip:db-version'
+const SHAPE = {
+  profiles: {
+    id: true, nickname: true, taste_tags: true, role: true, created_at: true,
+  } satisfies Record<keyof Profile, true>,
+
+  trips: {
+    id: true, user_id: true, title: true, tour_area_code: true,
+    tour_sigungu_code: true, trip_date: true, start_time: true, end_time: true,
+    companions: true, transport: true, source_plan_id: true, created_at: true,
+  } satisfies Record<keyof StoredTrip, true>,
+
+  trip_items: {
+    id: true, trip_id: true, place_id: true, sort_order: true,
+    planned_time: true, status: true, note: true, rating: true, place: true,
+  } satisfies Record<keyof TripItem, true>,
+
+  reservations: {
+    id: true, user_id: true, place_id: true, trip_item_id: true,
+    reserved_at: true, party_size: true, deposit: true, status: true, place: true,
+  } satisfies Record<keyof Reservation, true>,
+
+  shared_plans: {
+    id: true, origin: true, author_user_id: true, title: true, description: true,
+    tour_area_code: true, tour_sigungu_code: true, transport: true,
+    companions: true, start_time: true, end_time: true, weekday: true,
+    season: true, place_count: true, duration_minutes: true, was_visited: true,
+    clone_count: true, rating_avg: true, rating_count: true, is_hidden: true,
+    hidden_reason: true, created_at: true, updated_at: true,
+  } satisfies Record<keyof StoredSharedPlan, true>,
+
+  shared_plan_items: {
+    id: true, plan_id: true, place_id: true, sort_order: true,
+    planned_time: true, tip: true, place: true,
+  } satisfies Record<keyof SharedPlanItem, true>,
+}
+
+/**
+ * 형식 번호. 필드 이름은 그대로인데 뜻이 바뀐 경우(예: 분 단위를 초 단위로)
+ * 를 위한 수동 손잡이다. 필드가 늘고 주는 것은 아래 지문이 알아서 잡는다.
+ */
+const VERSION = 3
+
+/** SHAPE 가 바뀌면 함께 바뀐다. 저장본의 값과 다르면 버리고 다시 심는다 */
+const SHAPE_KEY = 'oneday-trip:db-shape'
+const shapeFingerprint = (): string =>
+  `v${VERSION}|` +
+  Object.entries(SHAPE)
+    .map(([table, cols]) => `${table}(${Object.keys(cols).sort().join(',')})`)
+    .sort()
+    .join('|')
+
+/** VERSION_KEY 를 쓰던 시절의 찌꺼기. 한동안 지워 준다 */
+const LEGACY_VERSION_KEY = 'oneday-trip:db-version'
 
 const EMPTY: LocalDb = {
   profiles: [],
@@ -61,9 +114,11 @@ const EMPTY: LocalDb = {
 export function readDb(): LocalDb {
   if (typeof localStorage === 'undefined') return { ...EMPTY }
   try {
-    if (localStorage.getItem(VERSION_KEY) !== String(VERSION)) {
+    const want = shapeFingerprint()
+    if (localStorage.getItem(SHAPE_KEY) !== want) {
       localStorage.removeItem(KEY)
-      localStorage.setItem(VERSION_KEY, String(VERSION))
+      localStorage.removeItem(LEGACY_VERSION_KEY)
+      localStorage.setItem(SHAPE_KEY, want)
       return { ...EMPTY }
     }
     const raw = localStorage.getItem(KEY)

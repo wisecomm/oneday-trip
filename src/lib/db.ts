@@ -181,12 +181,24 @@ export const profiles = {
       return data as Profile
     }
 
+    /*
+     * 저장한 것과 돌려주는 것이 같아야 한다. 기존 행이 있으면 저장 쪽은
+     * `role` 과 `created_at` 을 지키는데, 예전에는 돌려주는 값이 늘 새로 만든
+     * row(= role 'user', created_at 지금) 였다. 화면이 그 둘을 쓰지 않아
+     * 드러나지 않았을 뿐, 데모에 운영자가 생기면 취향 태그만 고쳐도 화면에서
+     * 권한이 사라지는 종류의 어긋남이다.
+     */
+    let saved = row
     mutateDb((d) => {
       const i = d.profiles.findIndex((p) => p.id === input.id)
-      if (i >= 0) d.profiles[i] = { ...d.profiles[i], ...input }
-      else d.profiles.push(row)
+      if (i >= 0) {
+        saved = { ...d.profiles[i], ...input }
+        d.profiles[i] = saved
+      } else {
+        d.profiles.push(row)
+      }
     })
-    return row
+    return saved
   },
 }
 
