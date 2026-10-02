@@ -4,7 +4,7 @@ import type { Place, Region, RegionGroup } from './types'
  * 데모 모드(Supabase 미연결) 데이터 — load.mjs --demo 가 생성한다.
  * 손으로 고치지 말고 수집 원본에서 다시 생성하세요.
  *
- * 생성: 2026-10-02T02:42:33.789Z
+ * 생성: 2026-10-02T04:49:10.842Z
  * 지역은 전량, 장소는 몇 개 시군구만 골라 담았다. 상세가 채워진 서울 구와
  * 아직 비어 있는 부산·제주를 섞어, 빈 값을 숨기는 처리도 데모에서 확인된다.
  */
@@ -60,13 +60,13 @@ export const DEMO_REGIONS: Region[] = [
   { tour_area_code: 2, tour_sigungu_code: 1, name: "강화군", ldong_cd: "28710", lat: 37.672918, lng: 126.43964, sort_order: 0 },
   { tour_area_code: 2, tour_sigungu_code: 2, name: "계양구", ldong_cd: "28245", lat: 37.545365, lng: 126.720812, sort_order: 1 },
   { tour_area_code: 2, tour_sigungu_code: 4, name: "남동구", ldong_cd: "28200", lat: 37.442614, lng: 126.726686, sort_order: 2 },
-  { tour_area_code: 2, tour_sigungu_code: 5, name: "동구", ldong_cd: "28125", lat: 37.477341, lng: 126.634037, sort_order: 3 },
-  { tour_area_code: 2, tour_sigungu_code: 3, name: "미추홀구", ldong_cd: "28177", lat: 37.45456, lng: 126.664072, sort_order: 4 },
-  { tour_area_code: 2, tour_sigungu_code: 6, name: "부평구", ldong_cd: "28237", lat: 37.483206, lng: 126.830379, sort_order: 5 },
-  { tour_area_code: 2, tour_sigungu_code: 7, name: "서구", ldong_cd: "28275", lat: 37.547235, lng: 126.654798, sort_order: 6 },
-  { tour_area_code: 2, tour_sigungu_code: 8, name: "연수구", ldong_cd: "28185", lat: 37.401163, lng: 126.646942, sort_order: 7 },
-  { tour_area_code: 2, tour_sigungu_code: 9, name: "옹진군", ldong_cd: "28720", lat: 37.463627, lng: 125.923756, sort_order: 8 },
-  { tour_area_code: 2, tour_sigungu_code: 10, name: "중구", ldong_cd: "28155", lat: 37.462167, lng: 126.514492, sort_order: 9 },
+  { tour_area_code: 2, tour_sigungu_code: 3, name: "미추홀구", ldong_cd: "28177", lat: 37.45456, lng: 126.664072, sort_order: 3 },
+  { tour_area_code: 2, tour_sigungu_code: 6, name: "부평구", ldong_cd: "28237", lat: 37.483206, lng: 126.830379, sort_order: 4 },
+  { tour_area_code: 2, tour_sigungu_code: 7, name: "서해·검단(옛 서구)", ldong_cd: "28275", lat: 37.547235, lng: 126.654798, sort_order: 5 },
+  { tour_area_code: 2, tour_sigungu_code: 8, name: "연수구", ldong_cd: "28185", lat: 37.401163, lng: 126.646942, sort_order: 6 },
+  { tour_area_code: 2, tour_sigungu_code: 9, name: "옹진군", ldong_cd: "28720", lat: 37.463627, lng: 125.923756, sort_order: 7 },
+  { tour_area_code: 2, tour_sigungu_code: 10, name: "제물포·영종(옛 중구)", ldong_cd: "28155", lat: 37.462167, lng: 126.514492, sort_order: 8 },
+  { tour_area_code: 2, tour_sigungu_code: 5, name: "제물포(옛 동구)", ldong_cd: "28125", lat: 37.477341, lng: 126.634037, sort_order: 9 },
   { tour_area_code: 2, tour_sigungu_code: -1, name: "미판정", ldong_cd: null, lat: 37.517241, lng: 126.529779, sort_order: 999 },
   { tour_area_code: 3, tour_sigungu_code: 1, name: "대덕구", ldong_cd: "30230", lat: 36.410211, lng: 127.44146, sort_order: 0 },
   { tour_area_code: 3, tour_sigungu_code: 2, name: "동구", ldong_cd: "30110", lat: 36.33173, lng: 127.460271, sort_order: 1 },

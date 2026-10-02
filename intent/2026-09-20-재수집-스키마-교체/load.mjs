@@ -31,6 +31,36 @@ const CONTENT_TYPES = [39, 12, 14]
  * TourAPI 는 광역시는 축약형('서울')으로, 도는 정식 명칭('경기도')으로 준다.
  * 앱의 드롭다운에는 짧은 이름이 낫다.
  */
+/**
+ * 시군구 이름 바로잡기 — `${시/도 코드}|${TourAPI 이름}` → 우리가 쓸 이름.
+ *
+ * 행정구역이 바뀌었는데 TourAPI 의 sigunguCode 코드표가 따라오지 못한 경우를
+ * 메운다. 2026-10-02 기준 인천이 그렇다. 7월 개편으로 중구·동구가 제물포구와
+ * 영종구로, 서구가 서해구와 검단구로 재편됐는데 코드표에는 옛 셋만 있다.
+ * 인천 장소 462곳의 주소를 세어 보면 중구·동구·서구가 **0건**이다 — 보강이
+ * 아니라 대체다. 그대로 두면 앱이 없어진 구를 선택지로 내민다.
+ *
+ * 왜 이름만 고치고 장소를 옮기지는 않는가. 옮기려면 신설 구에 코드를 우리가
+ * 지어내야 한다. 나중에 TourAPI 가 같은 번호를 다른 구에 주면 그 코드의 뜻이
+ * 바뀌는데, `trips` 와 `shared_plans` 가 이 코드 쌍을 외래키로 들고 있어서
+ * 사용자가 만든 여행의 목적지가 조용히 다른 구로 옮겨 간다. 이름은 바꿔도
+ * 그런 일이 없다 — 키가 코드라서 이름 변경이 싸다는 것이 이 구조의 이점이고,
+ * 여기가 그 이점을 쓰는 자리다.
+ *
+ * 괄호 안에 옛 이름을 남기는 이유는 둘이다. 중구와 동구가 둘 다 제물포구로
+ * 들어가 이름만으로는 구별되지 않고, 왜 '제물포'가 둘인지 사용자가 납득할
+ * 근거가 필요하다.
+ *
+ * 한 코드 안에 먼 곳이 섞이는 문제는 이름으로 풀리지 않는다. 옛 중구 코드
+ * 안에서 영종구와 제물포구의 좌표 중앙값이 18.0 km 떨어져 있고 사이에
+ * 영종대교가 있다. 코드표가 갱신되면 그때 갈라야 한다.
+ */
+const LEAF_NAME = {
+  '2|중구': '제물포·영종(옛 중구)',
+  '2|동구': '제물포(옛 동구)',
+  '2|서구': '서해·검단(옛 서구)',
+}
+
 const AREA_NAME = {
   세종특별자치시: '세종',
   경기도: '경기',
@@ -147,13 +177,21 @@ async function main() {
     const f = `sigungu-${a.code}.json`
     if (!files.has(f)) continue
     const sgs = await readJson(path.join(RAW, f))
-    const list = sgs.map((s) => ({ code: Number(s.code), name: s.name }))
+    // name 은 화면·DB 에 쓸 이름, match 는 TourAPI 원본 이름이다. 주소 매칭과
+    // 코드↔주소 대조는 원본 이름으로 해야 한다 — 고친 이름으로 주소를 뒤지면
+    // '제물포·영종(옛 중구)' 같은 문자열을 찾게 되어 아무것도 맞지 않는다.
+    const list = sgs.map((s) => ({
+      code: Number(s.code),
+      name: LEAF_NAME[`${a.code}|${s.name}`] ?? s.name,
+      match: s.name,
+    }))
     leavesOfArea.set(Number(a.code), list)
     for (const s of list) leaf.set(`${a.code}-${s.code}`, { areaCode: Number(a.code), ...s })
   }
 
-  // 긴 이름부터 맞춘다 — '서구'가 '강서구'에 부분 문자열로 걸리는 걸 막는다
-  for (const list of leavesOfArea.values()) list.sort((x, y) => y.name.length - x.name.length)
+  // 긴 이름부터 맞춘다 — '서구'가 '강서구'에 부분 문자열로 걸리는 걸 막는다.
+  // 매칭에 쓰는 이름(match) 기준이다.
+  for (const list of leavesOfArea.values()) list.sort((x, y) => y.match.length - x.match.length)
 
   // ── 장소 ─────────────────────────────────────────────────────────
   const places = []
@@ -219,7 +257,7 @@ async function main() {
           if (!Number.isFinite(sigungu) || !leaf.has(`${areaCode}-${sigungu}`)) {
             // 2순위 — 주소에서 시군구명 찾기. 후보가 그 시/도의 것으로 좁혀져 있다.
             const addr = String(it.addr1 ?? '')
-            const hit = (leavesOfArea.get(areaCode) ?? []).find((s) => addr.includes(s.name))
+            const hit = (leavesOfArea.get(areaCode) ?? []).find((s) => addr.includes(s.match))
             if (hit) {
               sigungu = hit.code
               source = 'addr'
@@ -413,6 +451,84 @@ async function main() {
   L.push('commit;')
   const sql = L.join('\n')
 
+  // ── 코드 ↔ 주소 대조 ─────────────────────────────────────────────
+  //
+  // 1순위(sigunguCode)가 코드표에 있으면 거기서 판정을 끝낸다. 빠르고 대개
+  // 맞지만, 1순위가 **틀렸을 때 아무도 모른다**는 구멍이 있다. 주소는 이미
+  // 손에 있으니, 배정한 구의 이름이 주소에 들어 있는지만 봐도 그 구멍이
+  // 상당 부분 메워진다. 좌표까지 넣는 3자 대조는 역지오코딩 경계 데이터가
+  // 필요하고 그 데이터가 2026년 7월 행정구역 개편을 반영하지 못해 미룬다.
+  //
+  // 어긋나는 경우가 두 종류라 나눠 센다.
+  //
+  //   · 코드표에 아예 없는 구 — 행정구역이 바뀌었는데 TourAPI 코드표가
+  //     따라오지 못한 경우다. 2026-10-02 기준 인천이 그렇다. 주소는
+  //     영종구·제물포구·검단구·서해구인데 코드표에는 옛 중구·동구·서구뿐이라
+  //     186곳이 옛 구로 들어간다. 우리가 고칠 수 있는 것이 아니므로 규모만
+  //     보고한다.
+  //   · 코드표에 있는 다른 구 — TourAPI 원본의 코드 오류이거나, 남해대교처럼
+  //     두 시군에 걸친 명소다. 사람이 하나씩 보고 판단할 대상이다.
+  //
+  // 전체 목록은 raw/addr-mismatch.json 에 남긴다. 예시만 콘솔에 띄우면
+  // "쌓이는 걸 아무도 모른다"는 14번의 문제가 그대로 되풀이된다.
+  const leafOf = new Map()
+  const matchNamesOfArea = new Map()
+  for (const [areaCode, list] of leavesOfArea) {
+    matchNamesOfArea.set(areaCode, list.map((s) => s.match))
+    for (const s of list) leafOf.set(`${areaCode}-${s.code}`, s)
+  }
+  const areaNameOf = new Map(groupRows.map((g) => [g.code, g.name]))
+
+  const mismatches = []
+  let noAddr = 0
+  for (const p of places) {
+    if (p.source !== 'tour') continue
+    const lf = leafOf.get(`${p.area}-${p.sigungu}`)
+    if (!lf) continue
+    if (!p.address) {
+      noAddr++
+      continue
+    }
+    if (p.address.includes(lf.match)) continue
+    // 주소가 가리키는 구가 코드표에 있는가
+    const inTable = (matchNamesOfArea.get(p.area) ?? []).find((n) => p.address.includes(n)) ?? null
+    mismatches.push({
+      id: p.id,
+      name: p.name,
+      area: areaNameOf.get(p.area) ?? String(p.area),
+      assigned: lf.name,
+      assignedMatch: lf.match,
+      address: p.address,
+      kind: inTable ? 'wrong-code' : 'not-in-table',
+      addressLeaf: inTable,
+    })
+  }
+
+  const byKind = { 'not-in-table': 0, 'wrong-code': 0 }
+  const byArea = {}
+  for (const m of mismatches) {
+    byKind[m.kind]++
+    byArea[m.area] = (byArea[m.area] ?? 0) + 1
+  }
+  if (!dry) {
+    await writeFile(
+      path.join(RAW, 'addr-mismatch.json'),
+      JSON.stringify(
+        {
+          generatedAt: new Date().toISOString(),
+          checked: stats.tour,
+          noAddress: noAddr,
+          byKind,
+          byArea,
+          rows: mismatches,
+        },
+        null,
+        2,
+      ) + '\n',
+      'utf8',
+    )
+  }
+
   // ── 리포트 ───────────────────────────────────────────────────────
   const byCat = {}
   const byLeaf = new Map()
@@ -450,6 +566,22 @@ async function main() {
   console.log('')
   console.log('── 카테고리 ──')
   for (const [k, v] of Object.entries(byCat).sort((a, b) => b[1] - a[1])) console.log(`  ${k.padEnd(7)} ${v}`)
+  console.log('')
+  console.log('── 코드 ↔ 주소 대조 ──')
+  const mtot = mismatches.length
+  console.log(
+    `  1순위로 판정한 ${stats.tour}곳 중 ${mtot}곳(${((mtot / (stats.tour || 1)) * 100).toFixed(2)}%)이 주소와 어긋남` +
+      (noAddr ? ` · 주소가 없어 대조 못한 곳 ${noAddr}` : ''),
+  )
+  console.log(`    코드표에 없는 구: ${byKind['not-in-table']}건 (행정구역 개편을 TourAPI 가 못 따라온 경우)`)
+  console.log(`    코드표의 다른 구: ${byKind['wrong-code']}건 (원본 오류이거나 경계에 걸친 곳 — 사람이 볼 대상)`)
+  for (const [a, n] of Object.entries(byArea).sort((x, y) => y[1] - x[1]).slice(0, 5)) {
+    console.log(`    ${a.padEnd(6)} ${n}`)
+  }
+  for (const m of mismatches.filter((x) => x.kind === 'wrong-code').slice(0, 5)) {
+    console.log(`    · ${m.name} — ${m.area} ${m.assigned} 로 들어감 | ${m.address}`)
+  }
+  console.log('  전체 목록: raw/addr-mismatch.json')
   console.log('')
   console.log(`── 상세 없는 장소: ${stats.noDetail}건 (${((stats.noDetail / tot) * 100).toFixed(1)}%) ──`)
   console.log('   소개·영업시간·전화가 빈 채로 적재됩니다. 수집이 끝나면 다시 돌리세요.')

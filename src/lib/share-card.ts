@@ -21,6 +21,20 @@ export interface VisitCardInput {
   order: number
 }
 
+/**
+ * 해시태그로 쓸 수 있는 글자만 남긴다.
+ *
+ * 공백만 지우던 때는 이름에 섞인 구두점이 그대로 나갔다. 인스타그램은
+ * 해시태그를 글자·숫자·밑줄까지만 읽으므로, `#간송미술관(서울보화각)` 은
+ * `#간송미술관` 까지만 태그가 되고 나머지는 본문 글자로 남는다. 지역 이름도
+ * 마찬가지다 — '제물포·영종(옛 중구)' 의 가운뎃점에서 끊긴다.
+ *
+ * 괄호 안은 아예 뺀다. '(옛 중구)' 같은 부연은 태그로서 뜻이 없고, 붙여 쓰면
+ * '제물포영종옛중구' 처럼 아무도 검색하지 않을 말이 된다.
+ */
+const hashtag = (s: string): string =>
+  '#' + s.replace(/\([^)]*\)/g, '').replace(/[^0-9A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ_]/gu, '')
+
 /** 인스타그램에 붙여 넣을 캡션 */
 export function buildCaption(input: VisitCardInput): string {
   const { place, tripTitle, tripDate } = input
@@ -28,11 +42,12 @@ export function buildCaption(input: VisitCardInput): string {
   // 여기서 코드를 쓰면 사용자 게시물에 '#-1' 같은 게 나간다.
   const tags = [
     '하루여행',
-    place.name.replace(/\s/g, ''),
-    `${place.group_name}${place.region_name}`.replace(/\s/g, ''),
+    place.name,
+    `${place.group_name}${place.region_name}`,
     ...place.tags,
   ]
-    .map((t) => `#${t.replace(/\s/g, '')}`)
+    .map(hashtag)
+    .filter((t) => t.length > 1)
     .join(' ')
   return `${place.name} 다녀왔어요.\n${place.summary}\n\n${tripTitle} · ${tripDate}\n${place.address}\n\n${tags}`
 }
