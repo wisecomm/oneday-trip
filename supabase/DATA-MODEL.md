@@ -109,8 +109,8 @@ delete cascade` 가 두 세계를 잇는 유일한 연결이고, 나머지 개�
 **담는 것** 전국 15,518곳. 대부분 TourAPI 수집(`source = 'tour'`)이고,
 사람이 넣은 행은 `source = 'manual'` 에 id 가 `m-000001` 꼴입니다.
 
-**쓰는 화면** `ExplorePage`(지도) · `PlaceDetailPage` · `RecommendPage` ·
-`AdminPlanEditPage`(장소 검색) · `AdminPlacesPage`(수동 등록 목록) · `MapView`.
+**쓰는 화면** `ExplorePage`(지도 · 이름 검색) · `PlaceDetailPage` ·
+`RecommendPage` · `AdminPlacesPage`(수동 등록 목록) · `MapView`.
 
 **RLS** 누구나 읽기. insert·update·delete 는 `is_admin()` 만.
 
@@ -118,6 +118,14 @@ delete cascade` 가 두 세계를 잇는 유일한 연결이고, 나머지 개�
 "평점 없음"과 "0점"이 구분되지 않아 모든 장소가 ★0.0 으로 보입니다. 그래서
 장소 평점으로는 아무것도 정렬할 수 없고, 인기 신호는 플랜 쪽
 (`clone_count`·`rating_avg`)에서 옵니다.
+
+**이름 검색은 `pg_trgm` GIN 인덱스(`places_name_trgm_idx`)를 탑니다.**
+`ilike '%키워드%'` 는 앞뒤가 열려 있어 B-tree 를 못 타고, 인덱스가 없으면
+15,518행을 매번 전부 훑습니다. **다만 한글은 DB 로케일에 걸려 있습니다** —
+로케일이 `C` 면 한글에서 삼중자가 하나도 나오지 않아 인덱스가 걸려도 거르지
+못합니다(2026-10-02 실측). 운영 DB 는 `en_US.UTF-8` 이라 제 몫을 합니다.
+다른 환경에 올릴 때는 `select datcollate from pg_database where datname =
+current_database();` 를 먼저 보세요.
 
 ### `profiles` — 사용자 프로필
 
@@ -163,7 +171,8 @@ delete cascade` 가 두 세계를 잇는 유일한 연결이고, 나머지 개�
 모양**이고 개인 기록만 빠집니다 — 그래야 올리기와 담기가 대칭 변환이 됩니다.
 
 **쓰는 화면** `PlanListPage` · `PlanDetailPage` · `PlanPublishPage` ·
-`MyPlansPage` · `AdminPlansPage` · `AdminPlanEditPage`.
+`MyPlansPage` · `AdminPlansPage`. 운영자 플랜도 `PlanPublishPage` 로 만듭니다 —
+관리자가 올리면 `origin='admin'` 이 됩니다 (Q20).
 
 **RLS** `is_hidden = false` 면 누구나 읽기(비로그인 포함). 쓰기는
 `origin='user'` 면 작성자, `origin='admin'` 이면 관리자.
@@ -244,7 +253,6 @@ update 할 권한이 없어서, 호출자 권한으로 돌면 **RLS 에 막혀 �
 | MyPage | profiles, reservations |
 | ProfileSetupPage | profiles |
 | AdminPlansPage | shared_plans |
-| AdminPlanEditPage | places, regions, shared_plans, shared_plan_items |
 | AdminPlacesPage | places, place_requests, regions |
 
 ---

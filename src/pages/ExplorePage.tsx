@@ -74,6 +74,28 @@ export function ExplorePage() {
   const [toast, setToast] = useState<string | null>(null)
   const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null)
 
+  /**
+   * 이름 검색 (MAP-04-01).
+   *
+   * 카탈로그가 15,518곳인데 이름으로 찾는 길이 없었다. 지역과 카테고리로
+   * 좁혀 핀 중에서 눈으로 찾아야 했고, 아는 가게 이름이 있어도 소용이 없었다.
+   * `PlaceFilter.keyword` 는 db.ts 에 진작 있었는데 채우는 화면이 없었다.
+   *
+   * 입력하는 즉시가 아니라 **멈추고 300ms 뒤에** 질의한다. 한 글자마다 쏘면
+   * '강남'을 치는 동안 질의가 네 번 날아간다.
+   *
+   * 검색어가 있으면 지역 필터를 무시하고 전국에서 찾는다 — 이름을 알고 찾는
+   * 사람에게 "그 가게는 다른 구에 있습니다"는 도움이 안 된다.
+   */
+  const [keywordInput, setKeywordInput] = useState('')
+  const [keyword, setKeyword] = useState('')
+  const searching = keyword.trim().length > 0
+
+  useEffect(() => {
+    const id = setTimeout(() => setKeyword(keywordInput), 300)
+    return () => clearTimeout(id)
+  }, [keywordInput])
+
   // 필터가 바뀔 때마다 세션 기억을 갱신한다
   useEffect(() => {
     if (areaCode === null) return
@@ -88,8 +110,10 @@ export function ExplorePage() {
     setLoading(true)
     try {
       const categories = active.length ? active : undefined
-      const filter =
-        areaCode === null
+      const kw = keyword.trim()
+      const filter = kw
+        ? { categories, keyword: kw }
+        : areaCode === null
           ? { categories }
           : sigunguCode === null
             ? { areaCode, categories }
@@ -104,7 +128,7 @@ export function ExplorePage() {
     } finally {
       setLoading(false)
     }
-  }, [areaCode, sigunguCode, active, myLocation])
+  }, [areaCode, sigunguCode, active, myLocation, keyword])
 
   // 지역 목록이 비동기로 도착하므로, url 에 지역 쿼리가 없고 여행 목적지로부터
   // 채워질 예정도 아니라면 첫 상위 지역 + 전체보기로 채운다
@@ -115,9 +139,10 @@ export function ExplorePage() {
   }, [groups, areaCode, tripId])
 
   useEffect(() => {
-    if (areaCode === null || groups.length === 0) return
+    // 검색 중에는 지역이 아직 안 정해졌어도 돈다 — 전국에서 찾기 때문이다
+    if (!searching && (areaCode === null || groups.length === 0)) return
     void load()
-  }, [load, areaCode, sigunguCode, groups.length])
+  }, [load, areaCode, sigunguCode, groups.length, searching])
 
   useEffect(() => {
     if (!tripId) return
@@ -248,6 +273,26 @@ export function ExplorePage() {
       {/* 상단 필터 */}
       <div className="pointer-events-none absolute inset-x-0 top-0 p-3">
         <div className="pointer-events-auto mb-2 flex items-center gap-1.5">
+          <input
+            value={keywordInput}
+            onChange={(e) => setKeywordInput(e.target.value)}
+            placeholder="가게·명소 이름으로 찾기"
+            aria-label="장소 이름 검색"
+            className="min-w-0 flex-1 rounded-xl border border-ink-200 bg-white px-3 py-2 text-[13px] text-ink-700 shadow-sm placeholder:text-ink-400"
+          />
+          {keywordInput && (
+            <button
+              type="button"
+              onClick={() => setKeywordInput('')}
+              aria-label="검색어 지우기"
+              className="shrink-0 rounded-xl border border-ink-200 bg-white px-3 py-2 text-[13px] font-bold text-ink-500 shadow-sm"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        <div className="pointer-events-auto mb-2 flex items-center gap-1.5">
           <select
             value={areaCode ?? ''}
             onChange={(e) => changeGroup(Number(e.target.value))}
@@ -283,6 +328,13 @@ export function ExplorePage() {
             </span>
           )}
         </div>
+
+        {searching && (
+          <p className="pointer-events-auto mb-2 rounded-xl bg-ink-800/90 px-3 py-2 text-[12.5px] font-semibold text-white shadow-sm">
+            "{keyword}" — 전국에서 {list.length}곳 찾았습니다
+            {list.length === 0 && ' · 이름의 일부만 넣어 보세요'}
+          </p>
+        )}
 
         <div className="pointer-events-auto flex gap-1.5 overflow-x-auto pb-1">
           <button

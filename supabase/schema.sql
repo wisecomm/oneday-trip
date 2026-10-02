@@ -6,6 +6,10 @@
 -- 같은 내용으로 갱신한다.
 -- =====================================================================
 
+-- ── 확장 ────────────────────────────────────────────────────────────
+-- 장소 이름 검색(ilike '%키워드%')이 인덱스를 타게 한다
+create extension if not exists pg_trgm;
+
 -- ── 열거형 ───────────────────────────────────────────────────────────
 create type place_category   as enum ('babzip', 'cafe', 'sulzip', 'spot');
 create type transport_type   as enum ('walk', 'transit', 'car');
@@ -194,6 +198,8 @@ create index places_unresolved_idx
 create index places_manual_idx
   on public.places (source)
   where source = 'manual'::place_source_kind;
+-- 이름 검색용. ilike '%키워드%' 는 앞뒤가 열려 있어 B-tree 를 타지 못한다
+create index places_name_trgm_idx on public.places using gin (name gin_trgm_ops);
 
 create sequence public.manual_place_seq;
 
