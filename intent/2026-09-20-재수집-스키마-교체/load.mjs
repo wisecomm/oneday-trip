@@ -61,6 +61,62 @@ const LEAF_NAME = {
   '2|서구': '서해·검단(옛 서구)',
 }
 
+/**
+ * 장소 하나하나의 지역 교정 — contentid → `${시/도 코드}|${시군구 이름}`.
+ *
+ * TourAPI 의 sigunguCode 가 주소와 다른 곳을 가리키는 행이 있다. 코드↔주소
+ * 대조(아래 리포트)가 찾아낸 것을 사람이 보고 판단해 여기 적는다.
+ *
+ * 왜 운영 DB 에 update 를 치지 않는가. 그렇게 해도 region_source 가 manual 로
+ * 바뀌어 재수집이 덮어쓰지는 않지만, 데이터베이스를 처음부터 다시 만들면
+ * 교정이 사라진다. 생성하는 쪽에 두면 시드에 들어가고 재수집도 견딘다.
+ *
+ * 적는 기준은 하나다. **주소에 도로명과 건물번호까지 있어 가리키는 구가
+ * 분명한 단일 지점만** 고친다. 여럿에 걸친 곳은 손대지 않는다 — 남해대교는
+ * 남해군과 하동군을 잇는 다리이고, 서산A지구방조제는 서산과 홍성에,
+ * 오서산은 보령과 홍성에 걸쳐 있다. 새만금무궁화공원은 매립지라 관할이
+ * 정리되는 중이고, 북악산 숙정문은 종로·성북 경계의 성곽 문인데 주소가
+ * '삼청동'까지뿐이며, 대구 신천물놀이장은 중구와 남구 사이를 흐르는 신천
+ * 둔치 시설이다. 걸쳐 있는 것을 우리가 한쪽으로 정하는 것은 근거 없는
+ * 판단이고, 하루 동선 관점에서도 어느 쪽이든 큰 차이가 없다. 그래서 그
+ * 여섯은 TourAPI 가 준 대로 둔다 — 다음에 이 목록을 보는 사람이 같은 고민을
+ * 되풀이하지 않도록 여기 적어 둔다.
+ *
+ * 고친 행은 region_source 를 manual 로 내보낸다. 사람이 정한 값이라는 뜻이고,
+ * 적재 upsert 가 manual 행의 지역을 건드리지 않으므로 운영 DB 에서도 유지된다.
+ */
+const PLACE_REGION_FIX = {
+  130573: '1|용산구', // 갤러리에스피 — 서울 강남구로 들어가 있었다
+  2856080: '1|강남구', // 스와니예 — 서초구
+  2704340: '1|성동구', // 디뮤지엄 — 용산구
+  130511: '1|성북구', // 간송미술관(서울 보화각) — 중구
+  2873360: '2|미추홀구', // 만복짬뽕집 — 계양구
+  2573888: '7|북구', // 정문식곱창구이 — 남구
+  1116733: '33|충주시', // 오대호 아트팩토리 — 음성군
+  // 시/도까지 어긋난 것. 이름에 속기 쉬우니 주소를 믿는다.
+  2831661: '7|울주군', // 우산국초밥 — '우산국'이 울릉도의 옛 이름이라 경북 울릉군으로 들어갔다
+  3454383: '34|홍성군', // 이응노의 집 — 전남 영암군으로 들어갔다
+  // 좌표까지 주소를 편드는 경우. 가게 이름('부평남부역점')만 인천을 가리킨다.
+  2833868: '32|태백시', // 모녀떡볶이 부평남부역점 — 인천 부평구로 들어갔다
+}
+
+/**
+ * 보고 나서 그대로 두기로 한 행 — contentid → 이유.
+ *
+ * 코드↔주소 대조에 계속 뜨지만 고칠 것이 아니다. 목록에 남겨 두면 다음에
+ * 보는 사람이 "아직 안 본 것"으로 오해해 같은 조사를 되풀이한다. 리포트가
+ * 이것들을 따로 세서 '사람이 보고 두기로 한 것'으로 보고한다.
+ */
+const REGION_KEPT = {
+  129500: '북악산 숙정문 — 종로·성북 경계의 성곽 문. 주소가 삼청동까지뿐이다',
+  2993587: '대구 신천물놀이장 — 중구와 남구 사이를 흐르는 신천 둔치 시설',
+  126746: '오서산 — 보령시와 홍성군에 걸친 산',
+  1937809: '서산A지구방조제 — 서산시와 홍성군에 걸친 방조제',
+  249950: '남해대교 — 남해군과 하동군을 잇는 다리',
+  2743296: '새만금무궁화공원 — 새만금 매립지, 관할이 정리되는 중',
+  2614852: '입석대(무등산권 국가지질공원) — 무등산 주상절리대가 광주와 화순에 걸쳐 있다',
+}
+
 const AREA_NAME = {
   세종특별자치시: '세종',
   경기도: '경기',
@@ -195,7 +251,8 @@ async function main() {
 
   // ── 장소 ─────────────────────────────────────────────────────────
   const places = []
-  const stats = { tour: 0, addr: 0, unresolved: 0, noDetail: 0, dropped: 0, badCoord: 0 }
+  const stats = { tour: 0, addr: 0, manual: 0, unresolved: 0, noDetail: 0, dropped: 0, badCoord: 0 }
+  const fixMisses = []
   const unresolvedSamples = []
   const badCoordSamples = []
   /** `${area}-${sigungu}` → {lat,lng,n, ldong:{}} */
@@ -221,7 +278,7 @@ async function main() {
           }
 
           // ── 지역 판정 ──
-          const areaCode = Number(it.areacode) || Number(a.code)
+          let areaCode = Number(it.areacode) || Number(a.code)
           let sigungu = Number(it.sigungucode)
           let source = 'tour'
           let note = null
@@ -266,6 +323,23 @@ async function main() {
               source = 'unresolved'
               note = `sigunguCode ${it.sigungucode ? `'${it.sigungucode}' 가 코드표에 없음` : '없음'}, 주소에서도 시군구명을 찾지 못함 (${addr || '주소 없음'})`
               if (unresolvedSamples.length < 10) unresolvedSamples.push(`${it.title} | ${addr}`)
+            }
+          }
+
+          // 사람이 정한 교정이 있으면 판정 결과를 덮는다 (PLACE_REGION_FIX)
+          const fix = PLACE_REGION_FIX[it.contentid]
+          if (fix) {
+            const [fa, fname] = fix.split('|')
+            const target = (leavesOfArea.get(Number(fa)) ?? []).find((x) => x.match === fname)
+            if (target) {
+              areaCode = Number(fa)
+              sigungu = target.code
+              source = 'manual'
+              note = `주소가 ${fname} 를 가리켜 사람이 옮김 — TourAPI sigunguCode '${it.sigungucode}' 는 다른 구였다`
+            } else {
+              // 코드표가 바뀌어 교정이 가리키는 구가 사라진 경우. 조용히 넘기면
+              // 교정이 죽은 줄도 모르므로 리포트에 올린다.
+              fixMisses.push(`${it.contentid} ${it.title} → ${fix} (코드표에 없음)`)
             }
           }
           stats[source]++
@@ -478,6 +552,10 @@ async function main() {
     for (const s of list) leafOf.set(`${areaCode}-${s.code}`, s)
   }
   const areaNameOf = new Map(groupRows.map((g) => [g.code, g.name]))
+  // 주소 앞머리와 맞춰 볼 TourAPI 원본 시/도 이름 ('울산'은 '울산광역시'의
+  // 앞머리라 그대로 맞는다. '전라남도'는 '전남광주통합특별시'와 맞지 않아
+  // 걸러지지 않는데, 그건 통합 자체가 코드표에 없는 경우라 맞는 분류다)
+  const rawAreaName = new Map(areas.map((a) => [Number(a.code), a.name]))
 
   const mismatches = []
   let noAddr = 0
@@ -492,6 +570,21 @@ async function main() {
     if (p.address.includes(lf.match)) continue
     // 주소가 가리키는 구가 코드표에 있는가
     const inTable = (matchNamesOfArea.get(p.area) ?? []).find((n) => p.address.includes(n)) ?? null
+    // 시/도까지 어긋난 경우를 따로 가른다. 같은 시/도 안에서만 찾으면 이런
+    // 행이 '코드표에 없는 구'로 분류돼 인천 개편 건과 뒤섞인다 — 성격이
+    // 전혀 다른데도 한 덩어리로 보이면 아무도 손대지 않는다.
+    let wrongArea = null
+    if (!inTable) {
+      for (const [ac, raw] of rawAreaName) {
+        if (ac === p.area || !p.address.startsWith(raw)) continue
+        const hit = (matchNamesOfArea.get(ac) ?? []).find((n) => p.address.includes(n))
+        if (hit) {
+          wrongArea = `${raw} ${hit}`
+          break
+        }
+      }
+    }
+    const kept = REGION_KEPT[p.id]
     mismatches.push({
       id: p.id,
       name: p.name,
@@ -499,12 +592,13 @@ async function main() {
       assigned: lf.name,
       assignedMatch: lf.match,
       address: p.address,
-      kind: inTable ? 'wrong-code' : 'not-in-table',
-      addressLeaf: inTable,
+      kind: kept ? 'kept' : inTable ? 'wrong-code' : wrongArea ? 'wrong-area' : 'not-in-table',
+      addressLeaf: inTable ?? wrongArea,
+      keptReason: kept ?? null,
     })
   }
 
-  const byKind = { 'not-in-table': 0, 'wrong-code': 0 }
+  const byKind = { 'not-in-table': 0, 'wrong-code': 0, 'wrong-area': 0, kept: 0 }
   const byArea = {}
   for (const m of mismatches) {
     byKind[m.kind]++
@@ -551,7 +645,7 @@ async function main() {
   console.log('')
   console.log('── 지역 판정 경로 ──')
   const tot = places.length || 1
-  for (const k of ['tour', 'addr', 'unresolved']) {
+  for (const k of ['tour', 'addr', 'manual', 'unresolved']) {
     console.log(`  ${k.padEnd(11)} ${String(stats[k]).padStart(6)} (${((stats[k] / tot) * 100).toFixed(2)}%)`)
   }
   console.log(`  그중 좌표 오류로 격리: ${stats.badCoord}건`)
@@ -567,6 +661,10 @@ async function main() {
   console.log('── 카테고리 ──')
   for (const [k, v] of Object.entries(byCat).sort((a, b) => b[1] - a[1])) console.log(`  ${k.padEnd(7)} ${v}`)
   console.log('')
+  if (fixMisses.length) {
+    console.log(`  ⚠ PLACE_REGION_FIX ${fixMisses.length}건이 적용되지 않았습니다 — 코드표를 확인하세요`)
+    for (const m of fixMisses) console.log(`    · ${m}`)
+  }
   console.log('── 코드 ↔ 주소 대조 ──')
   const mtot = mismatches.length
   console.log(
@@ -574,11 +672,13 @@ async function main() {
       (noAddr ? ` · 주소가 없어 대조 못한 곳 ${noAddr}` : ''),
   )
   console.log(`    코드표에 없는 구: ${byKind['not-in-table']}건 (행정구역 개편을 TourAPI 가 못 따라온 경우)`)
-  console.log(`    코드표의 다른 구: ${byKind['wrong-code']}건 (원본 오류이거나 경계에 걸친 곳 — 사람이 볼 대상)`)
+  console.log(`    코드표의 다른 구: ${byKind['wrong-code']}건 (원본 오류 — 사람이 볼 대상)`)
+  console.log(`    시/도까지 다름: ${byKind['wrong-area']}건 (원본 오류 — 사람이 볼 대상)`)
+  console.log(`    보고 나서 둔 것: ${byKind.kept}건 (여럿에 걸쳐 어느 쪽도 맞다 하기 어려운 곳)`)
   for (const [a, n] of Object.entries(byArea).sort((x, y) => y[1] - x[1]).slice(0, 5)) {
     console.log(`    ${a.padEnd(6)} ${n}`)
   }
-  for (const m of mismatches.filter((x) => x.kind === 'wrong-code').slice(0, 5)) {
+  for (const m of mismatches.filter((x) => x.kind === 'wrong-code' || x.kind === 'wrong-area').slice(0, 5)) {
     console.log(`    · ${m.name} — ${m.area} ${m.assigned} 로 들어감 | ${m.address}`)
   }
   console.log('  전체 목록: raw/addr-mismatch.json')
