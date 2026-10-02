@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  전국 수집을 매일 00:10 에 이어서 돌린다.
+  전국 수집을 매일 00:00 (오전 12시) 에 이어서 돌린다.
 
   cron 이 아니라 launchd 를 쓰는 이유: 맥북이 그 시각에 잠들어 있으면 cron 은
   그날 실행을 통째로 건너뛰지만, launchd 는 깨어날 때 놓친 작업을 실행한다.
@@ -28,11 +28,18 @@
   <key>WorkingDirectory</key>
   <string>/Users/danyoh/XXX-GARDE/oneday-trip/intent/2026-09-20-재수집-스키마-교체</string>
 
-  <!-- 일일 한도는 보통 자정에 초기화된다. 10분 뒤에 시작한다. -->
+  <!--
+    자정 정각에 시작한다 (2026-10-02 에 00:10 에서 당겼다).
+
+    일일 한도는 보통 자정에 초기화되므로 원래는 10분 뒤로 미뤄 두었다. 초기화가
+    조금 늦어 첫 호출이 어제 할당으로 잡히면 그날 수집이 일찍 멈출 수 있지만,
+    collect.mjs 는 이미 받은 것을 건너뛰므로 다음 날 그 자리에서 이어진다.
+    그런 일이 반복되면 Minute 을 다시 10 으로 돌린다.
+  -->
   <key>StartCalendarInterval</key>
   <dict>
-    <key>Hour</key><integer>0</integer>
-    <key>Minute</key><integer>10</integer>
+    <key>Hour</key><integer12</integer>
+    <key>Minute</key><integer>0</integer>
   </dict>
 
   <key>RunAtLoad</key>
