@@ -159,9 +159,32 @@ export function recommend(
   // 점수가 같으면 무작위로 — 목록이 이름순으로 오므로, 그대로 두면 동점 장소 중
   // 가나다순 앞쪽만 늘 뽑힌다(리뷰가 거의 없는 지금은 대부분이 동점이다).
   // 그래서 같은 조건이라도 새로고침할 때마다 다른 곳이 섞여 나온다.
-  return scored
+  const ranked = scored.sort((a, b) => b.score - a.score || a.tie - b.tie)
+
+  // 한 종류가 목록을 다 채우지 않게 — 시간대 · 날씨 가산이 종류 단위라, 맑은 저녁에는
+  // 명소 8곳처럼 한 종류로 쏠린다. 종류마다 limit 의 절반(8 이면 4곳)까지만 먼저
+  // 넣고, 다른 종류가 모자라 자리가 남으면 점수순으로 마저 채운다.
+  const cap = Math.ceil(limit / 2)
+  const perCategory = new Map<PlaceCategory, number>()
+  const picked: typeof ranked = []
+  const skipped: typeof ranked = []
+  for (const s of ranked) {
+    if (picked.length >= limit) break
+    const n = perCategory.get(s.place.category) ?? 0
+    if (n < cap) {
+      picked.push(s)
+      perCategory.set(s.place.category, n + 1)
+    } else {
+      skipped.push(s)
+    }
+  }
+  for (const s of skipped) {
+    if (picked.length >= limit) break
+    picked.push(s)
+  }
+
+  return picked
     .sort((a, b) => b.score - a.score || a.tie - b.tie)
-    .slice(0, limit)
     .map(({ place, score, reasons }) => ({ place, score, reasons }))
 }
 
