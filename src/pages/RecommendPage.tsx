@@ -4,8 +4,8 @@ import { useAuth } from '@/lib/auth'
 import { places as placesApi, tripItems, trips } from '@/lib/db'
 import { useRegions } from '@/hooks/useRegions'
 import { contextLabel, fetchWeather, recommend, type Scored, type TripContext } from '@/lib/recommend'
-import { regionLabel, type Trip } from '@/lib/types'
-import { CategoryDot, PlaceThumb } from '@/components/PlaceCard'
+import { regionLabel, shownRating, type Trip } from '@/lib/types'
+import { CategoryDot, PlaceThumb, RatingStar } from '@/components/PlaceCard'
 import { BottomSheet, EmptyState, Loading, PageHeader } from '@/components/ui'
 import { formatTripDate } from '@/lib/trip-date'
 
@@ -227,12 +227,10 @@ export function RecommendPage({ embedded = false }: { embedded?: boolean } = {})
                     {place.summary && (
                       <p className="mt-0.5 truncate text-[12.5px] text-ink-500">{place.summary}</p>
                     )}
-                    {place.source_rating != null && (
-                      <div className="mt-1 flex items-center gap-2 text-[12px] text-ink-500">
-                        <span className="font-bold text-ink-700">
-                          ★ {place.source_rating.toFixed(1)}
-                        </span>
-                      </div>
+                    {shownRating(place) && (
+                      <p className="mt-1 text-[12px]">
+                        <RatingStar place={place} />
+                      </p>
                     )}
                   </button>
                 </div>

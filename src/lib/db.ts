@@ -143,7 +143,8 @@ export const places = {
       return rows.map(flattenPlace)
     }
 
-    return demo.places.filter((p) => {
+    const ratings = demoPlaceRatings()
+    return demo.places.map((p) => withDemoRating(p, ratings)).filter((p) => {
       if (p.tour_sigungu_code < 0) return false
       if (filter.areaCode !== undefined && p.tour_area_code !== filter.areaCode) return false
       if (filter.sigunguCode !== undefined && p.tour_sigungu_code !== filter.sigunguCode)
@@ -164,7 +165,8 @@ export const places = {
       if (error) throw error
       return data ? flattenPlace(data as unknown as PlaceRow) : null
     }
-    return demo.places.find((p) => p.id === id) ?? null
+    const found = demo.places.find((p) => p.id === id)
+    return found ? withDemoRating(found, demoPlaceRatings()) : null
   },
 
   /**
@@ -242,6 +244,14 @@ function demoPlaceRatings(): Map<string, { rating_avg: number; rating_count: num
   )
 }
 
+/** 데모 장소에 기기 리뷰로 계산한 별점을 붙인다 — 데모 장소 목록은 코드에 박힌 값이라 */
+function withDemoRating(
+  p: Place,
+  ratings: Map<string, { rating_avg: number; rating_count: number }>,
+): Place {
+  return { ...p, ...(ratings.get(p.id) ?? { rating_avg: null, rating_count: 0 }) }
+}
+
 function demoHomePicks(base: LatLng | null, count: number): Place[] {
   const n = Math.min(Math.max(count, 3), 20)
   const quota: Partial<Record<PlaceCategory, number>> = { spot: n - 2, babzip: 1, cafe: 1 }
@@ -251,7 +261,7 @@ function demoHomePicks(base: LatLng | null, count: number): Place[] {
   const cand = demo.places
     .filter((p) => p.tour_sigungu_code >= 0 && quota[p.category] !== undefined)
     .map((p) => {
-      const place = { ...p, ...(ratings.get(p.id) ?? { rating_avg: null, rating_count: 0 }) }
+      const place = withDemoRating(p, ratings)
       const km = origin ? distanceKm(origin, p) : 0
       return { place, km, reviewed: place.rating_count > 0 && km <= DAY_TRIP_RADIUS_KM }
     })

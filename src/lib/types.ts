@@ -354,6 +354,18 @@ export const TRANSPORT_LABEL: Record<Transport, string> = {
  */
 export const MIN_RATING_DISPLAY = 3
 
+/**
+ * 화면에 ★ 로 보일 장소 별점 — 사용자 리뷰 평균이 MIN_RATING_DISPLAY 건 이상일 때만.
+ * source_rating(TourAPI 평점)은 쓰지 않는다. 출처가 평점을 주지 않아 전부 null 이다.
+ */
+export function shownRating(
+  place: Pick<Place, 'rating_avg' | 'rating_count'>,
+): { avg: number; count: number } | null {
+  return place.rating_avg != null && place.rating_count >= MIN_RATING_DISPLAY
+    ? { avg: place.rating_avg, count: place.rating_count }
+    : null
+}
+
 export const TRANSPORT_SPEED_KMH: Record<Transport, number> = {
   walk: 4,
   transit: 18,

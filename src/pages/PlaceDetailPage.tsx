@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { places as placesApi } from '@/lib/db'
-import { CATEGORY_COLOR, CATEGORY_LABEL, type Place } from '@/lib/types'
+import { CATEGORY_COLOR, CATEGORY_LABEL, shownRating, type Place } from '@/lib/types'
 import { EmptyState, Loading, PageHeader } from '@/components/ui'
-import { CategoryDot } from '@/components/PlaceCard'
+import { CategoryDot, RatingStar } from '@/components/PlaceCard'
 
 /**
  * 장소 상세 — 사진 · 주소 · 가격대 · 영업시간 · 소개 · 태그 · 전화 연결.
@@ -93,9 +93,9 @@ export function PlaceDetailPage() {
           <p className="mt-1 text-[13px] text-ink-500">{place.address}</p>
           {/* 값이 없는 항목은 줄째 숨긴다 — 빈 칸이 남은 화면이 그 영역이 아예 없는
               화면보다 나쁘다. 가격대(price_level)는 표시하지 않는다 — TourAPI 에 가격 정보가 없어 전 장소가 기본값 2라, 보이면 '보통 가격'이라는 거짓 정보가 된다. */}
-          {place.source_rating != null && (
-            <p className="mt-2 text-[13px] font-bold text-ink-600">
-              ★ {place.source_rating.toFixed(1)}
+          {shownRating(place) && (
+            <p className="mt-2 text-[13px]">
+              <RatingStar place={place} /> <span className="text-ink-400">· 방문한 사람들의 별점</span>
             </p>
           )}
           {/* 영업시간은 따로 한 줄 — 같은 줄에 두면 길어서 넘어갈 때 구분선만 위에 남는다 */}

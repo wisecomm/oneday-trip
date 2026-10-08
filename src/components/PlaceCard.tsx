@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CATEGORY_COLOR, CATEGORY_LABEL, type Place } from '@/lib/types'
+import { CATEGORY_COLOR, CATEGORY_LABEL, shownRating, type Place } from '@/lib/types'
 
 export function CategoryDot({ category }: { category: Place['category'] }) {
   return (
@@ -43,6 +43,17 @@ export function PlaceThumb({ place, size = 56 }: { place: Place; size?: number }
   )
 }
 
+/** ★ 4.6 (12) — 리뷰가 MIN_RATING_DISPLAY 건 미만이면 아무것도 그리지 않는다 */
+export function RatingStar({ place, className = '' }: { place: Place; className?: string }) {
+  const r = shownRating(place)
+  if (!r) return null
+  return (
+    <span className={`font-bold text-ink-700 ${className}`}>
+      ★ {r.avg.toFixed(1)} <span className="font-normal text-ink-400">({r.count})</span>
+    </span>
+  )
+}
+
 export function PlaceCard({
   place,
   onClick,
@@ -67,11 +78,11 @@ export function PlaceCard({
         {place.summary && (
           <p className="mt-0.5 truncate text-[12.5px] text-ink-500">{place.summary}</p>
         )}
-        {/* 평점이 없는 장소에 ★ 0.0 을 찍지 않는다 — '평점 없음'과 '0점'은 다르다.
+        {/* 리뷰가 적은 장소에 ★ 를 찍지 않는다 (MIN_RATING_DISPLAY).
             가격대(price_level)는 표시하지 않는다 — TourAPI 에 가격 정보가 없어 전 장소가 기본값 2라, 보이면 '보통 가격'이라는 거짓 정보가 된다. */}
-        {place.source_rating != null && (
-          <p className="mt-1.5 text-[12px] font-semibold text-ink-700">
-            ★ {place.source_rating.toFixed(1)}
+        {shownRating(place) && (
+          <p className="mt-1.5 text-[12px]">
+            <RatingStar place={place} />
           </p>
         )}
       </div>

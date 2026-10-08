@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { places as placesApi, regions as regionsApi, trips } from '@/lib/db'
 import { currentPosition, dayTripTravel, formatDuration, type LatLng } from '@/lib/geo'
-import { MIN_RATING_DISPLAY, type Place, type Trip } from '@/lib/types'
+import { type Place, type Trip } from '@/lib/types'
 import { PlaceCard } from '@/components/PlaceCard'
 import { Loading } from '@/components/ui'
 import { formatTripDate } from '@/lib/trip-date'
@@ -181,27 +181,15 @@ function QuickLink({
 }
 
 /**
- * 카드 오른쪽: 별점과 기준점에서의 이동 시간.
- *
- * ★ 는 리뷰가 MIN_RATING_DISPLAY(3)건 이상일 때만 보인다 (❸). 1~2건인 장소도
- * 순서에는 반영되지만, 리뷰가 1건뿐이면 평균이 곧 그 사람의 별점이라 숨긴다.
+ * 카드 오른쪽: 기준점에서의 이동 시간.
+ * ★ 는 PlaceCard 가 다른 화면과 같은 규칙(shownRating)으로 그린다.
  */
 function PickMeta({ place, origin }: { place: Place; origin: LatLng | null }) {
-  const showRating = place.rating_avg != null && place.rating_count >= MIN_RATING_DISPLAY
   const travel = origin ? dayTripTravel(origin, place) : null
+  if (!travel) return null
   return (
-    <div className="shrink-0 text-right text-[12px] leading-tight">
-      {showRating && (
-        <p className="font-bold text-ink-700">
-          ★ {place.rating_avg!.toFixed(1)}{' '}
-          <span className="font-normal text-ink-400">({place.rating_count})</span>
-        </p>
-      )}
-      {travel && (
-        <p className="mt-0.5 whitespace-nowrap text-ink-500">
-          {travel.mode === 'walk' ? '도보' : '차로'} {formatDuration(travel.minutes)}
-        </p>
-      )}
-    </div>
+    <p className="shrink-0 whitespace-nowrap text-right text-[12px] text-ink-500">
+      {travel.mode === 'walk' ? '도보' : '차로'} {formatDuration(travel.minutes)}
+    </p>
   )
 }

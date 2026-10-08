@@ -4,9 +4,9 @@ import { useAuth } from '@/lib/auth'
 import { places as placesApi, tripItems, trips } from '@/lib/db'
 import { useRegions } from '@/hooks/useRegions'
 import { distanceKm } from '@/lib/geo'
-import { CATEGORY_LABEL, type Place, type PlaceCategory, type Trip } from '@/lib/types'
+import { CATEGORY_LABEL, shownRating, type Place, type PlaceCategory, type Trip } from '@/lib/types'
 import { MapView } from '@/components/MapView'
-import { CategoryDot, PlaceThumb } from '@/components/PlaceCard'
+import { CategoryDot, PlaceThumb, RatingStar } from '@/components/PlaceCard'
 import { BottomSheet, Loading } from '@/components/ui'
 
 const CATEGORIES: PlaceCategory[] = ['babzip', 'cafe', 'sulzip', 'spot']
@@ -408,14 +408,10 @@ export function ExplorePage() {
                 </div>
                 <p className="mt-0.5 text-[12.5px] text-ink-500">{selected.address}</p>
                 {/* 가격대(price_level)는 표시하지 않는다 — TourAPI 에 가격 정보가 없어 전 장소가 기본값 2라, 보이면 '보통 가격'이라는 거짓 정보가 된다 */}
-                {(selected.source_rating != null || selected.open_hours) && (
+                {(shownRating(selected) || selected.open_hours) && (
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-2 text-[12.5px] text-ink-500">
-                    {selected.source_rating != null && (
-                      <span className="font-bold text-ink-700">
-                        ★ {selected.source_rating.toFixed(1)}
-                      </span>
-                    )}
-                    {selected.source_rating != null && selected.open_hours && <span>·</span>}
+                    <RatingStar place={selected} />
+                    {shownRating(selected) && selected.open_hours && <span>·</span>}
                     {selected.open_hours && <span>{selected.open_hours}</span>}
                   </div>
                 )}
