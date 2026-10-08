@@ -37,6 +37,7 @@ erDiagram
     places ||--o{ shared_plan_items : "담긴 장소"
     shared_plans ||--o{ plan_ratings : "만족도"
     shared_plans ||--o{ trips : "담아 간 여행(source_plan_id)"
+    shared_plans |o--o{ trips : "공유해 만든 코스(published_plan_id)"
 
 ```
 
@@ -153,6 +154,12 @@ current_database();` 를 먼저 보세요.
 **주의** `source_plan_id` 는 담아 온 플랜입니다. 출처 표시에도 쓰지만 더
 중요한 건 **"담은 사람만 평가" 판정**입니다 — 이 값이 없으면 담지도 않은
 사람의 별점을 막을 수 없습니다. 플랜이 지워지면 null 이 되고 여행은 남습니다.
+
+**주의** `published_plan_id` 는 반대 방향, **이 여행을 공유해 만든 코스**입니다
+(Q23). 있으면 타임라인이 공유 버튼 대신 '공유 완료'를 보여 주고, 같은 여행을 두 번
+공유하지 못하게 막습니다. 연결을 **비공개 쪽에 둔 것이 요점**입니다 — 코스 쪽에
+여행 id 를 싣던 `source_trip_id` 는 공개 행에 개인 여행 id 가 드러나서 뺐습니다.
+`trips` 는 주인만 읽으므로 이 값은 밖으로 나가지 않습니다. 코스가 지워지면 null.
 
 ### `reservations` — 예약
 

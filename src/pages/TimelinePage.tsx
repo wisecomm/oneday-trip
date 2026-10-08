@@ -18,9 +18,9 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useAuth } from '@/lib/auth'
-import { reservations, tripItems, trips } from '@/lib/db'
+import { reservations, sharedPlans, tripItems, trips } from '@/lib/db'
 import { routeDistanceKm, routeMinutes } from '@/lib/geo'
-import { CATEGORY_LABEL, MIN_PLAN_PLACES, type Trip, type TripItem } from '@/lib/types'
+import { CATEGORY_LABEL, MIN_PLAN_PLACES, type SharedPlan, type Trip, type TripItem } from '@/lib/types'
 import { CategoryDot, PlaceThumb } from '@/components/PlaceCard'
 import { BottomSheet, EmptyState, Loading, PageHeader } from '@/components/ui'
 import { VisitShareSheet } from '@/components/VisitShareSheet'
@@ -82,6 +82,56 @@ export function TimelinePage() {
   useEffect(() => {
     void load()
   }, [load])
+
+  /**
+   * 이 여행으로 공유한 코스 (Q23). 공유 완료 표시에 쓴다.
+   *
+   * 코스가 운영자에게 내려갔는지 알아야 해서 한 번 더 읽는다. 작성자는 RLS 상
+   * 내려간 자기 코스도 읽을 수 있다. 읽기에 실패하면 null 로 두고, 그때도
+   * '공유 완료'는 보인다 — 연결이 있다는 사실만으로 충분하다.
+   */
+  const [publishedPlan, setPublishedPlan] = useState<SharedPlan | null>(null)
+  const publishedPlanId = trip?.published_plan_id ?? null
+  useEffect(() => {
+    setPublishedPlan(null)
+    if (!publishedPlanId) return
+    let alive = true
+    sharedPlans
+      .get(publishedPlanId)
+      .then((p) => {
+        if (alive) setPublishedPlan(p)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [publishedPlanId])
+
+  /**
+   * 담아 온 원본 코스가 아직 공개돼 있는가.
+   *
+   * 원본이 내려가면 작성자·운영자만 읽을 수 있어서(RLS), 담아 간 사람에게는
+   * 배너 링크가 "코스를 찾을 수 없습니다"로 끝나는 막다른 길이 된다. 그래서
+   * 한 번 읽어 보고, 없거나 내려가 있으면 링크 대신 안내만 둔다.
+   * 원본이 지워진 경우는 여기 오지 않는다 — source_plan_id 가 이미 null 이다.
+   * 읽기가 네트워크 오류로 실패하면 링크를 그대로 둔다. 모를 때 막지 않는다.
+   */
+  const [sourceGone, setSourceGone] = useState(false)
+  const sourcePlanId = trip?.source_plan_id ?? null
+  useEffect(() => {
+    setSourceGone(false)
+    if (!sourcePlanId) return
+    let alive = true
+    sharedPlans
+      .get(sourcePlanId)
+      .then((p) => {
+        if (alive) setSourceGone(!p || p.is_hidden)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [sourcePlanId])
 
   const orderedItems = useMemo(
     () => [...items].sort((a, b) => a.sort_order - b.sort_order),
@@ -287,8 +337,14 @@ export function TimelinePage() {
         )}
 
         {/* 담아 온 여행이면 어디서 왔는지 보여 준다. 플랜이 지워졌으면
-            source_plan_id 가 null 이 되어 이 줄이 사라진다 */}
-        {trip.source_plan_id && (
+            source_plan_id 가 null 이 되어 이 줄이 사라진다. 내려가 있으면
+            링크 대신 안내만 둔다 — 내 여행은 복사본이라 그대로 쓸 수 있다 */}
+        {trip.source_plan_id && sourceGone && (
+          <p className="mt-3 rounded-xl bg-ink-100 px-4 py-3 text-[13px] font-semibold text-ink-600">
+            담아 온 코스가 지금은 비공개입니다. 내 여행은 그대로 쓸 수 있습니다.
+          </p>
+        )}
+        {trip.source_plan_id && !sourceGone && (
           <div className="mt-3">
             <Link
               to={`/plans/${trip.source_plan_id}`}
@@ -303,24 +359,48 @@ export function TimelinePage() {
         {/* SHARE-06-03 — 잘 짠 하루를 남에게 넘기는 입구.
             올리기는 스냅샷 복사라 날짜·소감·별점은 넘어가지 않는다.
 
-            다녀와서 전부 리뷰를 쓴 뒤에만 열린다 (Q19). 막는 대신 몇 곳
-            남았는지를 적는다 — 버튼만 흐려 두면 왜 안 되는지 알 수 없다.
-            관리자는 예외다. */}
-        {orderedItems.length >= MIN_PLAN_PLACES && (
+            다녀와서 전부 리뷰를 쓴 뒤에만 열린다 (Q19). 관리자는 예외다.
+
+            열리기 전에는 버튼을 그리지 않고 안내 한 줄만 둔다. 흐린 버튼은
+            눌러 보게 만들 뿐이고, 무엇을 하면 열리는지는 글이 말해 준다.
+            몇 곳 남았는지도 함께 적는다. */}
+        {/* 이미 공유했으면 버튼 대신 공유 완료를 보여 준다 (Q23). 장소 수와 무관하게
+            보인다 — 공유한 뒤 장소를 빼도 공유했다는 사실은 그대로다. 같은 여행을
+            두 번 공유해 똑같은 코스가 둘 생기는 것도 여기서 막힌다. */}
+        {trip.published_plan_id ? (
+          <div className="mt-3">
+            {publishedPlan?.is_hidden ? (
+              <Link
+                to="/me/plans"
+                className="flex items-center justify-between rounded-xl bg-ink-100 px-4 py-3 text-[13px] font-semibold text-ink-600"
+              >
+                추천 코스로 공유했지만 지금은 내려가 있습니다
+                <span aria-hidden>›</span>
+              </Link>
+            ) : (
+              <Link
+                to={`/plans/${trip.published_plan_id}`}
+                className="flex items-center justify-between rounded-xl bg-brand-50 px-4 py-3 text-[13px] font-semibold text-brand-700"
+              >
+                <span>
+                  <span aria-hidden>✓ </span>추천 코스 공유 완료
+                </span>
+                <span className="flex items-center gap-1">
+                  코스 보기 <span aria-hidden>›</span>
+                </span>
+              </Link>
+            )}
+          </div>
+        ) : orderedItems.length >= MIN_PLAN_PLACES && (
           <div className="mt-3">
             {canPublish ? (
               <Link to={`/trips/${tripId}/share`} className="btn-outline w-full">
                 추천 코스 공유
               </Link>
             ) : (
-              <>
-                <button type="button" disabled className="btn-outline w-full">
-                  추천 코스 공유
-                </button>
-                <p className="hint mt-1.5 text-center">
-                  리뷰를 쓰지 않은 장소가 {unreviewed}곳 남았습니다
-                </p>
-              </>
+              <p className="hint text-center">
+                리뷰를 완료해야 추천 코스로 공유할 수 있습니다 · {unreviewed}곳 남음
+              </p>
             )}
           </div>
         )}

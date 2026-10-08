@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { planRatings, sharedPlans } from '@/lib/db'
 import {
@@ -32,6 +32,8 @@ export function PlanDetailPage() {
   const { planId } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
+  // 공유 화면에서 막 넘어왔을 때만 완료 안내를 띄운다. 주소로 다시 들어오면 없다.
+  const justShared = Boolean((useLocation().state as { justShared?: boolean } | null)?.justShared)
   const [plan, setPlan] = useState<SharedPlan | null>(null)
   const [loading, setLoading] = useState(true)
   const [cloneOpen, setCloneOpen] = useState(false)
@@ -142,6 +144,15 @@ export function PlanDetailPage() {
       <PageHeader title={plan.title} subtitle={planAuthorLabel(plan)} back />
 
       <div className="px-4 py-4">
+        {justShared && (
+          <p
+            role="status"
+            className="mb-3 rounded-xl bg-brand-50 px-4 py-3 text-[13px] font-semibold text-brand-700"
+          >
+            <span aria-hidden>✓ </span>추천 코스 공유 완료 — 추천 탭의 추천 코스에서 누구나 볼 수
+            있습니다.
+          </p>
+        )}
         <section className="card p-4">
           <p className="text-[14px] leading-relaxed text-ink-700">{plan.description}</p>
           <div className="mt-3 flex flex-wrap gap-1.5">

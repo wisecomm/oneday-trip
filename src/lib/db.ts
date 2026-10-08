@@ -207,10 +207,11 @@ export const profiles = {
 /**
  * 저장할 때는 코드만 넘긴다. 이름은 조회 시 조인해서 채운다.
  * `source_plan_id` 는 담기로 만들어질 때만 채워지므로 선택이다.
+ * `published_plan_id` 는 받지 않는다 — 공유할 때 publishFromTrip 만 채운다.
  */
 export type TripInput = Omit<
   Trip,
-  'id' | 'created_at' | 'group_name' | 'region_name' | 'source_plan_id'
+  'id' | 'created_at' | 'group_name' | 'region_name' | 'source_plan_id' | 'published_plan_id'
 > & { source_plan_id?: string | null }
 
 /** 여행도 장소와 같은 이유로 지역 이름을 함께 가져온다 */
@@ -281,6 +282,7 @@ export const trips = {
     const row = {
       ...input,
       source_plan_id: input.source_plan_id ?? null,
+      published_plan_id: null,
       id: uid('trip'),
       created_at: nowIso(),
     }
@@ -742,6 +744,16 @@ export const sharedPlans = {
         })),
       )
       if (itemsError) throw itemsError
+
+      // 비공개 여행 쪽에 "이 여행이 이 코스가 됐다"를 남긴다 (Q23).
+      // 실패해도 던지지 않는다. 공유 자체는 이미 끝났고, 여기서 던지면 화면이
+      // 실패로 보여 사용자가 다시 누르고, 같은 코스가 하나 더 생긴다. 연결을
+      // 못 남기면 타임라인에 공유 버튼이 다시 보이는 정도로 끝난다.
+      const { error: linkError } = await sb()
+        .from('trips')
+        .update({ published_plan_id: plan.id })
+        .eq('id', tripId)
+      if (linkError) console.warn('공유한 코스를 여행에 연결하지 못했습니다', linkError)
       return plan
     }
 
@@ -769,6 +781,8 @@ export const sharedPlans = {
           tip: input.tips?.[it.id]?.trim() || null,
         })
       }
+      const t = d.trips.find((x) => x.id === tripId)
+      if (t) t.published_plan_id = stored.id
     })
     return demoPlanNames(stored)
   },
@@ -876,6 +890,12 @@ export const sharedPlans = {
     mutateDb((d) => {
       d.shared_plans = d.shared_plans.filter((p) => p.id !== id)
       d.shared_plan_items = d.shared_plan_items.filter((it) => it.plan_id !== id)
+      // DB 의 `on delete set null` 을 흉내 낸다. 담아 온 여행(source_plan_id)도
+      // 같은 처리가 빠져 있어 지워진 코스를 가리키는 링크가 남았다 — 함께 고친다.
+      for (const t of d.trips) {
+        if (t.source_plan_id === id) t.source_plan_id = null
+        if (t.published_plan_id === id) t.published_plan_id = null
+      }
     })
   },
 

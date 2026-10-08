@@ -379,6 +379,14 @@ alter table public.trips
   add column source_plan_id uuid references public.shared_plans on delete set null;
 create index trips_source_plan_idx on public.trips (source_plan_id);
 
+-- 이 여행을 공유해 만든 추천 코스 (Q23). 연결을 비공개 쪽(trips)에 둔다 —
+-- 공개 행(shared_plans)에 개인 여행 id 를 싣지 않는다는 7-D1 원칙 때문에
+-- 반대 방향 연결(source_trip_id)은 20261001010000 에서 뺐다. 코스가 지워지면
+-- null 이 되어 '추천 코스 공유' 버튼이 다시 나타난다.
+alter table public.trips
+  add column published_plan_id uuid references public.shared_plans on delete set null;
+create index trips_published_plan_idx on public.trips (published_plan_id);
+
 -- ── SHARE-06-07 플랜 만족도 ─────────────────────────────────────────
 create table public.plan_ratings (
   id         uuid primary key default gen_random_uuid(),

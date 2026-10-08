@@ -56,7 +56,8 @@ const SHAPE = {
   trips: {
     id: true, user_id: true, title: true, tour_area_code: true,
     tour_sigungu_code: true, trip_date: true, start_time: true, end_time: true,
-    companions: true, transport: true, source_plan_id: true, created_at: true,
+    companions: true, transport: true, source_plan_id: true, published_plan_id: true,
+    created_at: true,
   } satisfies Record<keyof StoredTrip, true>,
 
   trip_items: {

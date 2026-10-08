@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { sharedPlans, tripItems, trips } from '@/lib/db'
 import {
@@ -80,7 +80,9 @@ export function PlanPublishPage() {
         asAdmin: isAdmin,
         tips,
       })
-      navigate(`/plans/${plan.id}`)
+      // replace: 뒤로 가기가 이 입력 화면이 아니라 타임라인으로 가게 한다 — 돌아온
+      // 타임라인은 '공유 완료'를 보여 준다. justShared 는 상세 화면의 완료 안내용.
+      navigate(`/plans/${plan.id}`, { replace: true, state: { justShared: true } })
     } catch (e) {
       setError(e instanceof Error ? e.message : '공유하지 못했습니다.')
     } finally {
@@ -94,6 +96,27 @@ export function PlanPublishPage() {
       <>
         <PageHeader title="추천 코스 공유" back />
         <EmptyState icon="🔍" title="여행을 찾을 수 없습니다" />
+      </>
+    )
+  }
+
+  // 이미 공유한 여행은 다시 공유하지 않는다 (Q23). 타임라인 버튼만 숨기면
+  // 주소로 바로 들어오거나 뒤로 가기로 돌아왔을 때 같은 코스가 하나 더 생긴다.
+  // (이 아래는 early return 뒤라 훅을 두지 않는다)
+  if (trip.published_plan_id) {
+    return (
+      <>
+        <PageHeader title="추천 코스 공유" back />
+        <EmptyState
+          icon="✅"
+          title="이미 추천 코스로 공유한 여행입니다"
+          description="다시 공유하려면 '내가 올린 코스'에서 지운 뒤 공유해 주세요."
+          action={
+            <Link to={`/plans/${trip.published_plan_id}`} className="btn-primary">
+              코스 보기
+            </Link>
+          }
+        />
       </>
     )
   }
