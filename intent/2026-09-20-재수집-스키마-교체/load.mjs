@@ -548,7 +548,7 @@ async function main() {
     const part = places.slice(i, i + CHUNK)
     L.push(
       'insert into public.places (id, name, category, tour_area_code, tour_sigungu_code,' +
-        ' address, lat, lng, image_url, source_rating, tags, summary, open_hours,' +
+        ' address, lat, lng, image_url, tags, summary, open_hours,' +
         ' phone, source_modified_at, region_source, region_note) values',
     )
     L.push(
@@ -556,7 +556,7 @@ async function main() {
         .map(
           (p) =>
             `  (${q(p.id)}, ${qs(p.name)}, '${p.category}', ${p.area}, ${p.sigungu}, ${qs(p.address)},` +
-            ` ${num(p.lat)}, ${num(p.lng)}, ${q(p.image)}, null, '{}'::text[], ${qs(p.summary)},` +
+            ` ${num(p.lat)}, ${num(p.lng)}, ${q(p.image)}, '{}'::text[], ${qs(p.summary)},` +
             ` ${qs(p.open_hours)}, ${q(p.phone)}, ${q(p.modified)}, '${p.source}', ${q(p.note)})`,
         )
         .join(',\n') + '\non conflict (id) do update set',
@@ -923,7 +923,7 @@ async function writeDemo(groupRows, regionRows, places) {
         ` group_name: ${t(nameOfArea.get(p.area) ?? '')}, region_name: ${t(region?.name ?? '')},`,
     )
     L.push(`    address: ${t(p.address)}, lat: ${p.lat}, lng: ${p.lng},`)
-    L.push(`    image_url: ${t(p.image)}, source_rating: null, tags: [],`)
+    L.push(`    image_url: ${t(p.image)}, tags: [],`)
     L.push(`    summary: ${t(p.summary)},`)
     L.push(`    open_hours: ${t(p.open_hours)}, phone: ${t(p.phone)},`)
     L.push(

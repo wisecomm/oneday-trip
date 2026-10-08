@@ -163,10 +163,6 @@ create table public.places (
   lat                double precision not null,
   lng                double precision not null,
   image_url          text,
-  -- 외부(TourAPI)가 준 평점. 주지 않으면 null 이다 — 0 이 아니다.
-  -- 0 으로 두면 '평점 없음'과 '0점'이 구분되지 않아 모든 장소가 ★ 0.0 으로 보인다.
-  -- 사용자 리뷰를 집계한 내부 평점은 아래 rating_avg · rating_count 다.
-  source_rating      numeric(2,1) check (source_rating between 0 and 5),
   tags               text[] not null default '{}',
   summary            text not null default '',
   open_hours         text not null default '',
@@ -183,8 +179,7 @@ create table public.places (
   -- (컬럼 순서는 위 profiles.role 과 같은 이유로 created_at 뒤다)
   source             place_source_kind not null default 'tour',
   created_by         uuid references auth.users on delete set null,
-  -- 사용자 리뷰 별점의 평균과 개수 (README-플로챠트.md). source_rating 과 섞지
-  -- 않는다. 리뷰가 바뀔 때 trip_items 트리거가 그 장소만 다시 계산하고, 평가가
+  -- 사용자 리뷰 별점의 평균과 개수 (README-플로챠트.md). 리뷰가 바뀔 때 trip_items 트리거가 그 장소만 다시 계산하고, 평가가
   -- 없으면 rating_avg 는 0 이 아니라 null 이다. 장소 적재 upsert 는 두 칸을
   -- 건드리지 않는다. (컬럼 순서는 마이그레이션이 alter 로 붙인 그대로다)
   rating_avg         numeric(2,1) check (rating_avg between 1 and 5),
@@ -320,8 +315,8 @@ create table public.shared_plans (
   created_at         timestamptz not null default now(),
   updated_at         timestamptz not null default now(),
   -- 만족도 집계(14-2). 평가가 없으면 0 이 아니라 null 이다 — 0 이면
-  -- '평가 없음'과 '최하점'이 구분되지 않는다. places.source_rating 에서
-  -- 이미 겪었다. (컬럼 순서가 끝인 것은 마이그레이션이 alter 로 붙였기
+  -- '평가 없음'과 '최하점'이 구분되지 않는다. places.source_rating(지금은
+  -- 삭제)에서 이미 겪었다. (컬럼 순서가 끝인 것은 마이그레이션이 alter 로 붙였기
   --  때문이다. 이 파일은 적용 결과의 스냅샷이라 그 순서를 따른다)
   rating_avg         numeric(2,1),
   rating_count       integer not null default 0,

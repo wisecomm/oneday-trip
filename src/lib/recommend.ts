@@ -108,8 +108,7 @@ export function recommend(
   limit = 8,
 ): Scored[] {
   const scored = list.map((place) => {
-    // 0) 방문자 별점. source_rating(TourAPI 평점)은 쓰지 않는다 — 출처가 평점을 주지
-    //    않아 전부 null 이다. 리뷰 1~2건도 점수에는 들어가지만(작게), 근거 라벨은
+    // 0) 방문자 별점. 리뷰 1~2건도 점수에는 들어가지만(작게), 근거 라벨은
     //    화면의 ★ 와 같은 기준(3건 이상)일 때만 단다 — 한 사람의 별점이 드러나지 않게.
     let score = ratingScore(place)
     const reasons: string[] = []

@@ -123,12 +123,6 @@ export interface Place {
   lat: number
   lng: number
   image_url: string | null
-  /**
-   * 외부(TourAPI)가 준 평점. 주지 않으면 null 이다 — 0 이 아니다.
-   * 0 으로 두면 '평점 없음'과 '0점'이 구분되지 않아 전 장소가 ★ 0.0 으로 보인다.
-   * 값이 null 이면 화면에서 별점 영역을 아예 숨긴다.
-   */
-  source_rating: number | null
   tags: string[]
   /** TourAPI 상세를 아직 받지 못했으면 빈 문자열 — 화면에서 그 영역을 숨긴다 */
   summary: string
@@ -149,7 +143,7 @@ export interface Place {
   /**
    * 사용자 리뷰 별점의 평균 — 사람당 한 표(같은 장소를 여러 번 리뷰했으면 가장
    * 최근 여행의 별점). 리뷰가 없으면 **0 이 아니라 null** 이다.
-   * source_rating(출처 TourAPI 의 평점)과 다르다. 리뷰가 바뀔 때 DB 트리거가
+   * 리뷰가 바뀔 때 DB 트리거가
    * 그 장소만 다시 계산한다 (README-플로챠트.md ❶❹).
    */
   rating_avg: number | null
@@ -233,7 +227,7 @@ export interface SharedPlan {
   duration_minutes: number | null
   /** 원본 여행에 방문 기록이 있었는지. 카드의 '다녀옴' 배지 */
   was_visited: boolean
-  /** 담은 수. source_rating 이 전부 null 이라 이것이 첫 번째 인기 신호다 */
+  /** 담은 수. 코스의 인기 신호 */
   clone_count: number
   /**
    * 만족도 평균. 평가가 없으면 **0 이 아니라 null** 이다 — 0 이면 '평가 없음'과
@@ -374,7 +368,6 @@ export function openHoursOneLine(text: string): string {
 
 /**
  * 화면에 ★ 로 보일 장소 별점 — 사용자 리뷰 평균이 MIN_RATING_DISPLAY 건 이상일 때만.
- * source_rating(TourAPI 평점)은 쓰지 않는다. 출처가 평점을 주지 않아 전부 null 이다.
  */
 export function shownRating(
   place: Pick<Place, 'rating_avg' | 'rating_count'>,

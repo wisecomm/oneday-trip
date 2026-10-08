@@ -110,10 +110,6 @@ delete cascade` 가 두 세계를 잇는 유일한 연결이고, 나머지 개�
 
 **RLS** 누구나 읽기. insert·update·delete 는 `is_admin()` 만.
 
-**주의** `source_rating` 은 **전부 null** 입니다 — 0 이 아닙니다. 0 으로 두면
-"평점 없음"과 "0점"이 구분되지 않아 모든 장소가 ★0.0 으로 보입니다. 출처
-(TourAPI) 평점 칸이라 사용자 별점은 여기 넣지 않습니다.
-
 **주의** `rating_avg`·`rating_count` 는 **사용자 리뷰 집계**이고 트리거가
 유지합니다 — 앱이 쓰지 않습니다. 개인 리뷰(`trip_items.rating`)를 사람당 가장
 최근 한 표씩 모아 평균을 냅니다. 리뷰가 여행 삭제 · 탈퇴 cascade 로 지워져도
@@ -198,8 +194,8 @@ current_database();` 를 먼저 보세요.
 그 경로가 갱신이 아니라 **중복 플랜 생성**이었기 때문입니다. 고친 동선을
 올리려면 지금은 새로 올리고 옛 플랜을 내립니다.
 
-`rating_avg` 는 평가가 없으면 **0 이 아니라 null** 입니다. `places.source_rating`
-에서 겪은 것과 같은 함정입니다.
+`rating_avg` 는 평가가 없으면 **0 이 아니라 null** 입니다. 0 이면 '평가 없음'과
+'최하점'이 구분되지 않습니다(지금은 지운 `places.source_rating` 에서 겪은 함정).
 
 **`hidden_reason` 은 "누가 내렸는가"입니다.** 작성자가 스스로 내리면 null,
 운영자가 내리면 `admin`, 담긴 장소가 사라져 트리거가 내리면 `place_removed`

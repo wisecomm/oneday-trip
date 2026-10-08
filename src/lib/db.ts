@@ -115,8 +115,7 @@ export const places = {
         if (filter.sigunguCode !== undefined) q = q.eq('tour_sigungu_code', filter.sigunguCode)
         if (filter.categories?.length) q = q.in('category', filter.categories)
         if (filter.keyword) q = q.ilike('name', `%${filter.keyword}%`)
-        // 정렬 기준을 source_rating 으로 두지 않는다 — TourAPI 가 평점을 주지 않아
-        // 전부 null 이라 정렬이 무작위가 된다. 이름순이 최소한 예측 가능하다.
+        // 이름순 — 화면이 순서를 다시 매기기 전의 예측 가능한 기본값이다.
         // 이름이 같은 장소가 있어 id 로 끝까지 순서를 고정한다 — 나눠 받을 때 순서가
         // 흔들리면 쪽 사이에서 장소가 빠지거나 두 번 온다.
         return q.order('name').order('id')
