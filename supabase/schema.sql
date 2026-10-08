@@ -718,16 +718,14 @@ $$;
 
 -- ── 7. 홈 '하루에 다녀올 만한 곳' ─────────────────────────────────
 --
--- 기준점(현재 위치, 없으면 서울 강남구 중심)에서 하루 거리 안의 장소를 고른다.
+-- 기준점(현재 위치, 없으면 서울 강남구 중심)에서 가까운 장소를 종류별로 고른다.
 --
---   ❷ 반경 120km(편도 2시간). 미판정 장소를 빼고 5곳이 안 되면 240km 로
---      한 번 넓힌다.
---   1순위  반경 안에서 리뷰가 있는 곳 — 평균 높은 순, 같으면 리뷰 많은 순.
---          5곳 이하면 전부 들어가고, 6곳 이상이면 위에서부터 자른다.
---   2순위  반경 안에서 리뷰가 없는 곳 — 지역을 고르게 섞는다. 각 지역의 첫
---          후보를 무작위 순서로 한 바퀴, 다음 후보로 또 한 바퀴. 가까운 순으로
---          고르면 매번 같은 곳만 나와서 반경 안에서는 무작위다.
---   3순위  반경을 넓혀도 모자라면 반경 밖 전국에서 같은 방식으로 채운다.
+--   종류별 개수  명소 = 개수 − 2(기본 3), 밥집 1, 카페 1. 술집은 뺀다.
+--   종류 안 순서 1) 하루 거리(직선 120km, 편도 2시간) 안에서 리뷰가 있는 곳 —
+--                   평균 높은 순, 같으면 리뷰 많은 순, 그다음 가까운 순.
+--                2) 나머지 — 기준점에서 가까운 순. 반경 안이 모자라면 다음으로
+--                   가까운 곳이 저절로 이어서 들어오므로 반경을 넓히는 단계는 없다.
+--   카드 순서    고른 곳을 같은 규칙(리뷰 묶음 먼저, 그다음 가까운 순)으로.
 --
 -- 다섯 곳의 id 와 순서만 돌려준다. 이름·지역 이름은 화면이 평소 쓰는 장소
 -- 조회로 붙인다 — 여기서 그 조인을 다시 쓰면 장소 조회가 두 군데가 된다.
@@ -751,10 +749,9 @@ as $$
 declare
   v_lat    double precision := p_lat;
   v_lng    double precision := p_lng;
-  v_count  integer := least(greatest(coalesce(p_count, 5), 1), 20);
-  v_radius double precision := 120;
-  v_near   integer;
-  v_fill   boolean;  -- 반경을 넓혀도 모자라 전국에서 채워야 하는가
+  -- 밥집 1 · 카페 1 에 명소가 최소 1곳은 들어가야 하므로 3 이상
+  v_count  integer := least(greatest(coalesce(p_count, 5), 3), 20);
+  v_radius constant double precision := 120;  -- 편도 2시간 · 앱 DAY_TRIP_RADIUS_KM
 begin
   if v_lat is null or v_lng is null then
     select r.lat, r.lng into v_lat, v_lng
@@ -762,74 +759,35 @@ begin
      where r.tour_area_code = 1 and r.tour_sigungu_code = 1;
   end if;
 
-  select count(*) into v_near
-    from public.places p
-   where p.tour_sigungu_code >= 0
-     and public.distance_km(v_lat, v_lng, p.lat, p.lng) <= v_radius;
-  if v_near < v_count then
-    v_radius := v_radius * 2;
-    select count(*) into v_near
-      from public.places p
-     where p.tour_sigungu_code >= 0
-       and public.distance_km(v_lat, v_lng, p.lat, p.lng) <= v_radius;
-  end if;
-  -- 반경 안에서 다 채워지면 전국 후보는 섞지 않는다. 늘 섞으면 쓰지도 않을 1만여
-  -- 곳에 매번 난수를 매기고 정렬하느라 호출이 몇 배 느려진다.
-  v_fill := v_near < v_count;
-
   return query
   with cand as (
-    -- 장소마다 난수 하나(r). 아래에서 지역 안 순서와 별점 동점 처리에만 쓴다.
-    select p.id, p.tour_area_code as a, p.tour_sigungu_code as s,
-           p.rating_avg, p.rating_count, random() as r,
-           public.distance_km(v_lat, v_lng, p.lat, p.lng) <= v_radius as near
+    select p.id, p.category, p.rating_avg, p.rating_count, d.km,
+           (p.rating_count > 0 and d.km <= v_radius) as reviewed
       from public.places p
+     cross join lateral (select public.distance_km(v_lat, v_lng, p.lat, p.lng) as km) d
      where p.tour_sigungu_code >= 0
+       and p.category in ('spot', 'babzip', 'cafe')
   ),
-  -- 지역마다 따로 난수 열쇠(k)를 준다. 지역 순서는 이 열쇠로만 정한다.
-  --
-  -- 처음에는 지역 안 순서(order by random())와 지역 사이 순서(random() as rnd)에
-  -- 난수를 각각 썼는데, Postgres 가 두 random() 을 같은 식으로 보고 한 값을 함께
-  -- 썼다. 그러면 각 지역의 1순위가 그 지역에서 가장 작은 난수를 가진 장소가 되고,
-  -- 지역 순서도 그 값으로 정해져 장소가 많은 지역일수록 앞에 왔다 — 400번 돌려
-  -- 보니 경기가 22%(지역 수로는 13.5%)였다. 열쇠를 지역 단위로 따로 뽑아 끊는다.
-  region_keys as (
-    select d.a, d.s, random() as k
-      from (select distinct c.a, c.s from cand c) d
-  ),
-  reviewed as (
-    select c.id, 1 as tier,
-           row_number() over (order by c.rating_avg desc, c.rating_count desc, c.r) as rk
+  ranked as (
+    -- 평균·개수는 리뷰 묶음 안에서만 순서를 정한다. 나머지는 null 로 두어 거리만 본다.
+    select c.id, c.category, c.reviewed, c.km,
+           case when c.reviewed then c.rating_avg end as avg_key,
+           case when c.reviewed then c.rating_count end as cnt_key
       from cand c
-     where c.near and c.rating_count > 0
   ),
-  spread_near as (
-    select x.id, 2 as tier, row_number() over (order by x.rn, x.k) as rk
-      from (select c.id, rk.k,
-                   row_number() over (partition by c.a, c.s order by c.r) as rn
-              from cand c
-              join region_keys rk on rk.a = c.a and rk.s = c.s
-             where c.near and c.rating_count = 0) x
-  ),
-  spread_far as (
-    select x.id, 3 as tier, row_number() over (order by x.rn, x.k) as rk
-      from (select c.id, rk.k,
-                   row_number() over (partition by c.a, c.s order by c.r) as rn
-              from cand c
-              join region_keys rk on rk.a = c.a and rk.s = c.s
-             where v_fill and not c.near) x
-  ),
-  picked as (
-    select u.id, u.tier, u.rk
-      from (select * from reviewed
-            union all select * from spread_near
-            union all select * from spread_far) u
-     order by u.tier, u.rk
-     limit v_count
+  per_cat as (
+    select r.*,
+           row_number() over (partition by r.category
+                              order by r.reviewed desc, r.avg_key desc nulls last,
+                                       r.cnt_key desc nulls last, r.km, r.id) as rn
+      from ranked r
   )
-  select pk.id, (row_number() over (order by pk.tier, pk.rk))::integer
-    from picked pk
-   order by pk.tier, pk.rk;
+  select x.id,
+         (row_number() over (order by x.reviewed desc, x.avg_key desc nulls last,
+                                      x.cnt_key desc nulls last, x.km, x.id))::integer
+    from per_cat x
+   where x.rn <= case x.category when 'spot' then v_count - 2 else 1 end
+   order by 2;
 end;
 $$;
 
