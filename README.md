@@ -24,15 +24,20 @@ Supabase 대신 localStorage 를, 네이버 지도 대신 SVG 폴백 지도를 �
 | TRIP-03-01 | 일자별 여행 리스트 | `/trips/:id` | [TimelinePage.tsx](src/pages/TimelinePage.tsx) |
 | TRIP-03-02 | 동선 최적화 지도 | `/trips/:id/route` | [RoutePage.tsx](src/pages/RoutePage.tsx) |
 | MAP-04-01 | 실시간 지도 홈 (장소 이름 검색 포함) | `/map` | [ExplorePage.tsx](src/pages/ExplorePage.tsx) |
-| MAP-04-02 | 맥락 인지 추천 피드 | `/recommend` | [RecommendPage.tsx](src/pages/RecommendPage.tsx) |
+| MAP-04-02 | 추천 장소 (맥락 인지 추천 피드) | `/recommend?tab=place` | [RecommendPage.tsx](src/pages/RecommendPage.tsx) |
 | RSV-05-01 | 레스토랑 상세 및 예약 | `/places/:id` | [PlaceDetailPage.tsx](src/pages/PlaceDetailPage.tsx) |
-| SHARE-06-01 | 공용 플랜 목록 | `/plans` | [PlanListPage.tsx](src/pages/PlanListPage.tsx) |
-| SHARE-06-02 | 공용 플랜 상세 · 내 여행으로 담기 | `/plans/:id` | [PlanDetailPage.tsx](src/pages/PlanDetailPage.tsx) |
-| SHARE-06-03 | 내 여행을 공용 플랜으로 올리기 | `/trips/:id/share` | [PlanPublishPage.tsx](src/pages/PlanPublishPage.tsx) |
-| SHARE-06-04 | 내가 올린 플랜 | `/me/plans` | [MyPlansPage.tsx](src/pages/MyPlansPage.tsx) |
-| SHARE-06-06 | 운영자 플랜 관리 | `/admin/plans` | [AdminPlansPage.tsx](src/pages/AdminPlansPage.tsx) |
-| SHARE-06-07 | 플랜 만족도 | `/plans/:id` 안 | [PlanDetailPage.tsx](src/pages/PlanDetailPage.tsx) |
+| SHARE-06-01 | 추천 코스 목록 (공용 플랜) | `/recommend?tab=course` | [PlanListPage.tsx](src/pages/PlanListPage.tsx) |
+| SHARE-06-02 | 코스 상세 · 내 여행으로 담기 | `/plans/:id` | [PlanDetailPage.tsx](src/pages/PlanDetailPage.tsx) |
+| SHARE-06-03 | 내 여행을 코스로 올리기 | `/trips/:id/share` | [PlanPublishPage.tsx](src/pages/PlanPublishPage.tsx) |
+| SHARE-06-04 | 내가 올린 코스 | `/me/plans` | [MyPlansPage.tsx](src/pages/MyPlansPage.tsx) |
+| SHARE-06-06 | 운영자 코스 관리 | `/admin/plans` | [AdminPlansPage.tsx](src/pages/AdminPlansPage.tsx) |
+| SHARE-06-07 | 코스 만족도 | `/plans/:id` 안 | [PlanDetailPage.tsx](src/pages/PlanDetailPage.tsx) |
 | PLACE-07-01 | 운영자 장소 등록 | `/admin/places` | [AdminPlacesPage.tsx](src/pages/AdminPlacesPage.tsx) |
+
+**추천 탭** ([RecommendHubPage.tsx](src/pages/RecommendHubPage.tsx))이 MAP-04-02 와 SHARE-06-01 을
+'추천 장소' · '추천 코스' 하위 탭으로 함께 담습니다. 화면에서는 공용 플랜을 '코스'라고
+부르고, 테이블·파일 이름(`shared_plans`, `PlanListPage`)은 그대로 둡니다. 예전 목록 주소
+`/plans` 는 `/recommend?tab=course` 로 넘어갑니다.
 
 기능 코드가 붙지 않은 화면도 있습니다 — 홈([HomePage.tsx](src/pages/HomePage.tsx)),
 내 여행 목록([TripListPage.tsx](src/pages/TripListPage.tsx)),
@@ -43,13 +48,13 @@ Supabase 대신 localStorage 를, 네이버 지도 대신 SVG 폴백 지도를 �
 
 ### 기획 조건 반영 지점
 
-- **Guest 모드** — 로그인 화면 하단 '가입 없이 서비스 둘러보기'. `/map`, `/places/:id`, `/plans`, `/plans/:id` 는 비로그인 열람 가능. 공유 링크를 받은 사람이 로그인 벽을 먼저 만나면 공유가 성립하지 않으므로, 플랜은 보여 주고 '담기'를 누를 때 로그인으로 보냅니다
+- **Guest 모드** — 로그인 화면 하단 '가입 없이 서비스 둘러보기'. `/map`, `/places/:id`, `/recommend`(추천 코스·추천 장소 둘 다), `/plans/:id` 는 비로그인 열람 가능. 보여 주고, 저장·담기처럼 내 데이터를 만드는 순간에만 로그인으로 보냅니다 — 공유 링크를 받은 사람이 로그인 벽을 먼저 만나면 공유가 성립하지 않습니다. 비회원의 추천 장소는 취향 태그 없이 시간대·날씨로만 매기고 '기본 추천'이라고 밝힙니다
 - **소셜 가입 시 닉네임 자동 연동** — [auth.tsx](src/lib/auth.tsx) 의 `suggestedNickname`, DB 측은 `handle_new_user()` 트리거
 - **이동수단별 소요 시간** — [geo.ts](src/lib/geo.ts) `travelMinutes()`, 직선 거리에 1.3배 우회 계수 적용
 - **동선 최적화** — 최근접 이웃 + 2-opt ([geo.ts](src/lib/geo.ts) `optimizeOrder()`). 순서 변경 시 요약이 즉시 재계산
 - **예약 상태 배지 바인딩** — 타임라인 카드에 '예약 확정' 자동 표시
-- **플랜 작성자 표기** — 닉네임을 쓰지 않고 '운영자' 또는 '회원'으로만 표시합니다 ([types.ts](src/lib/types.ts) `planAuthorLabel()`)
-- **순서 바꾸기** — 타임라인·동선 최적화·플랜 올리기 세 화면 모두 드래그 핸들로 통일했습니다 (dnd-kit). 화살표 버튼은 쓰지 않습니다
+- **코스 작성자 표기** — 닉네임을 쓰지 않고 '운영자' 또는 '회원'으로만 표시합니다 ([types.ts](src/lib/types.ts) `planAuthorLabel()`)
+- **순서 바꾸기** — 타임라인·동선 최적화·코스 올리기 세 화면 모두 드래그 핸들로 통일했습니다 (dnd-kit). 화살표 버튼은 쓰지 않습니다
 - **장소 상세 전화 연결** — TourAPI 로 받아온 `places.phone` 이 있으면 상세 페이지에 `tel:` 링크 버튼으로 노출 ([PlaceDetailPage.tsx](src/pages/PlaceDetailPage.tsx))
 
 ## Supabase 연결
@@ -294,7 +299,7 @@ Open-Meteo (날씨, 인증 불필요)
 
 - **결제** — 예약금 결제는 UI 만 있고 실제 PG 연동은 없습니다. [PlaceDetailPage.tsx](src/pages/PlaceDetailPage.tsx) 의 예약 시트에 연동 위치를 표시해 두었습니다.
 - **카카오톡 공유** — Kakao SDK 대신 Web Share API(미지원 시 클립보드 복사)를 사용합니다. 템플릿 카드가 필요하면 Kakao JavaScript SDK 의 `Kakao.Share.sendDefault()` 로 교체하세요.
-- **추천 피드에 공용 플랜 섞기** — 추천은 장소 단위로 점수를 매기는데 플랜은 장소 묶음이라 점수식을 공통 단위로 다시 짜야 합니다. 담은 수(`clone_count`)가 쌓이기 전에는 정렬할 근거가 없어 미뤘습니다.
+- **추천 장소와 추천 코스를 한 목록에 섞기** — 지금은 추천 탭 안에 하위 탭으로 나란히 둡니다. 한 목록에서 순위를 매기려면 장소 단위와 하루 단위를 같은 점수로 재야 하고, 담은 수(`clone_count`)가 쌓이기 전에는 그 점수의 재료가 없습니다.
 
 ### 만들었다가 닫은 것
 

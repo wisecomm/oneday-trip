@@ -120,14 +120,14 @@ export function PlanDetailPage() {
   if (!plan) {
     return (
       <>
-        <PageHeader title="플랜" back />
+        <PageHeader title="코스" back />
         <EmptyState
           icon="🔍"
-          title="플랜을 찾을 수 없습니다"
-          description="내려갔거나 삭제된 플랜일 수 있습니다."
+          title="코스를 찾을 수 없습니다"
+          description="내려갔거나 삭제된 코스일 수 있습니다."
           action={
-            <Link to="/plans" className="btn-primary">
-              플랜 둘러보기
+            <Link to="/recommend?tab=course" className="btn-primary">
+              코스 둘러보기
             </Link>
           }
         />
@@ -268,7 +268,7 @@ export function PlanDetailPage() {
           className="field"
         />
         <p className="hint mt-2">
-          담으면 내 여행이 새로 만들어집니다. 원본 플랜이 나중에 바뀌거나 내려가도 내 여행은
+          담으면 내 여행이 새로 만들어집니다. 원본 코스가 나중에 바뀌거나 내려가도 내 여행은
           그대로입니다.
         </p>
         <button
@@ -281,7 +281,7 @@ export function PlanDetailPage() {
         </button>
       </BottomSheet>
 
-      <BottomSheet open={rateOpen} onClose={() => setRateOpen(false)} title="이 플랜 어땠나요?">
+      <BottomSheet open={rateOpen} onClose={() => setRateOpen(false)} title="이 코스 어땠나요?">
         <div className="mb-3 flex gap-1.5">
           {[1, 2, 3, 4, 5].map((n) => (
             <button
@@ -313,7 +313,7 @@ export function PlanDetailPage() {
           className="field"
         />
         <p className="hint mt-2">
-          한 플랜에 한 번만 남길 수 있고, 언제든 고칠 수 있습니다.
+          한 코스에 한 번만 남길 수 있고, 언제든 고칠 수 있습니다.
         </p>
         <button
           type="button"

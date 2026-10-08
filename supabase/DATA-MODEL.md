@@ -222,12 +222,13 @@ update 할 권한이 없어서, 호출자 권한으로 돌면 **RLS 에 막혀 �
 | HomePage | trips, reservations |
 | ExplorePage (지도) | places, regions, trips, trip_items |
 | PlaceDetailPage | places, reservations |
-| RecommendPage | places, regions, trips, trip_items |
+| RecommendPage (추천 장소) | places, regions, trips, trip_items — 비회원은 places·regions 만 |
 | TripCreatePage → TripRulesPage | regions, trips, trip_items |
 | TimelinePage | trips, trip_items, reservations |
 | RoutePage | trips, trip_items |
 | TripListPage | trips, trip_items |
-| PlanListPage | shared_plans, regions |
+| RecommendHubPage (추천 탭) | 아래 두 화면을 하위 탭으로 담는다 — 직접 읽는 테이블 없음 |
+| PlanListPage (추천 코스) | shared_plans, regions |
 | PlanDetailPage | shared_plans, shared_plan_items, places, plan_ratings |
 | PlanPublishPage | trips, trip_items → shared_plans, shared_plan_items |
 | MyPlansPage | shared_plans |

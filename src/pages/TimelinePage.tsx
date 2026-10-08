@@ -294,7 +294,7 @@ export function TimelinePage() {
               to={`/plans/${trip.source_plan_id}`}
               className="flex items-center justify-between rounded-xl bg-brand-50 px-4 py-3 text-[13px] font-semibold text-brand-700"
             >
-              이 플랜에서 담아 왔습니다 — 다녀온 뒤 평가 남기기
+              이 코스에서 담아 왔습니다 — 다녀온 뒤 평가 남기기
               <span aria-hidden>›</span>
             </Link>
           </div>
@@ -310,12 +310,12 @@ export function TimelinePage() {
           <div className="mt-3">
             {canPublish ? (
               <Link to={`/trips/${tripId}/share`} className="btn-outline w-full">
-                플랜으로 올리기
+                코스로 올리기
               </Link>
             ) : (
               <>
                 <button type="button" disabled className="btn-outline w-full">
-                  플랜으로 올리기
+                  코스로 올리기
                 </button>
                 <p className="hint mt-1.5 text-center">
                   리뷰를 쓰지 않은 장소가 {unreviewed}곳 남았습니다

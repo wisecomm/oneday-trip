@@ -101,7 +101,7 @@ export function MyPage() {
                 to="/me/plans"
                 className="flex items-center justify-between px-4 py-3.5 text-[14px] font-semibold text-ink-700"
               >
-                내가 올린 플랜
+                내가 올린 코스
                 <span aria-hidden className="text-ink-300">
                   ›
                 </span>
@@ -113,7 +113,7 @@ export function MyPage() {
                   to="/admin/plans"
                   className="flex items-center justify-between px-4 py-3.5 text-[14px] font-semibold text-ink-700"
                 >
-                  운영자 플랜 관리
+                  운영자 코스 관리
                   <span aria-hidden className="text-ink-300">
                     ›
                   </span>

@@ -798,7 +798,7 @@ export const sharedPlans = {
     }
 
     const plan = await sharedPlans.get(planId)
-    if (!plan || plan.is_hidden) throw new Error('플랜을 찾을 수 없습니다')
+    if (!plan || plan.is_hidden) throw new Error('코스를 찾을 수 없습니다')
 
     const trip = await trips.create({
       user_id: opts.userId,

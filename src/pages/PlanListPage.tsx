@@ -16,12 +16,13 @@ import { EmptyState, Loading, PageHeader } from '@/components/ui'
 const ALL_LEAF = ''
 
 /**
- * SHARE-06-01 공용 플랜 리스트.
+ * SHARE-06-01 공용 플랜 리스트 — 화면에서는 '추천 코스'라 부른다(Q22).
  *
  * 비로그인도 볼 수 있다. 공유 링크를 받은 사람이 로그인 벽을 먼저 만나면
  * 공유가 성립하지 않는다 — 담기를 누를 때 로그인으로 보낸다.
+ * 추천 탭(RecommendHubPage) 안으로 들어가므로 embedded 면 머리말을 그리지 않는다.
  */
-export function PlanListPage() {
+export function PlanListPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { groups, regions, loading: regionsLoading } = useRegions()
   const [areaCode, setAreaCode] = useState<number | null>(null)
   const [sigunguCode, setSigunguCode] = useState<number | null>(null)
@@ -66,7 +67,9 @@ export function PlanListPage() {
 
   return (
     <>
-      <PageHeader title="플랜" subtitle="남이 짜 둔 하루를 그대로 가져올 수 있습니다" />
+      {!embedded && (
+        <PageHeader title="추천 코스" subtitle="남이 짜 둔 하루를 그대로 가져올 수 있습니다" />
+      )}
 
       <div className="px-4 py-4">
         <section className="mb-4">
@@ -134,7 +137,7 @@ export function PlanListPage() {
         ) : list.length === 0 ? (
           <EmptyState
             icon="🧭"
-            title="조건에 맞는 플랜이 없습니다"
+            title="조건에 맞는 코스가 없습니다"
             description="지역이나 동행인 조건을 넓혀 보세요."
           />
         ) : (

@@ -34,10 +34,9 @@ const TripListPage = lazyPage(() => import('@/pages/TripListPage'), 'TripListPag
 const TimelinePage = lazyPage(() => import('@/pages/TimelinePage'), 'TimelinePage')
 const RoutePage = lazyPage(() => import('@/pages/RoutePage'), 'RoutePage')
 const ExplorePage = lazyPage(() => import('@/pages/ExplorePage'), 'ExplorePage')
-const RecommendPage = lazyPage(() => import('@/pages/RecommendPage'), 'RecommendPage')
+const RecommendHubPage = lazyPage(() => import('@/pages/RecommendHubPage'), 'RecommendHubPage')
 const PlaceDetailPage = lazyPage(() => import('@/pages/PlaceDetailPage'), 'PlaceDetailPage')
 const MyPage = lazyPage(() => import('@/pages/MyPage'), 'MyPage')
-const PlanListPage = lazyPage(() => import('@/pages/PlanListPage'), 'PlanListPage')
 const PlanDetailPage = lazyPage(() => import('@/pages/PlanDetailPage'), 'PlanDetailPage')
 const PlanPublishPage = lazyPage(() => import('@/pages/PlanPublishPage'), 'PlanPublishPage')
 const MyPlansPage = lazyPage(() => import('@/pages/MyPlansPage'), 'MyPlansPage')
@@ -99,17 +98,14 @@ export default function App() {
           <Route path="places/:placeId" element={<PlaceDetailPage />} />
           {/* 공유 링크를 받은 사람이 로그인 벽을 먼저 만나면 공유가 성립하지 않는다.
               담기를 누를 때 로그인으로 보낸다 (SHARE-06-01 / 06-02) */}
-          <Route path="plans" element={<PlanListPage />} />
           <Route path="plans/:planId" element={<PlanDetailPage />} />
 
-          <Route
-            path="recommend"
-            element={
-              <RequireAuth>
-                <RecommendPage />
-              </RequireAuth>
-            }
-          />
+          {/* 추천 탭 — 추천 코스(공용 플랜)와 추천 장소를 하위 탭으로 둔다 (Q22).
+              회원·비회원이 같은 화면을 본다. 저장·담기처럼 내 데이터를 만드는
+              순간에만 로그인으로 보낸다. */}
+          <Route path="recommend" element={<RecommendHubPage />} />
+          {/* 예전 목록 주소. 밖으로 퍼진 링크가 깨지지 않게 넘긴다 */}
+          <Route path="plans" element={<Navigate to="/recommend?tab=course" replace />} />
           <Route
             path="trips"
             element={

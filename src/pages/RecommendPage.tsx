@@ -17,8 +17,13 @@ const ALL_LEAF = ''
  * MAP-04-02 · 04. 로컬 장소 탐색 > 4.2 AI 추천 > 맥락 인지 추천 피드
  * 실시간 날씨 API + 회원 프로필 취향 태그를 결합해 초개인화 카드를 구성하고,
  * [저장하기]로 나의 여행 방문 리스트(3.1)에 다이렉트 추가한다.
+ *
+ * 비회원도 본다(Q22). 취향 태그가 없으면 시간대·날씨만으로 매기고('기본 추천'),
+ * [저장하기]를 누를 때 로그인으로 보낸다 — 공용 코스의 '담기'와 같은 방식이다.
+ * 추천 탭(RecommendHubPage) 안의 '추천 장소'로 들어가므로 embedded 면 머리말을
+ * 그리지 않는다.
  */
-export function RecommendPage() {
+export function RecommendPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
 
@@ -118,7 +123,9 @@ export function RecommendPage() {
 
   return (
     <>
-      <PageHeader title="AI 추천" subtitle="시간 · 날씨 · 취향을 반영한 실시간 큐레이션" />
+      {!embedded && (
+        <PageHeader title="AI 추천" subtitle="시간 · 날씨 · 취향을 반영한 실시간 큐레이션" />
+      )}
 
       <div className="px-4 py-4">
         <div className="card mb-4 overflow-hidden">

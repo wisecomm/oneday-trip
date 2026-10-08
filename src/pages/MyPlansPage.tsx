@@ -50,7 +50,7 @@ export function MyPlansPage() {
   async function remove(id: string) {
     if (
       !window.confirm(
-        '이 플랜을 지웁니다. 이미 담아 간 사람의 여행은 복사본이라 그대로 남습니다.',
+        '이 코스를 지웁니다. 이미 담아 간 사람의 여행은 복사본이라 그대로 남습니다.',
       )
     )
       return
@@ -67,14 +67,14 @@ export function MyPlansPage() {
 
   return (
     <>
-      <PageHeader title="내가 올린 플랜" back />
+      <PageHeader title="내가 올린 코스" back />
 
       <div className="px-4 py-4">
         {list.length === 0 ? (
           <EmptyState
             icon="🧭"
-            title="아직 올린 플랜이 없습니다"
-            description="여행 타임라인에서 '플랜으로 올리기'를 누르면 공개할 수 있습니다."
+            title="아직 올린 코스가 없습니다"
+            description="여행 타임라인에서 '코스로 올리기'를 누르면 공개할 수 있습니다."
             action={
               <Link to="/trips" className="btn-primary">
                 내 여행 보기
@@ -117,7 +117,7 @@ export function MyPlansPage() {
                     {p.hidden_reason === 'place_removed' &&
                       ' — 담긴 장소가 카탈로그에서 사라졌습니다. 다시 올리려면 여행을 고쳐 새로 올려 주세요.'}
                     {p.hidden_reason === 'admin' &&
-                      ' — 운영자가 내린 플랜입니다. 복구는 운영자에게 문의해 주세요.'}
+                      ' — 운영자가 내린 코스입니다. 복구는 운영자에게 문의해 주세요.'}
                   </p>
                 )}
 

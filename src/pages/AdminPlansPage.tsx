@@ -43,7 +43,7 @@ export function AdminPlansPage() {
   async function remove(id: string) {
     if (
       !window.confirm(
-        '이 플랜을 지웁니다. 되돌릴 수 없습니다. 이미 담아 간 사람의 여행은 복사본이라 그대로 남습니다.',
+        '이 코스를 지웁니다. 되돌릴 수 없습니다. 이미 담아 간 사람의 여행은 복사본이라 그대로 남습니다.',
       )
     )
       return
@@ -74,11 +74,11 @@ export function AdminPlansPage() {
   return (
     <>
       <PageHeader
-        title="운영자 플랜 관리"
+        title="운영자 코스 관리"
         back
         right={
           <Link to="/trips" className="btn-primary !px-3 !py-1.5 text-[13px]">
-            + 새 플랜
+            + 새 코스
           </Link>
         }
       />
@@ -87,8 +87,8 @@ export function AdminPlansPage() {
         {list.length === 0 ? (
           <EmptyState
             icon="🧭"
-            title="아직 플랜이 없습니다"
-            description="운영자도 사용자와 같은 길로 만듭니다 — 여행을 하나 짜고 '플랜으로 올리기' 를 누르면 운영자 플랜이 됩니다."
+            title="아직 코스가 없습니다"
+            description="운영자도 사용자와 같은 길로 만듭니다 — 여행을 하나 짜고 '코스로 올리기' 를 누르면 운영자 코스가 됩니다."
             action={
               <Link to="/trips" className="btn-primary">
                 내 여행에서 만들기
@@ -100,7 +100,7 @@ export function AdminPlansPage() {
             {hidden.length > 0 && (
               <section className="mb-6">
                 <h2 className="section-title mb-2">
-                  내려간 플랜 <span className="text-ink-400">{hidden.length}</span>
+                  내려간 코스 <span className="text-ink-400">{hidden.length}</span>
                 </h2>
                 <ul className="flex flex-col gap-2">
                   {hidden.map((p) => (
@@ -109,7 +109,7 @@ export function AdminPlansPage() {
                       <p className="mt-2 rounded-lg bg-ink-100 px-3 py-2 text-[12.5px] text-ink-600">
                         사유: {p.hidden_reason ? PLAN_HIDDEN_REASON_LABEL[p.hidden_reason] : '알 수 없음'}
                         {p.hidden_reason === 'place_removed' &&
-                          ' — 담긴 장소가 재수집으로 사라졌습니다. 장소를 갈아 끼우거나 플랜을 지워 주세요.'}
+                          ' — 담긴 장소가 재수집으로 사라졌습니다. 장소를 갈아 끼우거나 코스를 지워 주세요.'}
                       </p>
                       <div className="mt-2 flex gap-2">
                         <button

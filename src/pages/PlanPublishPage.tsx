@@ -92,7 +92,7 @@ export function PlanPublishPage() {
   if (!trip) {
     return (
       <>
-        <PageHeader title="플랜으로 올리기" back />
+        <PageHeader title="코스로 올리기" back />
         <EmptyState icon="🔍" title="여행을 찾을 수 없습니다" />
       </>
     )
@@ -123,7 +123,7 @@ export function PlanPublishPage() {
   return (
     <>
       <PageHeader
-        title={isAdmin ? '운영자 플랜으로 올리기' : '플랜으로 올리기'}
+        title={isAdmin ? '운영자 코스로 올리기' : '코스로 올리기'}
         subtitle={trip.title}
         back
       />
@@ -133,13 +133,13 @@ export function PlanPublishPage() {
           <EmptyState
             icon="📍"
             title={`장소가 ${MIN_PLAN_PLACES}곳 이상이어야 올릴 수 있습니다`}
-            description="한 곳짜리는 플랜이 아니라 즐겨찾기입니다. 타임라인에 장소를 더 담아 주세요."
+            description="한 곳짜리는 코스가 아니라 즐겨찾기입니다. 타임라인에 장소를 더 담아 주세요."
           />
         ) : (
           <>
             {isAdmin && (
               <p className="mb-5 rounded-xl bg-brand-50 px-4 py-3 text-[13px] font-semibold text-brand-700">
-                관리자 계정이라 <b>운영자 플랜</b>으로 올라갑니다. 작성자는 표시되지
+                관리자 계정이라 <b>운영자 코스</b>로 올라갑니다. 작성자는 표시되지
                 않고 목록에 "운영자" 배지가 붙습니다.
               </p>
             )}
@@ -174,14 +174,14 @@ export function PlanPublishPage() {
                 className="field"
               />
               <p className="hint mt-1.5">
-                리스트에서 플랜을 고르는 기준이 됩니다. 필수입니다.
+                리스트에서 코스를 고르는 기준이 됩니다. 필수입니다.
               </p>
             </section>
 
             <section className="mb-6">
               <p className="label">장소별 한 줄 팁 (선택)</p>
               <p className="hint mb-2">
-                "문 여는 시간에 맞춰 가면 덜 기다립니다" 같은 것. 플랜 상세에서 그 장소
+                "문 여는 시간에 맞춰 가면 덜 기다립니다" 같은 것. 코스 상세에서 그 장소
                 아래에 붙습니다. 비워 두면 표시되지 않습니다.
               </p>
               <ol className="flex flex-col gap-2">
@@ -229,7 +229,7 @@ export function PlanPublishPage() {
               <ul className="flex flex-col gap-1 text-[13px] text-ink-600">
                 <li>· 여행 날짜 — 언제 어디 있었는지의 기록이 됩니다</li>
                 <li>· 방문 소감과 별점</li>
-                <li>· 방문 여부 (다녀온 플랜이라는 배지만 붙습니다)</li>
+                <li>· 방문 여부 (다녀온 코스라는 배지만 붙습니다)</li>
               </ul>
               <p className="hint mt-3">
                 올린 뒤 원본 여행을 고쳐도 공개본은 바뀌지 않습니다. 다시 올려야 반영됩니다.
