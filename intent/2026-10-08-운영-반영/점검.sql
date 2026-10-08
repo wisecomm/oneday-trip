@@ -1,6 +1,6 @@
--- 2026-10-08 운영 반영 점검 — Supabase SQL 편집기에서 ①~④ 를 하나씩 선택해 실행
+-- 2026-10-08 운영 반영 점검 — Supabase SQL 편집기에서 ①~⑤ 를 하나씩 선택해 실행
 -- (편집기는 여러 문장을 한꺼번에 돌리면 마지막 결과만 보여 준다)
--- 기대값: ① t · t · t · {planned,visited}  ② 어긋난_장소 0  ③ 5행(명소 3 · 밥집 1 · 카페 1)  ④ dash_dash 1(원문 오타) · 여러줄 약 3,000
+-- 기대값: ① t · t · t · {planned,visited}  ② 어긋난_장소 0  ③ 5행(명소 3 · 밥집 1 · 카페 1)  ④ dash_dash 1(원문 오타) · 여러줄 약 3,000  ⑤ 0 · 0 · 0
 
 -- ① 지운 것 · 새로 생긴 것
 select
@@ -39,3 +39,10 @@ select h.pick_order, p.name, p.category
 select count(*) filter (where open_hours like '%- -%') as dash_dash,
        count(*) filter (where position(E'\n' in open_hours) > 0) as 여러줄
   from public.places;
+
+-- ⑤ 반려견 · 옛 취향 태그 정리(20261008070000 · 20261008080000) — 기대: 0 · 0 · 0
+select
+  (select count(*) from public.trips where 'pet' = any(companions)) as 여행_pet,
+  (select count(*) from public.shared_plans where 'pet' = any(companions)) as 코스_pet,
+  (select count(*) from public.profiles
+    where taste_tags && array['반려견 동반','비건','노포','뷰맛집','가성비','혼밥','로컬맛집']) as 옛_취향태그;
