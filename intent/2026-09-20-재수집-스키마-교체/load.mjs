@@ -262,7 +262,8 @@ const openHoursOf = (intro) => pickLines(intro, 'opentimefood', 'usetime', 'uset
  *
  *   카페      장소 분류가 카페
  *   주차가능  parking · parkingfood · parkingculture 가 '가능' · '있음' (불가 제외)
- *   심야영업  (명소 제외) 영업시간에 23시~05시 마감 · '24시간' · '익일'
+ *   심야영업  (명소 제외) 자정 이후 마감(24:00 · 00:00~05:59) · '24시간' · '익일'.
+ *             23시 마감은 넣지 않는다 — 늦게까지 여는 보통 식당까지 들어가 변별력이 없다
  *   오마카세  (명소 제외) 메뉴에 '오마카세'
  *   디저트    (명소 제외) 메뉴에 디저트 · 케이크 · 베이커리 · 젤라토 등
  *
@@ -277,7 +278,7 @@ function tagsOf(category, intro) {
   if (category !== 'spot') {
     const hours = pick(intro, 'opentimefood', 'usetime', 'usetimeculture')
     const ends = [...hours.matchAll(/~\s*(?:익일\s*)?(\d{1,2}):\d{2}/g)].map((m) => Number(m[1]))
-    if (/24\s*시간|익일/.test(hours) || ends.some((h) => h >= 23 || h <= 5)) tags.push('심야영업')
+    if (/24\s*시간|익일/.test(hours) || ends.some((h) => h >= 24 || h <= 5)) tags.push('심야영업')
     const menu = `${pick(intro, 'firstmenu')} ${pick(intro, 'treatmenu')}`
     if (/오마카세/.test(menu)) tags.push('오마카세')
     if (DESSERT_RX.test(menu)) tags.push('디저트')

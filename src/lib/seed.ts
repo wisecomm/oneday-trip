@@ -4,7 +4,7 @@ import type { Place, Region, RegionGroup } from './types'
  * 데모 모드(Supabase 미연결) 데이터 — load.mjs --demo 가 생성한다.
  * 손으로 고치지 말고 수집 원본에서 다시 생성하세요.
  *
- * 생성: 2026-10-08T12:36:25.457Z
+ * 생성: 2026-10-08T12:56:17.119Z
  * 지역은 전량, 장소는 몇 개 시군구만 골라 담았다. 상세가 채워진 서울 구와
  * 아직 비어 있는 부산·제주를 섞어, 빈 값을 숨기는 처리도 데모에서 확인된다.
  */
@@ -485,7 +485,7 @@ export const SEED_PLACES: Place[] = [
     id: "2899749", name: "성수노루", category: "babzip",
     tour_area_code: 1, tour_sigungu_code: 16, group_name: "서울", region_name: "성동구",
     address: "서울특별시 성동구 아차산로 110 (성수동2가)", lat: 37.5442415655, lng: 127.0561729109,
-    image_url: "http://tong.visitkorea.or.kr/cms/resource/27/3486627_image2_1.jpg", tags: ["주차가능","심야영업"],
+    image_url: "http://tong.visitkorea.or.kr/cms/resource/27/3486627_image2_1.jpg", tags: ["주차가능"],
     summary: "성수노루는 직원들이 직접 구워주는 한우곱창집이다",
     open_hours: "16:00~23:00\n마지막 주문 22:00", phone: "0507-1388-1936",
     source_modified_at: "20251230175945", region_source: "tour", region_note: null,
@@ -545,7 +545,7 @@ export const SEED_PLACES: Place[] = [
     id: "2901359", name: "계자람", category: "babzip",
     tour_area_code: 1, tour_sigungu_code: 16, group_name: "서울", region_name: "성동구",
     address: "서울특별시 성동구 성덕정17길 5 (성수동2가)", lat: 37.5378061841, lng: 127.0551704068,
-    image_url: "http://tong.visitkorea.or.kr/cms/resource/51/2901351_image2_1.jpg", tags: ["심야영업"],
+    image_url: "http://tong.visitkorea.or.kr/cms/resource/51/2901351_image2_1.jpg", tags: [],
     summary: "계모임은 춘천식 숯불 닭갈비 구이 전문점이다",
     open_hours: "15:00~23:00\n마지막 주문 22:10", phone: "0507-1369-2510",
     source_modified_at: "20250923132418", region_source: "tour", region_note: null,
@@ -575,7 +575,7 @@ export const SEED_PLACES: Place[] = [
     id: "2900881", name: "옹근달", category: "cafe",
     tour_area_code: 1, tour_sigungu_code: 16, group_name: "서울", region_name: "성동구",
     address: "서울특별시 성동구 성수이로7길 41-1 (성수동2가)", lat: 37.5427861223, lng: 127.0530149062,
-    image_url: "http://tong.visitkorea.or.kr/cms/resource/61/2900861_image2_1.jpg", tags: ["카페","심야영업"],
+    image_url: "http://tong.visitkorea.or.kr/cms/resource/61/2900861_image2_1.jpg", tags: ["카페"],
     summary: "옹근달은 서울지하철 2호선 성수역 4번 출구 인근에 있다",
     open_hours: "11:00~23:00\n마지막 주문 22:30", phone: "02-499-5012",
     source_modified_at: "20251029152803", region_source: "tour", region_note: null,
