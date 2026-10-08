@@ -82,7 +82,7 @@ export function PlanPublishPage() {
       })
       navigate(`/plans/${plan.id}`)
     } catch (e) {
-      setError(e instanceof Error ? e.message : '올리기에 실패했습니다.')
+      setError(e instanceof Error ? e.message : '공유하지 못했습니다.')
     } finally {
       setBusy(false)
     }
@@ -92,7 +92,7 @@ export function PlanPublishPage() {
   if (!trip) {
     return (
       <>
-        <PageHeader title="코스로 올리기" back />
+        <PageHeader title="추천 코스 공유" back />
         <EmptyState icon="🔍" title="여행을 찾을 수 없습니다" />
       </>
     )
@@ -123,7 +123,7 @@ export function PlanPublishPage() {
   return (
     <>
       <PageHeader
-        title={isAdmin ? '운영자 코스로 올리기' : '코스로 올리기'}
+        title={isAdmin ? '운영자 추천 코스 공유' : '추천 코스 공유'}
         subtitle={trip.title}
         back
       />
@@ -232,7 +232,7 @@ export function PlanPublishPage() {
                 <li>· 방문 여부 (다녀온 코스라는 배지만 붙습니다)</li>
               </ul>
               <p className="hint mt-3">
-                올린 뒤 원본 여행을 고쳐도 공개본은 바뀌지 않습니다. 다시 올려야 반영됩니다.
+                공유한 뒤 원본 여행을 고쳐도 공개본은 바뀌지 않습니다. 다시 공유해야 반영됩니다.
               </p>
             </section>
 
@@ -250,7 +250,7 @@ export function PlanPublishPage() {
               disabled={!canPublish}
               className="btn-primary w-full"
             >
-              {busy ? '올리는 중…' : '공개하기'}
+              {busy ? '공유하는 중…' : '공개하기'}
             </button>
             {blockReason && <p className="hint mt-2">{blockReason}</p>}
           </>

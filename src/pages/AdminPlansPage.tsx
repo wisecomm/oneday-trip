@@ -88,7 +88,7 @@ export function AdminPlansPage() {
           <EmptyState
             icon="🧭"
             title="아직 코스가 없습니다"
-            description="운영자도 사용자와 같은 길로 만듭니다 — 여행을 하나 짜고 '코스로 올리기' 를 누르면 운영자 코스가 됩니다."
+            description="운영자도 사용자와 같은 길로 만듭니다 — 여행을 하나 짜고 '추천 코스 공유' 를 누르면 운영자 코스가 됩니다."
             action={
               <Link to="/trips" className="btn-primary">
                 내 여행에서 만들기

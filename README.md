@@ -28,7 +28,7 @@ Supabase 대신 localStorage 를, 네이버 지도 대신 SVG 폴백 지도를 �
 | RSV-05-01 | 레스토랑 상세 및 예약 | `/places/:id` | [PlaceDetailPage.tsx](src/pages/PlaceDetailPage.tsx) |
 | SHARE-06-01 | 추천 코스 목록 (공용 플랜) | `/recommend?tab=course` | [PlanListPage.tsx](src/pages/PlanListPage.tsx) |
 | SHARE-06-02 | 코스 상세 · 내 여행으로 담기 | `/plans/:id` | [PlanDetailPage.tsx](src/pages/PlanDetailPage.tsx) |
-| SHARE-06-03 | 내 여행을 코스로 올리기 | `/trips/:id/share` | [PlanPublishPage.tsx](src/pages/PlanPublishPage.tsx) |
+| SHARE-06-03 | 내 여행을 추천 코스로 공유 | `/trips/:id/share` | [PlanPublishPage.tsx](src/pages/PlanPublishPage.tsx) |
 | SHARE-06-04 | 내가 올린 코스 | `/me/plans` | [MyPlansPage.tsx](src/pages/MyPlansPage.tsx) |
 | SHARE-06-06 | 운영자 코스 관리 | `/admin/plans` | [AdminPlansPage.tsx](src/pages/AdminPlansPage.tsx) |
 | SHARE-06-07 | 코스 만족도 | `/plans/:id` 안 | [PlanDetailPage.tsx](src/pages/PlanDetailPage.tsx) |
@@ -54,7 +54,7 @@ Supabase 대신 localStorage 를, 네이버 지도 대신 SVG 폴백 지도를 �
 - **동선 최적화** — 최근접 이웃 + 2-opt ([geo.ts](src/lib/geo.ts) `optimizeOrder()`). 순서 변경 시 요약이 즉시 재계산
 - **예약 상태 배지 바인딩** — 타임라인 카드에 '예약 확정' 자동 표시
 - **코스 작성자 표기** — 닉네임을 쓰지 않고 '운영자' 또는 '회원'으로만 표시합니다 ([types.ts](src/lib/types.ts) `planAuthorLabel()`)
-- **순서 바꾸기** — 타임라인·동선 최적화·코스 올리기 세 화면 모두 드래그 핸들로 통일했습니다 (dnd-kit). 화살표 버튼은 쓰지 않습니다
+- **순서 바꾸기** — 타임라인·동선 최적화·추천 코스 공유 세 화면 모두 드래그 핸들로 통일했습니다 (dnd-kit). 화살표 버튼은 쓰지 않습니다
 - **장소 상세 전화 연결** — TourAPI 로 받아온 `places.phone` 이 있으면 상세 페이지에 `tel:` 링크 버튼으로 노출 ([PlaceDetailPage.tsx](src/pages/PlaceDetailPage.tsx))
 
 ## Supabase 연결

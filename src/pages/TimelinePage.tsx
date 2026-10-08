@@ -310,12 +310,12 @@ export function TimelinePage() {
           <div className="mt-3">
             {canPublish ? (
               <Link to={`/trips/${tripId}/share`} className="btn-outline w-full">
-                코스로 올리기
+                추천 코스 공유
               </Link>
             ) : (
               <>
                 <button type="button" disabled className="btn-outline w-full">
-                  코스로 올리기
+                  추천 코스 공유
                 </button>
                 <p className="hint mt-1.5 text-center">
                   리뷰를 쓰지 않은 장소가 {unreviewed}곳 남았습니다

@@ -74,7 +74,7 @@ export function MyPlansPage() {
           <EmptyState
             icon="🧭"
             title="아직 올린 코스가 없습니다"
-            description="여행 타임라인에서 '코스로 올리기'를 누르면 공개할 수 있습니다."
+            description="내 여행 타임라인에서 '추천 코스 공유'를 누르면 공개할 수 있습니다."
             action={
               <Link to="/trips" className="btn-primary">
                 내 여행 보기
