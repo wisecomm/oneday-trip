@@ -128,6 +128,11 @@ export function recommend(
       score += 4
       reasons.push('점심 시간대')
     }
+    // 저녁 식사 — 없으면 맑은 저녁 추천이 술집 · 명소로만 채워져 밥집이 빠졌다
+    if (h >= 17 && h < 21 && place.category === 'babzip') {
+      score += 4
+      reasons.push('저녁 시간대')
+    }
     if (h >= 14 && h < 18 && place.category === 'cafe') {
       score += 4
       reasons.push('오후 카페 타임')
