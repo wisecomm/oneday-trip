@@ -1,69 +1,68 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
-import { places as placesApi, reservations, trips } from '@/lib/db'
-import type { Place, Reservation, Trip } from '@/lib/types'
+import { places as placesApi, regions as regionsApi, reservations, trips } from '@/lib/db'
+import { currentPosition, dayTripMinutes, formatDuration, type LatLng } from '@/lib/geo'
+import { MIN_RATING_DISPLAY, type Place, type Reservation, type Trip } from '@/lib/types'
 import { PlaceCard } from '@/components/PlaceCard'
 import { Loading } from '@/components/ui'
 import { formatTripDate } from '@/lib/trip-date'
-
-/**
- * 지역별로 고르게 섞어 count 개를 뽑는다.
- *
- * TourAPI 는 평점을 주지 않아 source_rating 이 대개 null 이다. 정렬에 쓸 순위가
- * 없으니 그냥 두면 항상 같은 지역·카테고리 몇 곳만 노출된다. 지역별 라운드로빈으로
- * 뽑고 지역 내부는 매 호출마다 섞어, 한 지역이 결과를 독차지하지 않고
- * 새로고침마다 다른 곳이 보이게 한다.
- */
-function pickSpread(places: Place[], count: number): Place[] {
-  const byRegion = new Map<string, Place[]>()
-  for (const p of places) {
-    const key = `${p.tour_area_code}-${p.tour_sigungu_code}`
-    const bucket = byRegion.get(key) ?? []
-    bucket.push(p)
-    byRegion.set(key, bucket)
-  }
-  for (const bucket of byRegion.values()) {
-    for (let i = bucket.length - 1; i > 0; i -= 1) {
-      const j = Math.floor(Math.random() * (i + 1))
-      ;[bucket[i], bucket[j]] = [bucket[j], bucket[i]]
-    }
-  }
-
-  const queues = [...byRegion.values()]
-  const result: Place[] = []
-  for (let round = 0; result.length < count && queues.some((q) => round < q.length); round += 1) {
-    for (const q of queues) {
-      if (result.length >= count) break
-      if (round < q.length) result.push(q[round])
-    }
-  }
-  return result
-}
 
 export function HomePage() {
   const { user, profile, isGuest } = useAuth()
   const [myTrips, setMyTrips] = useState<Trip[]>([])
   const [upcoming, setUpcoming] = useState<Reservation[]>([])
-  const [popular, setPopular] = useState<Place[]>([])
   const [loading, setLoading] = useState(true)
+
+  /**
+   * '하루에 다녀올 만한 곳' (README-플로챠트.md).
+   *
+   * 화면이 열리면 위치를 묻는다. 거부 · 미지원 · 5초 안에 응답이 없으면 서울
+   * 강남구 중심을 기준점으로 같은 흐름을 탄다. 이 섹션은 위치를 기다리느라 늦을
+   * 수 있어 나머지 홈과 따로 불러온다 — 기다리는 동안 다가오는 여행은 먼저 보인다.
+   */
+  const [picks, setPicks] = useState<Place[]>([])
+  const [picksLoading, setPicksLoading] = useState(true)
+  const [origin, setOrigin] = useState<LatLng | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    async function loadPicks() {
+      try {
+        let base = await currentPosition(5000)
+        if (!base) {
+          // 강남 좌표는 코드에 적지 않고 지역 표의 (서울 1, 강남구 1) 에서 읽는다
+          const all = await regionsApi.list()
+          const gangnam = all.find((r) => r.tour_area_code === 1 && r.tour_sigungu_code === 1)
+          base = gangnam ? { lat: gangnam.lat, lng: gangnam.lng } : null
+        }
+        const list = await placesApi.homePicks(base, 5)
+        if (!alive) return
+        setOrigin(base)
+        setPicks(list)
+      } catch (err) {
+        console.error('[Home] 하루에 다녀올 만한 곳을 불러오지 못했습니다.', err)
+      } finally {
+        if (alive) setPicksLoading(false)
+      }
+    }
+    void loadPicks()
+    return () => {
+      alive = false
+    }
+  }, [])
 
   useEffect(() => {
     let alive = true
     async function load() {
       try {
-        const [t, r, p] = await Promise.all([
+        const [t, r] = await Promise.all([
           user ? trips.list(user.id) : Promise.resolve([]),
           user ? reservations.listByUser(user.id) : Promise.resolve([]),
-          placesApi.list({}),
         ])
         if (!alive) return
         setMyTrips(t)
         setUpcoming(r.filter((x) => x.status === 'confirmed').slice(0, 2))
-      // '인기 있는 곳' 이라고 부르지만 실제 순위가 없다 — TourAPI 가 평점을 주지
-      // 않아서다. 이름순으로 받아 온 것을 그대로 쓰면 늘 같은 곳만 뜨므로,
-      // 지역별로 고르게 섞어 노출한다.
-        setPopular(pickSpread(p, 5))
       } catch (err) {
         // 여기서 멈추면 화면이 스피너에 갇힌다. 빈 홈이라도 보여주는 편이 낫다.
         console.error('[Home] 홈 데이터를 불러오지 못했습니다.', err)
@@ -160,20 +159,26 @@ export function HomePage() {
 
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="section-title">지금 인기 있는 곳</h2>
+          <h2 className="section-title">하루에 다녀올 만한 곳</h2>
           <Link to="/map" className="text-[13px] font-semibold text-brand-600">
             지도에서 보기
           </Link>
         </div>
-        <ul className="flex flex-col gap-2.5">
-          {popular.map((p) => (
-            <li key={p.id}>
-              <Link to={`/places/${p.id}`} className="block">
-                <PlaceCard place={p} />
-              </Link>
-            </li>
-          ))}
-        </ul>
+        {picksLoading ? (
+          <p className="hint py-6 text-center">가까운 곳을 찾는 중…</p>
+        ) : picks.length === 0 ? (
+          <p className="hint py-6 text-center">지금은 보여 드릴 장소가 없습니다</p>
+        ) : (
+          <ul className="flex flex-col gap-2.5">
+            {picks.map((p) => (
+              <li key={p.id}>
+                <Link to={`/places/${p.id}`} className="block">
+                  <PlaceCard place={p} right={<PickMeta place={p} origin={origin} />} />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   )
@@ -198,5 +203,30 @@ function QuickLink({
       <span className="text-[14px] font-bold text-ink-800">{label}</span>
       <span className="text-[11.5px] text-ink-500">{desc}</span>
     </Link>
+  )
+}
+
+/**
+ * 카드 오른쪽: 별점과 기준점에서의 이동 시간.
+ *
+ * ★ 는 리뷰가 MIN_RATING_DISPLAY(3)건 이상일 때만 보인다 (❸). 1~2건인 장소도
+ * 순서에는 반영되지만, 리뷰가 1건뿐이면 평균이 곧 그 사람의 별점이라 숨긴다.
+ */
+function PickMeta({ place, origin }: { place: Place; origin: LatLng | null }) {
+  const showRating = place.rating_avg != null && place.rating_count >= MIN_RATING_DISPLAY
+  return (
+    <div className="shrink-0 text-right text-[12px] leading-tight">
+      {showRating && (
+        <p className="font-bold text-ink-700">
+          ★ {place.rating_avg!.toFixed(1)}{' '}
+          <span className="font-normal text-ink-400">({place.rating_count})</span>
+        </p>
+      )}
+      {origin && (
+        <p className="mt-0.5 whitespace-nowrap text-ink-500">
+          차로 {formatDuration(dayTripMinutes(origin, place))}
+        </p>
+      )}
+    </div>
   )
 }

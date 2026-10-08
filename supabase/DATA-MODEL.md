@@ -108,14 +108,22 @@ delete cascade` 가 두 세계를 잇는 유일한 연결이고, 나머지 개�
 사람이 넣은 행은 `source = 'manual'` 에 id 가 `m-000001` 꼴입니다.
 
 **쓰는 화면** `ExplorePage`(지도 · 이름 검색) · `PlaceDetailPage` ·
-`RecommendPage` · `AdminPlacesPage`(수동 등록 목록) · `MapView`.
+`RecommendPage` · `AdminPlacesPage`(수동 등록 목록) · `MapView` ·
+`HomePage`(`home_picks()` 로 고른 5곳).
 
 **RLS** 누구나 읽기. insert·update·delete 는 `is_admin()` 만.
 
 **주의** `source_rating` 은 **전부 null** 입니다 — 0 이 아닙니다. 0 으로 두면
-"평점 없음"과 "0점"이 구분되지 않아 모든 장소가 ★0.0 으로 보입니다. 그래서
-장소 평점으로는 아무것도 정렬할 수 없고, 인기 신호는 플랜 쪽
-(`clone_count`·`rating_avg`)에서 옵니다.
+"평점 없음"과 "0점"이 구분되지 않아 모든 장소가 ★0.0 으로 보입니다. 출처
+(TourAPI) 평점 칸이라 사용자 별점은 여기 넣지 않습니다.
+
+**주의** `rating_avg`·`rating_count` 는 **사용자 리뷰 집계**이고 트리거가
+유지합니다 — 앱이 쓰지 않습니다. 개인 리뷰(`trip_items.rating`)를 사람당 가장
+최근 한 표씩 모아 평균을 냅니다. 리뷰가 여행 삭제 · 탈퇴 cascade 로 지워져도
+트리거가 받으므로 어긋나지 않습니다. 리뷰가 없으면 평균은 null, 개수는 0.
+장소 적재(`seed.sql`) upsert 는 이 두 칸을 건드리지 않습니다. 홈 '하루에 다녀올
+만한 곳'(`home_picks()`)이 이 평균으로 순서를 매깁니다 — 자세한 흐름은
+`README-플로챠트.md`.
 
 **이름 검색은 `pg_trgm` GIN 인덱스(`places_name_trgm_idx`)를 탑니다.**
 `ilike '%키워드%'` 는 앞뒤가 열려 있어 B-tree 를 못 타고, 인덱스가 없으면
@@ -226,7 +234,7 @@ update 할 권한이 없어서, 호출자 권한으로 돌면 **RLS 에 막혀 �
 
 | 화면 | 읽고 쓰는 것 |
 |---|---|
-| HomePage | trips, reservations |
+| HomePage | trips, reservations, places(`home_picks()`), regions(기준점 기본값) |
 | ExplorePage (지도) | places, regions, trips, trip_items |
 | PlaceDetailPage | places, reservations |
 | RecommendPage (추천 장소) | places, regions, trips, trip_items — 비회원은 places·regions 만 |
@@ -276,6 +284,7 @@ update 한 번으로 바꾸는 단순 속성입니다. 복합 FK 는 `MATCH SIMP
 | `admin_create_place()` | 같은 시퀀스로 id 를 매겨야 함 |
 | `plan_ratings_refresh()` | 평가자가 남의 `shared_plans` 를 update 할 수 없음 |
 | `shared_plan_items_hide_parent()` | 같은 이유 |
+| `place_rating_recompute()` · `trip_items_rating_refresh()` · `trips_rating_refresh()` | 리뷰 쓴 사람의 권한이면 RLS 때문에 **자기 리뷰만으로** 평균을 냄(오류 없이 틀린 값), 게다가 `places` 쓰기는 관리자만 |
 | `profiles_guard_role()` | **반대로 definer 면 안 됨** — 정의자 권한 안에서는 `current_user` 가 호출자가 아니라 함수 소유자가 되어 판정이 항상 통과 |
 
 **장소가 사라지면 플랜을 내립니다.** `shared_plan_items` 는 `on delete

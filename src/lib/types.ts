@@ -147,6 +147,15 @@ export interface Place {
   source: PlaceSource
   /** 수동 등록 행의 등록자. 연동 행은 null */
   created_by: string | null
+  /**
+   * 사용자 리뷰 별점의 평균 — 사람당 한 표(같은 장소를 여러 번 리뷰했으면 가장
+   * 최근 여행의 별점). 리뷰가 없으면 **0 이 아니라 null** 이다.
+   * source_rating(출처 TourAPI 의 평점)과 다르다. 리뷰가 바뀔 때 DB 트리거가
+   * 그 장소만 다시 계산한다 (README-플로챠트.md ❶❹).
+   */
+  rating_avg: number | null
+  /** 위 평균에 들어간 사람 수. 화면은 MIN_RATING_DISPLAY 이상일 때만 ★ 를 보인다 */
+  rating_count: number
 }
 
 /**
@@ -353,6 +362,12 @@ export const TRANSPORT_LABEL: Record<Transport, string> = {
 }
 
 /** 이동 수단별 평균 속도(km/h) — 동선 소요 시간 추정에 사용 (TRIP-02-02) */
+/**
+ * 사용자 별점(★)을 화면에 보이는 최소 리뷰 수 (README-플로챠트.md ❸).
+ * 리뷰가 1건뿐이면 평균이 곧 그 사람의 별점이라, 순서에는 반영하되 보이지는 않는다.
+ */
+export const MIN_RATING_DISPLAY = 3
+
 export const TRANSPORT_SPEED_KMH: Record<Transport, number> = {
   walk: 4,
   transit: 18,

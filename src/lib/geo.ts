@@ -138,3 +138,59 @@ export function projectToViewport(
     y: offsetY + (maxLat - p.lat) * scale,
   }))
 }
+
+/**
+ * 하루 거리 (README-플로챠트.md ❷) — 편도 2시간을 직선 약 120km 로 본다.
+ * DB 함수 home_picks 도 같은 값을 쓴다. 바꾸면 두 곳을 함께 바꾼다.
+ */
+export const DAY_TRIP_RADIUS_KM = 120
+
+/**
+ * 도시 사이 이동의 평균 속도(km/h). 고속도로 · KTX 를 섞은 값이다.
+ *
+ * TRANSPORT_SPEED_KMH(차 30km/h)를 쓰지 않는다. 그건 하루 일정 안에서 장소 사이를
+ * 오가는 시내 이동용이라, 그대로 쓰면 '편도 2시간'이 46km 로 줄어든다.
+ */
+const INTERCITY_SPEED_KMH = 80
+
+/** 기준점에서 그 장소까지 차로 걸리는 대략의 시간(분). 우회 계수 1.3 은 travelMinutes 와 같다 */
+export function dayTripMinutes(from: LatLng, to: LatLng): number {
+  const km = distanceKm(from, to) * 1.3
+  return Math.max(1, Math.round((km / INTERCITY_SPEED_KMH) * 60))
+}
+
+/** 65 → '약 1시간 5분', 40 → '약 40분', 120 → '약 2시간' */
+export function formatDuration(minutes: number): string {
+  if (minutes < 60) return `약 ${minutes}분`
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  return m === 0 ? `약 ${h}시간` : `약 ${h}시간 ${m}분`
+}
+
+/**
+ * 현재 위치. 권한 거부 · 미지원 · timeoutMs 안에 응답이 없으면 null.
+ *
+ * 브라우저의 timeout 옵션은 권한 창이 떠 있는 동안에는 흐르지 않는다. 그래서
+ * 따로 타이머를 걸어 권한 창을 포함해 timeoutMs 가 지나면 끝낸다 — 그 뒤에
+ * 허용해도 이번에는 쓰지 않고, 다음 방문부터 바로 쓴다.
+ */
+export function currentPosition(timeoutMs: number): Promise<LatLng | null> {
+  return new Promise((resolve) => {
+    if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
+      resolve(null)
+      return
+    }
+    const timer = setTimeout(() => resolve(null), timeoutMs)
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        clearTimeout(timer)
+        resolve({ lat: coords.latitude, lng: coords.longitude })
+      },
+      () => {
+        clearTimeout(timer)
+        resolve(null)
+      },
+      { timeout: timeoutMs, maximumAge: 10 * 60 * 1000 },
+    )
+  })
+}

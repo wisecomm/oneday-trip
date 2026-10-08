@@ -1,6 +1,7 @@
 import { isSupabaseConfigured, db as sb } from './supabase'
 import { mutateDb, readDb, uid } from './local-store'
 import { demo } from './demo-data'
+import { DAY_TRIP_RADIUS_KM, distanceKm, type LatLng } from './geo'
 import type {
   Place,
   PlaceCategory,
@@ -142,6 +143,129 @@ export const places = {
     }
     return demo.places.find((p) => p.id === id) ?? null
   },
+
+  /**
+   * 홈 '하루에 다녀올 만한 곳' (README-플로챠트.md).
+   *
+   * 기준점에서 하루 거리 안의 장소를 별점 순으로 먼저, 나머지는 지역을 고르게
+   * 섞어 고른다. 고르는 일은 DB 함수 home_picks 가 하고 다섯 곳의 id 와 순서만
+   * 돌려준다 — 예전처럼 장소 전체를 받아 브라우저에서 고르면 API 상한(1,000행)에
+   * 잘려 이름순 앞쪽만 후보가 됐다. 이름 · 지역 이름은 평소 조회로 붙인다.
+   *
+   * base 가 null 이면 DB 함수가 서울 강남구 중심을 쓴다.
+   */
+  async homePicks(base: LatLng | null, count = 5): Promise<Place[]> {
+    if (isSupabaseConfigured) {
+      const { data, error } = await sb().rpc('home_picks', {
+        p_lat: base?.lat ?? null,
+        p_lng: base?.lng ?? null,
+        p_count: count,
+      })
+      if (error) throw error
+      const picks = ((data ?? []) as { place_id: string; pick_order: number }[]).sort(
+        (a, b) => a.pick_order - b.pick_order,
+      )
+      if (picks.length === 0) return []
+      const { data: rows, error: rowsError } = await sb()
+        .from('places')
+        .select(PLACE_SELECT)
+        .in(
+          'id',
+          picks.map((x) => x.place_id),
+        )
+      if (rowsError) throw rowsError
+      const byId = new Map(
+        ((rows ?? []) as unknown as PlaceRow[]).map(flattenPlace).map((pl) => [pl.id, pl]),
+      )
+      return picks.map((x) => byId.get(x.place_id)).filter((pl): pl is Place => pl !== undefined)
+    }
+    return demoHomePicks(base, count)
+  },
+}
+
+/* ── 데모 모드의 홈 선택 — DB 함수 home_picks 와 같은 규칙 ── */
+
+function shuffled<T>(list: T[]): T[] {
+  const a = [...list]
+  for (let i = a.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
+/** 지역을 고르게 섞는다 — 각 지역의 첫 후보를 무작위 순서로 한 바퀴, 다음 후보로 또 한 바퀴 */
+function spreadByRegion(list: Place[]): Place[] {
+  const buckets = new Map<string, Place[]>()
+  for (const p of list) {
+    const k = `${p.tour_area_code}-${p.tour_sigungu_code}`
+    const b = buckets.get(k)
+    if (b) b.push(p)
+    else buckets.set(k, [p])
+  }
+  const keyed: { p: Place; rn: number; rnd: number }[] = []
+  for (const b of buckets.values()) {
+    shuffled(b).forEach((p, rn) => keyed.push({ p, rn, rnd: Math.random() }))
+  }
+  return keyed.sort((x, y) => x.rn - y.rn || x.rnd - y.rnd).map((x) => x.p)
+}
+
+/**
+ * 데모 저장소의 리뷰로 장소 별점을 그 자리에서 계산한다. 데모에는 DB 트리거가
+ * 없고 장소 목록도 코드에 박힌 값이라 저장해 둘 곳이 없어서다. 규칙은 DB 의
+ * place_rating_recompute 와 같다 — 사람당 한 표, 가장 최근 여행의 별점.
+ */
+function demoPlaceRatings(): Map<string, { rating_avg: number; rating_count: number }> {
+  const d = readDb()
+  const tripOf = new Map(d.trips.map((t) => [t.id, t]))
+  const latest = new Map<string, { rating: number; date: string; created: string; id: string }>()
+  for (const it of d.trip_items) {
+    if (it.rating == null) continue
+    const t = tripOf.get(it.trip_id)
+    if (!t) continue
+    const key = `${it.place_id}|${t.user_id}`
+    const cur = latest.get(key)
+    const cand = { rating: it.rating, date: t.trip_date, created: t.created_at, id: it.id }
+    const newer =
+      !cur ||
+      cand.date > cur.date ||
+      (cand.date === cur.date &&
+        (cand.created > cur.created || (cand.created === cur.created && cand.id > cur.id)))
+    if (newer) latest.set(key, cand)
+  }
+  const sum = new Map<string, { s: number; n: number }>()
+  for (const [key, v] of latest) {
+    const placeId = key.slice(0, key.lastIndexOf('|'))
+    const cur = sum.get(placeId) ?? { s: 0, n: 0 }
+    sum.set(placeId, { s: cur.s + v.rating, n: cur.n + 1 })
+  }
+  return new Map(
+    [...sum].map(([id, v]) => [id, { rating_avg: Math.round((v.s / v.n) * 10) / 10, rating_count: v.n }]),
+  )
+}
+
+function demoHomePicks(base: LatLng | null, count: number): Place[] {
+  const ratings = demoPlaceRatings()
+  const visible = demo.places
+    .filter((p) => p.tour_sigungu_code >= 0)
+    .map((p) => ({ ...p, ...(ratings.get(p.id) ?? { rating_avg: null, rating_count: 0 }) }))
+  const gangnam = demo.regions.find((r) => r.tour_area_code === 1 && r.tour_sigungu_code === 1)
+  const origin = base ?? (gangnam ? { lat: gangnam.lat, lng: gangnam.lng } : null)
+  if (!origin) return spreadByRegion(visible).slice(0, count)
+
+  let radius = DAY_TRIP_RADIUS_KM
+  if (visible.filter((p) => distanceKm(origin, p) <= radius).length < count) radius *= 2
+  const near = visible.filter((p) => distanceKm(origin, p) <= radius)
+  const far = visible.filter((p) => distanceKm(origin, p) > radius)
+
+  const reviewed = shuffled(near.filter((p) => p.rating_count > 0)).sort(
+    (a, b) => (b.rating_avg ?? 0) - (a.rating_avg ?? 0) || b.rating_count - a.rating_count,
+  )
+  return [
+    ...reviewed,
+    ...spreadByRegion(near.filter((p) => p.rating_count === 0)),
+    ...spreadByRegion(far),
+  ].slice(0, count)
 }
 
 /* ─────────────────────── Profiles (SYS-01-02) ─────────────────────── */

@@ -39,7 +39,7 @@ Supabase 대신 localStorage 를, 네이버 지도 대신 SVG 폴백 지도를 �
 부르고, 테이블·파일 이름(`shared_plans`, `PlanListPage`)은 그대로 둡니다. 예전 목록 주소
 `/plans` 는 `/recommend?tab=course` 로 넘어갑니다.
 
-기능 코드가 붙지 않은 화면도 있습니다 — 홈([HomePage.tsx](src/pages/HomePage.tsx)),
+기능 코드가 붙지 않은 화면도 있습니다 — 홈([HomePage.tsx](src/pages/HomePage.tsx) · '하루에 다녀올 만한 곳' 로직은 [README-플로챠트.md](README-플로챠트.md)),
 내 여행 목록([TripListPage.tsx](src/pages/TripListPage.tsx)),
 마이페이지([MyPage.tsx](src/pages/MyPage.tsx)),
 가입([SignupPage.tsx](src/pages/SignupPage.tsx)),
