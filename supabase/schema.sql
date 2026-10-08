@@ -184,6 +184,11 @@ create table public.places (
   -- 건드리지 않는다. (컬럼 순서는 마이그레이션이 alter 로 붙인 그대로다)
   rating_avg         numeric(2,1) check (rating_avg between 1 and 5),
   rating_count       integer not null default 0 check (rating_count >= 0),
+  -- TourAPI 원래 콘텐츠 타입(39 음식점 · 12 관광지 · 14 문화시설 · 28 레포츠 · 38 쇼핑 ·
+  -- 32 숙박). 앱 분류는 category 가 정하고 이 칸은 출처를 남긴다 — 28 · 38 · 32 는
+  -- category 'spot' 으로 명소에 함께 나온다. 수동 등록 행은 null. 허용 값 제약은 일부러
+  -- 두지 않는다(타입을 늘릴 때 load.mjs 한 줄로 끝나게). (마이그레이션 alter 순서대로 끝)
+  content_type       smallint,
   foreign key (tour_area_code, tour_sigungu_code)
     references public.regions (tour_area_code, tour_sigungu_code)
 );

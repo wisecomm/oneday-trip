@@ -24,7 +24,17 @@ const HERE = import.meta.dirname
 const RAW = path.join(HERE, 'raw')
 const DEFAULT_OUT = path.join(HERE, '..', '..', 'supabase', 'seed.sql')
 
-const CONTENT_TYPES = [39, 12, 14]
+/**
+ * 앱에 넣는 TourAPI 콘텐츠 타입 — 원래 타입 번호는 places.content_type 에 그대로 남긴다.
+ *
+ *   39 음식점                      → 밥집 · 카페 · 술집 (세부 분류 코드로)
+ *   12 관광지 · 14 문화시설        → 명소
+ *   28 레포츠 · 38 쇼핑 · 32 숙박  → 명소 ('기타' 는 개념상 — 화면에 따로 표시하지 않는다)
+ *
+ * collect.mjs 는 15 축제 · 25 여행코스까지 8개를 다 받지만, 여기 없는 타입은 seed 에
+ * 넣지 않고 raw/ 에만 둔다(리포트에 개수만). 화면에 보이게 하려면 이 표에 한 줄 더한다.
+ */
+const CONTENT_TYPES = [39, 12, 14, 28, 38, 32]
 
 /**
  * 시/도 이름 축약.
@@ -184,7 +194,7 @@ const inKorea = (lat, lng) =>
  */
 function toCategory(it) {
   const type = String(it.contenttypeid ?? '')
-  if (type === '12' || type === '14') return 'spot'
+  if (type !== '39') return 'spot' // 12 · 14 · 28 · 38 · 32
   if (it.lclsSystm2 === 'FD04') return 'sulzip'
   if (it.cat3 === 'A05020900') return 'cafe'
   return 'babzip'
@@ -252,7 +262,18 @@ const pickLines = (o, ...keys) => {
   }
   return ''
 }
-const openHoursOf = (intro) => pickLines(intro, 'opentimefood', 'usetime', 'usetimeculture')
+/**
+ * 영업 · 이용 시간. 칸 이름이 타입마다 다르다 —
+ * 39 opentimefood · 12 usetime · 14 usetimeculture · 28 usetimeleports · 38 opentime.
+ * 숙박(32)은 영업시간 대신 체크인 · 체크아웃을 한 줄씩 적는다.
+ */
+const openHoursOf = (intro) => {
+  const hours = pickLines(intro, 'opentimefood', 'usetime', 'usetimeculture', 'usetimeleports', 'opentime')
+  if (hours) return hours
+  const checkin = pick(intro, 'checkintime')
+  const checkout = pick(intro, 'checkouttime')
+  return [checkin && `체크인 ${checkin}`, checkout && `체크아웃 ${checkout}`].filter(Boolean).join('\n')
+}
 /**
  * 취향 태그 — 회원 취향(TASTE_TAGS, src/lib/types.ts)과 같은 글자여야 추천에 걸린다.
  *
@@ -260,7 +281,8 @@ const openHoursOf = (intro) => pickLines(intro, 'opentimefood', 'usetime', 'uset
  * 다섯뿐이다 — 근거 없이 고를 수만 있던 태그는 2026-10-08 에 목록에서 뺐다.
  *
  *   카페      장소 분류가 카페
- *   주차가능  parking · parkingfood · parkingculture 가 '가능' · '있음' (불가 제외)
+ *   주차가능  타입별 주차 칸(parking · parkingfood · parkingculture · parkingleports ·
+ *             parkingshopping · parkinglodging)이 '가능' · '있음' (불가 제외)
  *   심야영업  (명소 제외) 자정 이후 마감(24:00 · 00:00~05:59) · '24시간' · '익일'.
  *             23시 마감은 넣지 않는다 — 늦게까지 여는 보통 식당까지 들어가 변별력이 없다
  *   오마카세  (명소 제외) 메뉴에 '오마카세'
@@ -272,7 +294,7 @@ const DESSERT_RX = /디저트|케이크|케잌|베이커리|제과|젤라또|젤
 function tagsOf(category, intro) {
   const tags = []
   if (category === 'cafe') tags.push('카페')
-  const parking = pick(intro, 'parkingfood', 'parking', 'parkingculture')
+  const parking = pick(intro, 'parkingfood', 'parking', 'parkingculture', 'parkingleports', 'parkingshopping', 'parkinglodging')
   if (parking && !/불가/.test(parking) && /가능|있음/.test(parking)) tags.push('주차가능')
   if (category !== 'spot') {
     const hours = pick(intro, 'opentimefood', 'usetime', 'usetimeculture')
@@ -286,7 +308,8 @@ function tagsOf(category, intro) {
 }
 
 const phoneOf = (intro, common) =>
-  pick(intro, 'infocenterfood', 'infocenter', 'infocenterculture') || pick(common, 'tel')
+  pick(intro, 'infocenterfood', 'infocenter', 'infocenterculture', 'infocenterleports', 'infocentershopping', 'infocenterlodging') ||
+  pick(common, 'tel')
 
 /* ───────────────────────── SQL ───────────────────────── */
 
@@ -396,6 +419,7 @@ async function main() {
               summary: toSummary(d0?.common?.overview),
               open_hours: openHoursOf(d0?.intro),
               tags: tagsOf(toCategory(it), d0?.intro),
+              content_type: t,
               phone: phoneOf(d0?.intro, d0?.common) || null,
               modified: it.modifiedtime ?? null,
               source: 'unresolved',
@@ -455,6 +479,7 @@ async function main() {
             summary: toSummary(d?.common?.overview),
             open_hours: openHoursOf(d?.intro),
             tags: tagsOf(toCategory(it), d?.intro),
+            content_type: t,
             phone: phoneOf(d?.intro, d?.common) || null,
             modified: it.modifiedtime ?? null,
             source,
@@ -584,7 +609,7 @@ async function main() {
     const part = places.slice(i, i + CHUNK)
     L.push(
       'insert into public.places (id, name, category, tour_area_code, tour_sigungu_code,' +
-        ' address, lat, lng, image_url, tags, summary, open_hours,' +
+        ' address, lat, lng, image_url, tags, content_type, summary, open_hours,' +
         ' phone, source_modified_at, region_source, region_note) values',
     )
     L.push(
@@ -592,7 +617,7 @@ async function main() {
         .map(
           (p) =>
             `  (${q(p.id)}, ${qs(p.name)}, '${p.category}', ${p.area}, ${p.sigungu}, ${qs(p.address)},` +
-            ` ${num(p.lat)}, ${num(p.lng)}, ${q(p.image)}, ${textArr(p.tags)}, ${qs(p.summary)},` +
+            ` ${num(p.lat)}, ${num(p.lng)}, ${q(p.image)}, ${textArr(p.tags)}, ${p.content_type}, ${qs(p.summary)},` +
             ` ${qs(p.open_hours)}, ${q(p.phone)}, ${q(p.modified)}, '${p.source}', ${q(p.note)})`,
         )
         .join(',\n') + '\non conflict (id) do update set',
@@ -601,6 +626,7 @@ async function main() {
     L.push('  address = excluded.address, lat = excluded.lat, lng = excluded.lng,')
     L.push('  image_url = excluded.image_url, summary = excluded.summary,')
     L.push('  open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,')
+    L.push('  content_type = excluded.content_type,')
     L.push('  source_modified_at = excluded.source_modified_at,')
     // 사람이 고친 지역은 재적재가 덮지 않는다
     L.push("  tour_area_code = case when public.places.region_source = 'manual'")
@@ -861,6 +887,20 @@ async function main() {
     console.log('')
   }
 
+  // 받아만 두고 앱에 넣지 않는 타입(축제 · 여행코스 등) — 개수만 보인다
+  const rawOnly = new Map()
+  for (const f of files) {
+    const m = /^places-\d+-\d+-(\d+)\.json$/.exec(f)
+    if (!m || CONTENT_TYPES.includes(Number(m[1]))) continue
+    const n = (await readJson(path.join(RAW, f))).length
+    rawOnly.set(m[1], (rawOnly.get(m[1]) ?? 0) + n)
+  }
+  console.log('── 앱에 넣는 타입 · 받아만 둔 타입 ──')
+  const byType = new Map()
+  for (const p of places) byType.set(p.content_type, (byType.get(p.content_type) ?? 0) + 1)
+  console.log(`  앱: ${CONTENT_TYPES.map((t) => `${t}=${byType.get(t) ?? 0}`).join(' · ')}`)
+  console.log(`  raw 에만: ${[...rawOnly].map(([t, n]) => `${t}=${n}`).join(' · ') || '없음'}`)
+  console.log('')
   console.log('── 시군구별 장소 수 (미판정 제외) ──')
   for (const [k, v] of Object.entries(buckets)) console.log(`  ${k.padEnd(6)}곳: ${v}개`)
   console.log('')
@@ -959,7 +999,7 @@ async function writeDemo(groupRows, regionRows, places) {
         ` group_name: ${t(nameOfArea.get(p.area) ?? '')}, region_name: ${t(region?.name ?? '')},`,
     )
     L.push(`    address: ${t(p.address)}, lat: ${p.lat}, lng: ${p.lng},`)
-    L.push(`    image_url: ${t(p.image)}, tags: ${t(p.tags ?? [])},`)
+    L.push(`    image_url: ${t(p.image)}, tags: ${t(p.tags ?? [])}, content_type: ${p.content_type ?? 'null'},`)
     L.push(`    summary: ${t(p.summary)},`)
     L.push(`    open_hours: ${t(p.open_hours)}, phone: ${t(p.phone)},`)
     L.push(

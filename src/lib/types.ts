@@ -149,6 +149,11 @@ export interface Place {
   rating_avg: number | null
   /** 위 평균에 들어간 사람 수. 화면은 MIN_RATING_DISPLAY 이상일 때만 ★ 를 보인다 */
   rating_count: number
+  /**
+   * TourAPI 원래 콘텐츠 타입(39 음식점 · 12 관광지 · 14 문화시설 · 28 레포츠 · 38 쇼핑 ·
+   * 32 숙박). 화면 분류는 category 가 정한다 — 28 · 38 · 32 도 명소다. 수동 등록은 null.
+   */
+  content_type: number | null
 }
 
 /**

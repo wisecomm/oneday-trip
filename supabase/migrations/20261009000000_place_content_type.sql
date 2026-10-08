@@ -1,0 +1,15 @@
+-- places.content_type — TourAPI 원래 콘텐츠 타입 번호
+--
+-- 수집을 TourAPI 콘텐츠 타입 8개로 넓혔다. 앱의 분류(category)는 그대로 두고, 어느
+-- 타입에서 왔는지를 이 칸에 남긴다.
+--
+--   39 음식점                      → category 밥집 · 카페 · 술집
+--   12 관광지 · 14 문화시설        → 명소
+--   28 레포츠 · 38 쇼핑 · 32 숙박  → 명소 ('기타' 는 개념상 — 화면에 따로 표시하지 않는다)
+--   15 축제 · 25 여행코스          → 받아만 두고 places 에 넣지 않는다
+--
+-- 허용 값 제약은 두지 않는다 — 앱에 넣을 타입을 바꾸는 일은 load.mjs 의 표 한 줄로
+-- 끝나야 하고, 그때마다 마이그레이션이 따라오면 안 된다.
+-- 관리자가 직접 등록한 장소(source = 'manual')는 null 이다. 기존 TourAPI 행은 다음
+-- 시드 적재(upsert)가 채운다.
+alter table public.places add column content_type smallint;

@@ -13,6 +13,13 @@
  *   node collect.mjs --detail-only  # 이미 받은 목록으로 상세만
  *   node collect.mjs --report-only  # 이미 받은 파일로 리포트만 다시 출력
  *   node collect.mjs --backfill-mt  # 예전에 받은 상세에 modifiedtime 채우기 (호출 0회)
+ *   node collect.mjs --sync-dry     # 목록 갱신만 미리보기 — 파일을 바꾸지 않는다
+ *   node collect.mjs --no-sync      # 목록 갱신을 건너뛴다
+ *
+ * 목록 갱신(syncLists): 매 실행 첫머리에 전국 목록을 수정일 순으로 받아, 마지막
+ * 확인 이후 새로 생기거나 고쳐진 장소만 시군구 목록 파일에 반영한다. 그러면 뒤의
+ * 상세 단계가 mt 를 비교해 그 장소들의 상세만 다시 받는다. 목록 파일이 있으면
+ * 건너뛰던 탓에 첫 수집 뒤 바뀐 장소를 알아채지 못하던 빈틈을 메운다.
  *
  * 전국이면 호출이 6,700회쯤 된다. 개발계정 일일 한도(1,000건 수준)에 걸려 죽으면
  * 다음 날 그냥 다시 실행하면 이어서 받는다 — 장소 단위로 이미 받은 것을 건너뛴다.
@@ -25,7 +32,7 @@
  * 건너뛴다. 공공데이터포털 일일 호출 한도에 걸리면 그냥 다시 실행하면 이어서 받는다.
  */
 
-import { mkdir, readFile, writeFile, readdir, access } from 'node:fs/promises'
+import { mkdir, readFile, writeFile, readdir, access, stat } from 'node:fs/promises'
 import { createInterface } from 'node:readline'
 import path from 'node:path'
 
@@ -43,10 +50,21 @@ const MAX_RETRY = 5
  * 앱의 카테고리(밥집·카페·술집·명소)로 접는 일은 적재 단계에서 cat1/cat2/cat3 을 보고
  * 한다. 여기서 접어 버리면 분류 기준을 바꿀 때 다시 받아야 한다.
  */
+/**
+ * TourAPI 콘텐츠 타입 8개를 모두 받는다. 앱에 넣을지는 load.mjs 가 정한다.
+ * group 은 받는 순서 — 하루 한도 안에서 앱에 보이는 타입이 먼저 끝나도록
+ * 1 → 2 → 3 차례로 목록 · 상세를 받는다.
+ *   1 지금 앱의 타입 · 2 명소에 더할 타입(기타) · 3 데이터만 받아 두는 타입
+ */
 const CONTENT_TYPES = [
-  { id: 39, label: '음식점' },
-  { id: 12, label: '관광지' },
-  { id: 14, label: '문화시설' },
+  { id: 39, label: '음식점', group: 1 },
+  { id: 12, label: '관광지', group: 1 },
+  { id: 14, label: '문화시설', group: 1 },
+  { id: 28, label: '레포츠', group: 2 },
+  { id: 38, label: '쇼핑', group: 2 },
+  { id: 32, label: '숙박', group: 2 },
+  { id: 15, label: '축제공연행사', group: 3 },
+  { id: 25, label: '여행코스', group: 3 },
 ]
 
 let apiKey = ''
@@ -285,6 +303,144 @@ async function collectDetail(areaCode, sigunguCode, type, label) {
   }
 }
 
+/* ───────────────────────────── 목록 갱신 ───────────────────────────── */
+
+const SYNC_STATE = path.join(OUT, 'sync-state.json')
+/** 마지막 확인 시각에서 이만큼 더 거슬러 받는다 — 겹치는 건 같은 값을 다시 쓸 뿐이라 해가 없다 */
+const SYNC_OVERLAP_MS = 24 * 60 * 60 * 1000
+/** 한 콘텐츠타입에서 최대 이만큼 쪽을 넘긴다 — 정렬이 기대와 달라 끝없이 도는 것을 막는다 */
+const SYNC_MAX_PAGES = 30
+
+/** Date → TourAPI modifiedtime 형식(한국 시각 YYYYMMDDHHMMSS) */
+function toKstStamp(d) {
+  const k = new Date(d.getTime() + 9 * 60 * 60 * 1000)
+  const p = (n, w = 2) => String(n).padStart(w, '0')
+  return `${k.getUTCFullYear()}${p(k.getUTCMonth() + 1)}${p(k.getUTCDate())}${p(k.getUTCHours())}${p(k.getUTCMinutes())}${p(k.getUTCSeconds())}`
+}
+
+/**
+ * 마지막 확인 이후 바뀐 장소를 시군구 목록 파일에 반영한다.
+ *
+ * 전국 목록을 콘텐츠타입별로 수정일 순(arrange Q — 시군구 목록을 받을 때와 같은 정렬)
+ * 으로 받아, 기준 시각보다 오래된 장소가 나오면 멈춘다. 처음 실행이면 기준은 목록
+ * 파일들을 처음 받은 시각이다. 응답이 정말 수정일 내림차순인지 확인해서, 아니면
+ * 아무것도 바꾸지 않는다 — 정렬을 믿을 수 없으면 '여기서 멈춰도 된다'는 판단이 틀린다.
+ *
+ * 반영 규칙
+ *   · 같은 시군구 파일에 있으면 그 항목을 새 값으로 바꾼다
+ *   · 다른 파일에 있으면(시군구가 바뀐 경우) 옛 파일에서 빼고 새 파일에 넣는다
+ *   · 처음 보는 장소면 그 시군구 파일에 더한다
+ *   · 그 시군구 · 타입 파일이 아예 없으면(코드표 밖 시군구 등) 건너뛰고 센다
+ *
+ * 사라진 장소는 여기서 다루지 않는다 — 목록에 안 나오는 것과 지워진 것을 구별할 수 없다.
+ */
+async function syncLists({ dry }) {
+  const startedAt = new Date()
+  const callsBefore = calls
+  let state = (await exists(SYNC_STATE)) ? await readJson(SYNC_STATE) : null
+
+  // 지금 있는 목록 파일 전부와 contentid → 파일 색인
+  const files = (await readdir(OUT)).filter((f) => /^places-\d+-\d+-\d+\.json$/.test(f))
+  if (files.length === 0) {
+    console.log('목록 갱신: 목록 파일이 아직 없어 건너뜀 (첫 수집이 먼저)')
+    return
+  }
+  const lists = new Map() // file → items
+  const where = new Map() // contentid → file
+  let oldest = Infinity
+  for (const f of files) {
+    const items = await readJson(path.join(OUT, f))
+    lists.set(f, items)
+    for (const it of items) where.set(String(it.contentid), f)
+    oldest = Math.min(oldest, (await stat(path.join(OUT, f))).mtimeMs)
+  }
+
+  const base = state?.lastSyncStartedAt ? new Date(state.lastSyncStartedAt) : new Date(oldest)
+  const cutoff = toKstStamp(new Date(base.getTime() - SYNC_OVERLAP_MS))
+  console.log(`목록 갱신${dry ? ' (미리보기 — 파일을 바꾸지 않음)' : ''}: ${cutoff.slice(0, 8)} ${cutoff.slice(8, 10)}:${cutoff.slice(10, 12)} 이후 수정된 장소`)
+
+  const changed = []
+  for (const type of CONTENT_TYPES) {
+    let prev = '99999999999999'
+    let got = 0
+    let reachedOld = false
+    for (let pageNo = 1; pageNo <= SYNC_MAX_PAGES; pageNo++) {
+      const { items, totalCount } = await call('areaBasedList2', {
+        contentTypeId: type.id,
+        arrange: 'Q',
+        numOfRows: NUM_OF_ROWS,
+        pageNo,
+      })
+      await sleep(DELAY_MS)
+      for (const it of items) {
+        const mt = String(it.modifiedtime ?? '')
+        if (mt > prev) {
+          throw new Error(
+            `${type.label} 목록이 수정일 내림차순이 아님 (${prev} 다음 ${mt}) — 갱신을 적용하지 않음`,
+          )
+        }
+        prev = mt
+        if (mt < cutoff) {
+          reachedOld = true
+          break
+        }
+        changed.push({ type, it })
+        got++
+      }
+      if (reachedOld || items.length === 0 || pageNo * NUM_OF_ROWS >= totalCount) break
+      if (pageNo === SYNC_MAX_PAGES) {
+        throw new Error(`${type.label}: ${SYNC_MAX_PAGES}쪽을 넘겨도 기준 시각에 닿지 않음 — 갱신을 적용하지 않음`)
+      }
+    }
+    console.log(`    ${type.label}: 바뀐 장소 ${got}곳`)
+  }
+
+  // 반영
+  const touched = new Set()
+  const stats = { updated: 0, moved: 0, added: 0, noFile: 0 }
+  const samples = []
+  for (const { type, it } of changed) {
+    const id = String(it.contentid)
+    const target = `places-${it.areacode}-${it.sigungucode || '0'}-${type.id}.json`
+    if (!lists.has(target)) {
+      stats.noFile++
+      continue
+    }
+    const from = where.get(id)
+    if (from && from !== target) {
+      lists.set(from, lists.get(from).filter((x) => String(x.contentid) !== id))
+      touched.add(from)
+      stats.moved++
+    }
+    const arr = lists.get(target)
+    const i = arr.findIndex((x) => String(x.contentid) === id)
+    if (i >= 0) {
+      arr[i] = it
+      if (from === target) stats.updated++
+    } else {
+      arr.push(it)
+      if (!from) stats.added++
+    }
+    where.set(id, target)
+    touched.add(target)
+    if (samples.length < 8) samples.push(`${from ? (from === target ? '수정' : '이동') : '새로'} · ${it.title} (${it.modifiedtime})`)
+  }
+  console.log(
+    `    반영: 수정 ${stats.updated} · 새로 ${stats.added} · 시군구 이동 ${stats.moved}` +
+      (stats.noFile ? ` · 해당 목록 파일 없음 ${stats.noFile}(건너뜀)` : '') +
+      ` — 호출 ${calls - callsBefore}회`,
+  )
+  for (const x of samples) console.log(`      ${x}`)
+
+  if (dry) return
+  for (const f of touched) await writeJson(path.join(OUT, f), lists.get(f))
+  await writeJson(SYNC_STATE, {
+    lastSyncStartedAt: startedAt.toISOString(),
+    lastSyncStamp: toKstStamp(startedAt),
+    lastResult: stats,
+  })
+}
+
 /**
  * mt 도입 전에 받아 둔 상세에 목록의 modifiedtime 을 채워 넣는다. 네트워크를 쓰지
  * 않는다 — 이미 받은 상세는 지금 목록과 같은 시점의 것이므로 다시 받을 이유가 없다.
@@ -389,9 +545,9 @@ async function report() {
       detailGot++
       if (v.mt !== undefined) hasMt++
       if (pickField(v.common, 'overview')) hasOverview++
-      if (pickField(v.intro, 'opentimefood', 'usetime', 'usetimeculture')) hasHours++
+      if (pickField(v.intro, 'opentimefood', 'usetime', 'usetimeculture', 'usetimeleports', 'opentime', 'checkintime')) hasHours++
       if (
-        pickField(v.intro, 'infocenterfood', 'infocenter', 'infocenterculture') ||
+        pickField(v.intro, 'infocenterfood', 'infocenter', 'infocenterculture', 'infocenterleports', 'infocentershopping', 'infocenterlodging') ||
         pickField(v.common, 'tel')
       )
         hasTel++
@@ -504,6 +660,17 @@ async function main() {
     process.exit(1)
   }
 
+  // 목록 갱신 — 실패해도 상세 수집은 계속한다(오늘 몫의 상세를 잃지 않게)
+  if (!args.includes('--no-sync') && !areaFilter) {
+    try {
+      await syncLists({ dry: args.includes('--sync-dry') })
+    } catch (e) {
+      console.error(`    ✗ 목록 갱신 건너뜀: ${e.message}`)
+    }
+    console.log('')
+    if (args.includes('--sync-dry')) return
+  }
+
   const areas = await collectAreaCodes()
   const targets = areaFilter ? areas.filter((a) => String(a.code) === areaFilter) : areas
   if (!targets.length) {
@@ -536,45 +703,51 @@ async function main() {
     process.exit(1)
   }
 
-  if (!detailOnly) {
-    console.log('')
-    console.log(`목록 받는 중 — 시군구 ${leaves.length}개 × 타입 ${CONTENT_TYPES.length}개`)
-    let done = 0
-    for (const leaf of leaves) {
-      const label = `${leaf.areaName} ${leaf.sigunguName}`
-      for (const type of CONTENT_TYPES) {
-        try {
-          const got = await collectPlaces(leaf.areaCode, leaf.sigunguCode, type, label)
-          if (got === null) process.stdout.write(`\r    건너뜀: ${label} / ${type.label}          `)
-        } catch (e) {
-          await bail(`${label} / ${type.label} 목록`, e)
-        }
-      }
-      done++
-      if (done % 10 === 0) console.log(`  … ${done}/${leaves.length} 시군구`)
-    }
-    console.log('')
-    console.log('목록 수집 완료.')
-  }
+  // 타입 묶음(group)마다 목록 → 상세를 끝내고 다음 묶음으로 — 한도에 걸리면 앞 묶음부터 채워진다
+  for (const group of [...new Set(CONTENT_TYPES.map((t) => t.group))]) {
+    const types = CONTENT_TYPES.filter((t) => t.group === group)
+    const names = types.map((t) => t.label).join(' · ')
 
-  if (!skipDetail) {
-    console.log('')
-    console.log('상세 받는 중 — 장소당 2회 호출. 여기서 대부분의 호출이 나갑니다.')
-    let done = 0
-    for (const leaf of leaves) {
-      const label = `${leaf.areaName} ${leaf.sigunguName}`
-      for (const type of CONTENT_TYPES) {
-        try {
-          await collectDetail(leaf.areaCode, leaf.sigunguCode, type, label)
-        } catch (e) {
-          await bail(`${label} / ${type.label} 상세`, e)
+    if (!detailOnly) {
+      console.log('')
+      console.log(`[${group}] 목록 받는 중 — ${names} · 시군구 ${leaves.length}개`)
+      let done = 0
+      for (const leaf of leaves) {
+        const label = `${leaf.areaName} ${leaf.sigunguName}`
+        for (const type of types) {
+          try {
+            const got = await collectPlaces(leaf.areaCode, leaf.sigunguCode, type, label)
+            if (got === null) process.stdout.write(`\r    건너뜀: ${label} / ${type.label}          `)
+          } catch (e) {
+            await bail(`${label} / ${type.label} 목록`, e)
+          }
         }
+        done++
+        if (done % 10 === 0) console.log(`  … ${done}/${leaves.length} 시군구`)
       }
-      done++
-      if (done % 10 === 0) console.log(`  … ${done}/${leaves.length} 시군구`)
+      console.log('')
+      console.log(`[${group}] 목록 완료.`)
     }
-    console.log('')
-    console.log('상세 수집 완료.')
+
+    if (!skipDetail) {
+      console.log('')
+      console.log(`[${group}] 상세 받는 중 — ${names} · 장소당 2회 호출`)
+      let done = 0
+      for (const leaf of leaves) {
+        const label = `${leaf.areaName} ${leaf.sigunguName}`
+        for (const type of types) {
+          try {
+            await collectDetail(leaf.areaCode, leaf.sigunguCode, type, label)
+          } catch (e) {
+            await bail(`${label} / ${type.label} 상세`, e)
+          }
+        }
+        done++
+        if (done % 10 === 0) console.log(`  … ${done}/${leaves.length} 시군구`)
+      }
+      console.log('')
+      console.log(`[${group}] 상세 완료.`)
+    }
   }
 
   await report()
