@@ -154,10 +154,16 @@ export function recommend(
       reasons.push('맑은 날 야외')
     }
 
-    return { place, score, reasons }
+    return { place, score, reasons, tie: Math.random() }
   })
 
-  return scored.sort((a, b) => b.score - a.score).slice(0, limit)
+  // 점수가 같으면 무작위로 — 목록이 이름순으로 오므로, 그대로 두면 동점 장소 중
+  // 가나다순 앞쪽만 늘 뽑힌다(리뷰가 거의 없는 지금은 대부분이 동점이다).
+  // 그래서 같은 조건이라도 새로고침할 때마다 다른 곳이 섞여 나온다.
+  return scored
+    .sort((a, b) => b.score - a.score || a.tie - b.tie)
+    .slice(0, limit)
+    .map(({ place, score, reasons }) => ({ place, score, reasons }))
 }
 
 export interface CategoryQuota {
