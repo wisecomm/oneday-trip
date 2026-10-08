@@ -253,12 +253,46 @@ const pickLines = (o, ...keys) => {
   return ''
 }
 const openHoursOf = (intro) => pickLines(intro, 'opentimefood', 'usetime', 'usetimeculture')
+/**
+ * 취향 태그 — 회원 취향(TASTE_TAGS, src/lib/types.ts)과 같은 글자여야 추천에 걸린다.
+ *
+ * 정해진 칸이나 메뉴 글자에서 확실히 나오는 것만 붙인다. 소개 글에서 낱말로 추정하는
+ * 노포 · 뷰맛집 · 비건은 오탐이 섞여 넣지 않았다. 가성비 · 로컬맛집 · 혼밥 ·
+ * 반려견 동반은 근거가 되는 값이 응답에 없다(반려동물은 별도 API).
+ *
+ *   카페      장소 분류가 카페
+ *   주차가능  parking · parkingfood · parkingculture 가 '가능' · '있음' (불가 제외)
+ *   심야영업  (명소 제외) 영업시간에 23시~05시 마감 · '24시간' · '익일'
+ *   오마카세  (명소 제외) 메뉴에 '오마카세'
+ *   디저트    (명소 제외) 메뉴에 디저트 · 케이크 · 베이커리 · 젤라토 등
+ *
+ * 상세(intro)를 아직 받지 못한 장소는 '카페' 말고는 비어 있다. 수집이 진행되면 채워진다.
+ */
+const DESSERT_RX = /디저트|케이크|케잌|베이커리|제과|젤라또|젤라토|마카롱|빙수|와플|타르트|도넛|도너츠|쿠키|스콘|크로플/
+function tagsOf(category, intro) {
+  const tags = []
+  if (category === 'cafe') tags.push('카페')
+  const parking = pick(intro, 'parkingfood', 'parking', 'parkingculture')
+  if (parking && !/불가/.test(parking) && /가능|있음/.test(parking)) tags.push('주차가능')
+  if (category !== 'spot') {
+    const hours = pick(intro, 'opentimefood', 'usetime', 'usetimeculture')
+    const ends = [...hours.matchAll(/~\s*(?:익일\s*)?(\d{1,2}):\d{2}/g)].map((m) => Number(m[1]))
+    if (/24\s*시간|익일/.test(hours) || ends.some((h) => h >= 23 || h <= 5)) tags.push('심야영업')
+    const menu = `${pick(intro, 'firstmenu')} ${pick(intro, 'treatmenu')}`
+    if (/오마카세/.test(menu)) tags.push('오마카세')
+    if (DESSERT_RX.test(menu)) tags.push('디저트')
+  }
+  return tags
+}
+
 const phoneOf = (intro, common) =>
   pick(intro, 'infocenterfood', 'infocenter', 'infocenterculture') || pick(common, 'tel')
 
 /* ───────────────────────── SQL ───────────────────────── */
 
 const q = (v) => (v === null || v === undefined || v === '' ? 'null' : `'${String(v).replace(/'/g, "''")}'`)
+/** text[] 리터럴. 태그는 고정 낱말이라 따옴표 · 쉼표가 들어오지 않는다 */
+const textArr = (xs) => `'{${(xs ?? []).map((x) => `"${x}"`).join(',')}}'::text[]`
 const qs = (v) => `'${String(v ?? '').replace(/'/g, "''")}'` // not null 컬럼용 (빈 문자열 허용)
 const num = (v) => (v === null || v === undefined || Number.isNaN(v) ? 'null' : String(v))
 
@@ -361,6 +395,7 @@ async function main() {
               image: it.firstimage || it.firstimage2 || null,
               summary: toSummary(d0?.common?.overview),
               open_hours: openHoursOf(d0?.intro),
+              tags: tagsOf(toCategory(it), d0?.intro),
               phone: phoneOf(d0?.intro, d0?.common) || null,
               modified: it.modifiedtime ?? null,
               source: 'unresolved',
@@ -419,6 +454,7 @@ async function main() {
             image: it.firstimage || it.firstimage2 || null,
             summary: toSummary(d?.common?.overview),
             open_hours: openHoursOf(d?.intro),
+            tags: tagsOf(toCategory(it), d?.intro),
             phone: phoneOf(d?.intro, d?.common) || null,
             modified: it.modifiedtime ?? null,
             source,
@@ -556,7 +592,7 @@ async function main() {
         .map(
           (p) =>
             `  (${q(p.id)}, ${qs(p.name)}, '${p.category}', ${p.area}, ${p.sigungu}, ${qs(p.address)},` +
-            ` ${num(p.lat)}, ${num(p.lng)}, ${q(p.image)}, '{}'::text[], ${qs(p.summary)},` +
+            ` ${num(p.lat)}, ${num(p.lng)}, ${q(p.image)}, ${textArr(p.tags)}, ${qs(p.summary)},` +
             ` ${qs(p.open_hours)}, ${q(p.phone)}, ${q(p.modified)}, '${p.source}', ${q(p.note)})`,
         )
         .join(',\n') + '\non conflict (id) do update set',
@@ -564,7 +600,7 @@ async function main() {
     L.push('  name = excluded.name, category = excluded.category,')
     L.push('  address = excluded.address, lat = excluded.lat, lng = excluded.lng,')
     L.push('  image_url = excluded.image_url, summary = excluded.summary,')
-    L.push('  open_hours = excluded.open_hours, phone = excluded.phone,')
+    L.push('  open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,')
     L.push('  source_modified_at = excluded.source_modified_at,')
     // 사람이 고친 지역은 재적재가 덮지 않는다
     L.push("  tour_area_code = case when public.places.region_source = 'manual'")
@@ -923,7 +959,7 @@ async function writeDemo(groupRows, regionRows, places) {
         ` group_name: ${t(nameOfArea.get(p.area) ?? '')}, region_name: ${t(region?.name ?? '')},`,
     )
     L.push(`    address: ${t(p.address)}, lat: ${p.lat}, lng: ${p.lng},`)
-    L.push(`    image_url: ${t(p.image)}, tags: [],`)
+    L.push(`    image_url: ${t(p.image)}, tags: ${t(p.tags ?? [])},`)
     L.push(`    summary: ${t(p.summary)},`)
     L.push(`    open_hours: ${t(p.open_hours)}, phone: ${t(p.phone)},`)
     L.push(
