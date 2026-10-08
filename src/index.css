@@ -23,10 +23,8 @@
   --color-ink-800: #21262e;
   --color-ink-900: #14171c;
 
-  --color-babzip: #f2664a;
-  --color-cafe: #b5762f;
-  --color-sulzip: #7c5cd6;
-  --color-spot: #23a06a;
+  /* 카테고리 색은 여기 두지 않는다 — src/lib/types.ts 의 CATEGORY_COLOR 하나로.
+     화면이 style 로 넣는 값이라 테마 변수로 두면 Tailwind v4 가 빌드에서 지운다. */
 
   --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
     'Malgun Gothic', system-ui, sans-serif;

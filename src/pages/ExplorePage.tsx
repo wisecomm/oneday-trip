@@ -407,23 +407,18 @@ export function ExplorePage() {
                   </h2>
                 </div>
                 <p className="mt-0.5 text-[12.5px] text-ink-500">{selected.address}</p>
-                <div className="mt-1.5 flex flex-wrap items-center gap-x-2 text-[12.5px] text-ink-500">
-                  {selected.source_rating != null && (
-                    <>
+                {/* 가격대(price_level)는 표시하지 않는다 — TourAPI 에 가격 정보가 없어 전 장소가 기본값 2라, 보이면 '보통 가격'이라는 거짓 정보가 된다 */}
+                {(selected.source_rating != null || selected.open_hours) && (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-2 text-[12.5px] text-ink-500">
+                    {selected.source_rating != null && (
                       <span className="font-bold text-ink-700">
                         ★ {selected.source_rating.toFixed(1)}
                       </span>
-                      <span>·</span>
-                    </>
-                  )}
-                  <span>{'₩'.repeat(selected.price_level)}</span>
-                  {selected.open_hours && (
-                    <>
-                      <span>·</span>
-                      <span>{selected.open_hours}</span>
-                    </>
-                  )}
-                </div>
+                    )}
+                    {selected.source_rating != null && selected.open_hours && <span>·</span>}
+                    {selected.open_hours && <span>{selected.open_hours}</span>}
+                  </div>
+                )}
               </div>
             </div>
 
