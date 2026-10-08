@@ -4,7 +4,14 @@ import { useAuth } from '@/lib/auth'
 import { places as placesApi, tripItems, trips } from '@/lib/db'
 import { useRegions } from '@/hooks/useRegions'
 import { distanceKm } from '@/lib/geo'
-import { CATEGORY_LABEL, shownRating, type Place, type PlaceCategory, type Trip } from '@/lib/types'
+import {
+  CATEGORY_LABEL,
+  openHoursOneLine,
+  shownRating,
+  type Place,
+  type PlaceCategory,
+  type Trip,
+} from '@/lib/types'
 import { MapView } from '@/components/MapView'
 import { CategoryDot, PlaceThumb, RatingStar } from '@/components/PlaceCard'
 import { BottomSheet, Loading } from '@/components/ui'
@@ -412,7 +419,9 @@ export function ExplorePage() {
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-2 text-[12.5px] text-ink-500">
                     <RatingStar place={selected} />
                     {shownRating(selected) && selected.open_hours && <span>·</span>}
-                    {selected.open_hours && <span>{selected.open_hours}</span>}
+                    {selected.open_hours && (
+                      <span className="line-clamp-2">{openHoursOneLine(selected.open_hours)}</span>
+                    )}
                   </div>
                 )}
               </div>

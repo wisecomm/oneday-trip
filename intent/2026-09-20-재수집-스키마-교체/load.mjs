@@ -204,6 +204,30 @@ const stripHtml = (s) =>
     .replace(/\s+/g, ' ')
     .trim()
 
+/**
+ * 줄을 살리는 정리 — 영업시간용.
+ *
+ * 원문은 <br> 로 줄을 나누고 줄마다 '- ' 를 붙인 목록이다
+ * ('[평일]<br>- 11:30~15:00<br>- 마지막 주문 14:00'). stripHtml 처럼 한 줄로 이으면
+ * '[평일] - - 11:30~15:00 - - 마지막 주문 14:00' 이 된다. 줄은 '\n' 으로 남기고
+ * 줄 앞 글머리('-', '·', '•', '*')는 뗀다. 원문이 '<b' 처럼 태그 중간에서 잘린
+ * 경우가 있어 닫히지 않은 꼬리 태그도 지운다.
+ */
+const stripHtmlLines = (s) =>
+  String(s ?? '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/<[^>]*$/, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .split(/\r?\n/)
+    .map((line) => line.replace(/\s+/g, ' ').trim().replace(/^[-·•*]\s*/, '').trim())
+    .filter(Boolean)
+    .join('\n')
+
 /** 소개는 첫 문장만. 카드와 상세에 한 줄로 들어간다. */
 function toSummary(overview) {
   const t = stripHtml(overview)
@@ -221,7 +245,14 @@ const pick = (o, ...keys) => {
   }
   return ''
 }
-const openHoursOf = (intro) => pick(intro, 'opentimefood', 'usetime', 'usetimeculture')
+const pickLines = (o, ...keys) => {
+  for (const k of keys) {
+    const v = o?.[k]
+    if (typeof v === 'string' && v.trim()) return stripHtmlLines(v)
+  }
+  return ''
+}
+const openHoursOf = (intro) => pickLines(intro, 'opentimefood', 'usetime', 'usetimeculture')
 const phoneOf = (intro, common) =>
   pick(intro, 'infocenterfood', 'infocenter', 'infocenterculture') || pick(common, 'tel')
 

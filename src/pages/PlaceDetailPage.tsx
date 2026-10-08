@@ -100,7 +100,9 @@ export function PlaceDetailPage() {
           )}
           {/* 영업시간은 따로 한 줄 — 같은 줄에 두면 길어서 넘어갈 때 구분선만 위에 남는다 */}
           {place.open_hours && (
-            <p className="mt-1 text-[13px] leading-relaxed text-ink-600">{place.open_hours}</p>
+            <p className="mt-1 text-[13px] leading-relaxed whitespace-pre-line text-ink-600">
+              {place.open_hours}
+            </p>
           )}
         </div>
 

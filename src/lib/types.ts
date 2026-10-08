@@ -355,6 +355,25 @@ export const TRANSPORT_LABEL: Record<Transport, string> = {
 export const MIN_RATING_DISPLAY = 3
 
 /**
+ * 영업시간을 한 줄로 — 지도 시트 · 타임라인 카드처럼 좁은 자리용.
+ * 원문은 줄바꿈(\n)으로 나뉜 목록이다('[평일]\n11:30~15:00\n마지막 주문 14:00').
+ * 장소 상세는 줄을 그대로 보여 준다(whitespace-pre-line).
+ */
+export function openHoursOneLine(text: string): string {
+  const lines = text
+    .split('\n')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  // '[평일]' 같은 머리말은 다음 줄과 띄어쓰기로 붙인다 — '[평일] 11:30~15:00 · [주말] …'
+  let out = ''
+  lines.forEach((line, i) => {
+    const prevIsHeading = i > 0 && /^\[.*\]$/.test(lines[i - 1])
+    out += i === 0 ? line : prevIsHeading ? ` ${line}` : ` · ${line}`
+  })
+  return out
+}
+
+/**
  * 화면에 ★ 로 보일 장소 별점 — 사용자 리뷰 평균이 MIN_RATING_DISPLAY 건 이상일 때만.
  * source_rating(TourAPI 평점)은 쓰지 않는다. 출처가 평점을 주지 않아 전부 null 이다.
  */

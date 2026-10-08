@@ -20,7 +20,14 @@ import { CSS } from '@dnd-kit/utilities'
 import { useAuth } from '@/lib/auth'
 import { sharedPlans, tripItems, trips } from '@/lib/db'
 import { routeDistanceKm, routeMinutes } from '@/lib/geo'
-import { CATEGORY_LABEL, MIN_PLAN_PLACES, type SharedPlan, type Trip, type TripItem } from '@/lib/types'
+import {
+  CATEGORY_LABEL,
+  MIN_PLAN_PLACES,
+  openHoursOneLine,
+  type SharedPlan,
+  type Trip,
+  type TripItem,
+} from '@/lib/types'
 import { CategoryDot, PlaceThumb } from '@/components/PlaceCard'
 import { BottomSheet, EmptyState, Loading, PageHeader } from '@/components/ui'
 import { VisitShareSheet } from '@/components/VisitShareSheet'
@@ -530,8 +537,10 @@ function SortableItem({
               </p>
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
-              <span className="text-[12px] text-ink-500">
-                {place ? CATEGORY_LABEL[place.category] : ''} · {place?.open_hours}
+              {/* 영업시간이 없으면 '명소 · ' 처럼 점만 남지 않게 함께 뺀다 */}
+              <span className="min-w-0 truncate text-[12px] text-ink-500">
+                {place ? CATEGORY_LABEL[place.category] : ''}
+                {place?.open_hours ? ` · ${openHoursOneLine(place.open_hours)}` : ''}
               </span>
               {visited && <span className="badge bg-emerald-50 text-emerald-700">방문 완료</span>}
             </div>
