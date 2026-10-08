@@ -19,7 +19,6 @@
 erDiagram
     auth_users ||--o| profiles : "1:1"
     auth_users ||--o{ trips : "소유"
-    auth_users ||--o{ reservations : "소유"
     auth_users ||--o{ shared_plans : "작성(사용자 플랜만)"
     auth_users ||--o{ plan_ratings : "평가"
 
@@ -30,8 +29,6 @@ erDiagram
 
     trips ||--o{ trip_items : "하루 동선"
     places ||--o{ trip_items : "담긴 장소"
-    places ||--o{ reservations : "예약 대상"
-    trip_items ||--o| reservations : "항목에 걸린 예약"
 
     shared_plans ||--o{ shared_plan_items : "공개 동선"
     places ||--o{ shared_plan_items : "담긴 장소"
@@ -46,7 +43,7 @@ erDiagram
 **카탈로그** — `region_groups` → `regions` → `places`. 전부 공개 읽기이고,
 TourAPI 수집 배치가 채웁니다.
 
-**개인** — `profiles`, `trips` → `trip_items`, `reservations`. 전부
+**개인** — `profiles`, `trips` → `trip_items`. 전부
 `auth.uid()` 소유자만 접근합니다. **관리자도 남의 것을 읽지 못합니다.**
 
 **공유** — `shared_plans` → `shared_plan_items`, 거기 붙는 `plan_ratings`.
@@ -174,14 +171,6 @@ current_database();` 를 먼저 보세요.
 여행 id 를 싣던 `source_trip_id` 는 공개 행에 개인 여행 id 가 드러나서 뺐습니다.
 `trips` 는 주인만 읽으므로 이 값은 밖으로 나가지 않습니다. 코스가 지워지면 null.
 
-### `reservations` — 예약
-
-**담는 것** 장소 예약. `trip_item_id` 로 타임라인 항목에 걸 수 있습니다.
-
-**쓰는 화면** `PlaceDetailPage`(생성) · `MyPage` · `HomePage` · `TimelinePage`.
-
-**RLS** 소유자만.
-
 ### `shared_plans` · `shared_plan_items` — 공용 플랜
 
 **담는 것** 공개된 하루 동선. `shared_plan_items` 는 **`trip_items` 와 같은
@@ -239,12 +228,12 @@ update 할 권한이 없어서, 호출자 권한으로 돌면 **RLS 에 막혀 �
 
 | 화면 | 읽고 쓰는 것 |
 |---|---|
-| HomePage | trips, reservations, places(`home_picks()`), regions(기준점 기본값) |
+| HomePage | trips, places(`home_picks()`), regions(기준점 기본값) |
 | ExplorePage (지도) | places, regions, trips, trip_items |
-| PlaceDetailPage | places, reservations |
+| PlaceDetailPage | places |
 | RecommendPage (추천 장소) | places, regions, trips, trip_items — 비회원은 places·regions 만 |
 | TripCreatePage → TripRulesPage | regions, trips, trip_items |
-| TimelinePage | trips, trip_items, reservations |
+| TimelinePage | trips, trip_items |
 | RoutePage | trips, trip_items |
 | TripListPage | trips, trip_items |
 | RecommendHubPage (추천 탭) | 아래 두 화면을 하위 탭으로 담는다 — 직접 읽는 테이블 없음 |
@@ -252,7 +241,7 @@ update 할 권한이 없어서, 호출자 권한으로 돌면 **RLS 에 막혀 �
 | PlanDetailPage | shared_plans, shared_plan_items, places, plan_ratings |
 | PlanPublishPage | trips, trip_items → shared_plans, shared_plan_items |
 | MyPlansPage | shared_plans |
-| MyPage | profiles, reservations |
+| MyPage | profiles |
 | ProfileSetupPage | profiles |
 | AdminPlansPage | shared_plans |
 | AdminPlacesPage | places, regions |
@@ -311,9 +300,9 @@ cascade` 로 `places` 를 참조하는데, 항목만 조용히 지우면 3곳짜
 마이그레이션 전체를 적용한 DB 에서 네 역할(작성자·담은이·제3자·관리자)로
 확인한 목록입니다. 정책을 고칠 때 이 목록이 깨지지 않는지 보세요.
 
-- 남의 여행·타임라인 항목·예약·프로필 조회 — **관리자도 막힘**
+- 남의 여행·타임라인 항목·프로필 조회 — **관리자도 막힘**
 - 비로그인의 프로필 조회
-- 남의 여행에 항목 끼워 넣기, `user_id` 를 속인 예약 생성
+- 남의 여행에 항목 끼워 넣기
 - 자기 `role` 을 `admin` 으로 바꾸기, 가입 시 `role` 지정
 - 남의 플랜 수정·삭제·항목 추가, `clone_count` 직접 조작
 - 운영자 플랜을 자기 것으로 가로채기

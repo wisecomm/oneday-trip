@@ -61,7 +61,7 @@ export function LoginPage() {
           <p className="mt-1.5 text-[14px] leading-relaxed text-ink-500">
             여행 일정과 로컬 맛집을 지도 위에서 한 번에.
             <br />
-            동선 최적화부터 실시간 예약까지.
+            동선 최적화부터 추천 코스까지.
           </p>
         </div>
 

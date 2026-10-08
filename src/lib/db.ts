@@ -9,7 +9,6 @@ import type {
   Profile,
   Region,
   RegionGroup,
-  Reservation,
   PlanRating,
   Season,
   SharedPlan,
@@ -563,66 +562,6 @@ export const tripItems = {
       return
     }
     mutateDb((d) => void (d.trip_items = d.trip_items.filter((it) => it.id !== id)))
-  },
-}
-
-/* ─────────────────── Reservations (RSV-05-01) ─────────────────── */
-
-export const reservations = {
-  async listByUser(userId: string): Promise<Reservation[]> {
-    if (isSupabaseConfigured) {
-      const { data, error } = await sb()
-        .from('reservations')
-        .select('*, place:places(*)')
-        .eq('user_id', userId)
-        .order('reserved_at', { ascending: true })
-      if (error) throw error
-      return (data ?? []) as Reservation[]
-    }
-    return readDb()
-      .reservations.filter((r) => r.user_id === userId)
-      .map((r) => ({ ...r, place: demo.places.find((p) => p.id === r.place_id) }))
-      .filter((r) => r.place !== undefined)
-      .sort((a, b) => a.reserved_at.localeCompare(b.reserved_at))
-  },
-
-  async create(input: {
-    user_id: string
-    place_id: string
-    trip_item_id?: string | null
-    reserved_at: string
-    party_size: number
-    deposit: number
-  }): Promise<Reservation> {
-    if (isSupabaseConfigured) {
-      const { data, error } = await sb()
-        .from('reservations')
-        .insert({ ...input, trip_item_id: input.trip_item_id ?? null, status: 'confirmed' })
-        .select('*, place:places(*)')
-        .single()
-      if (error) throw error
-      return data as Reservation
-    }
-    const row: Reservation = {
-      id: uid('rsv'),
-      trip_item_id: input.trip_item_id ?? null,
-      status: 'confirmed',
-      ...input,
-    }
-    mutateDb((d) => void d.reservations.push(row))
-    return { ...row, place: demo.places.find((p) => p.id === row.place_id) }
-  },
-
-  async cancel(id: string): Promise<void> {
-    if (isSupabaseConfigured) {
-      const { error } = await sb().from('reservations').update({ status: 'cancelled' }).eq('id', id)
-      if (error) throw error
-      return
-    }
-    mutateDb((d) => {
-      const i = d.reservations.findIndex((r) => r.id === id)
-      if (i >= 0) d.reservations[i] = { ...d.reservations[i], status: 'cancelled' }
-    })
   },
 }
 

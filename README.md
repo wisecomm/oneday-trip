@@ -25,7 +25,6 @@ Supabase 대신 localStorage 를, 네이버 지도 대신 SVG 폴백 지도를 �
 | TRIP-03-02 | 동선 최적화 지도 | `/trips/:id/route` | [RoutePage.tsx](src/pages/RoutePage.tsx) |
 | MAP-04-01 | 실시간 지도 홈 (장소 이름 검색 포함) | `/map` | [ExplorePage.tsx](src/pages/ExplorePage.tsx) |
 | MAP-04-02 | 추천 장소 (맥락 인지 추천 피드) | `/recommend?tab=place` | [RecommendPage.tsx](src/pages/RecommendPage.tsx) |
-| RSV-05-01 | 레스토랑 상세 및 예약 | `/places/:id` | [PlaceDetailPage.tsx](src/pages/PlaceDetailPage.tsx) |
 | SHARE-06-01 | 추천 코스 목록 (공용 플랜) | `/recommend?tab=course` | [PlanListPage.tsx](src/pages/PlanListPage.tsx) |
 | SHARE-06-02 | 코스 상세 · 내 여행으로 담기 | `/plans/:id` | [PlanDetailPage.tsx](src/pages/PlanDetailPage.tsx) |
 | SHARE-06-03 | 내 여행을 추천 코스로 공유 | `/trips/:id/share` | [PlanPublishPage.tsx](src/pages/PlanPublishPage.tsx) |
@@ -41,6 +40,7 @@ Supabase 대신 localStorage 를, 네이버 지도 대신 SVG 폴백 지도를 �
 
 기능 코드가 붙지 않은 화면도 있습니다 — 홈([HomePage.tsx](src/pages/HomePage.tsx) · '하루에 다녀올 만한 곳' 로직은 [README-플로챠트.md](README-플로챠트.md)),
 내 여행 목록([TripListPage.tsx](src/pages/TripListPage.tsx)),
+장소 상세([PlaceDetailPage.tsx](src/pages/PlaceDetailPage.tsx) · 예약 RSV-05-01 을 걷어낸 뒤 남은 화면),
 마이페이지([MyPage.tsx](src/pages/MyPage.tsx)),
 가입([SignupPage.tsx](src/pages/SignupPage.tsx)),
 소셜 로그인 콜백([AuthCallbackPage.tsx](src/pages/AuthCallbackPage.tsx)),
@@ -52,7 +52,6 @@ Supabase 대신 localStorage 를, 네이버 지도 대신 SVG 폴백 지도를 �
 - **소셜 가입 시 닉네임 자동 연동** — [auth.tsx](src/lib/auth.tsx) 의 `suggestedNickname`, DB 측은 `handle_new_user()` 트리거
 - **이동수단별 소요 시간** — [geo.ts](src/lib/geo.ts) `travelMinutes()`, 직선 거리에 1.3배 우회 계수 적용
 - **동선 최적화** — 최근접 이웃 + 2-opt ([geo.ts](src/lib/geo.ts) `optimizeOrder()`). 순서 변경 시 요약이 즉시 재계산
-- **예약 상태 배지 바인딩** — 타임라인 카드에 '예약 확정' 자동 표시
 - **코스 작성자 표기** — 닉네임을 쓰지 않고 '운영자' 또는 '회원'으로만 표시합니다 ([types.ts](src/lib/types.ts) `planAuthorLabel()`)
 - **순서 바꾸기** — 타임라인·동선 최적화·추천 코스 공유 세 화면 모두 드래그 핸들로 통일했습니다 (dnd-kit). 화살표 버튼은 쓰지 않습니다
 - **장소 상세 전화 연결** — TourAPI 로 받아온 `places.phone` 이 있으면 상세 페이지에 `tel:` 링크 버튼으로 노출 ([PlaceDetailPage.tsx](src/pages/PlaceDetailPage.tsx))
@@ -110,10 +109,9 @@ Authentication > Sign In / Providers > Email 에 비슷한 토글이 나란히 �
 스키마가 바뀔 때마다 두 곳이 어긋나므로 — 실제로 한동안 어긋나 있었습니다 —
 방향만 적습니다.
 
-테이블은 열 개입니다. 지역 둘(`region_groups` · `regions`), 장소 하나(`places`),
-사용자 하나(`profiles`), 개인 여행 둘(`trips` · `trip_items`), 예약 하나
-(`reservations`), 공용 플랜 셋(`shared_plans` · `shared_plan_items` ·
-`plan_ratings`).
+테이블은 아홉 개입니다. 지역 둘(`region_groups` · `regions`), 장소 하나(`places`),
+사용자 하나(`profiles`), 개인 여행 둘(`trips` · `trip_items`), 공용 플랜 셋
+(`shared_plans` · `shared_plan_items` · `plan_ratings`).
 
 **지역 키는 이름이 아니라 TourAPI 코드 복합키입니다.** `(tour_area_code,
 tour_sigungu_code)` 로 `regions` 를 참조합니다. 이름으로 참조하던 옛 구조는
@@ -297,7 +295,7 @@ Open-Meteo (날씨, 인증 불필요)
 
 ## 구현되지 않은 것
 
-- **결제** — 예약금 결제는 UI 만 있고 실제 PG 연동은 없습니다. [PlaceDetailPage.tsx](src/pages/PlaceDetailPage.tsx) 의 예약 시트에 연동 위치를 표시해 두었습니다.
+- **예약 · 결제** — 2026-10-08 에 걷어냈습니다. 실제 PG 연동 없이 UI 만 있던 기능이라 예약 화면 · 홈 '예약 확정' · 마이페이지 '예약 내역' · 타임라인 배지와 `reservations` 테이블을 모두 지웠습니다 (`20261008040000_drop_reservations.sql`).
 - **카카오톡 공유** — Kakao SDK 대신 Web Share API(미지원 시 클립보드 복사)를 사용합니다. 템플릿 카드가 필요하면 Kakao JavaScript SDK 의 `Kakao.Share.sendDefault()` 로 교체하세요.
 - **추천 장소와 추천 코스를 한 목록에 섞기** — 지금은 추천 탭 안에 하위 탭으로 나란히 둡니다. 한 목록에서 순위를 매기려면 장소 단위와 하루 단위를 같은 점수로 재야 하고, 담은 수(`clone_count`)가 쌓이기 전에는 그 점수의 재료가 없습니다.
 

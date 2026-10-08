@@ -1,6 +1,5 @@
 import type {
   Profile,
-  Reservation,
   SharedPlan,
   SharedPlanItem,
   Trip,
@@ -27,7 +26,6 @@ export interface LocalDb {
   profiles: Profile[]
   trips: StoredTrip[]
   trip_items: TripItem[]
-  reservations: Reservation[]
   shared_plans: StoredSharedPlan[]
   shared_plan_items: SharedPlanItem[]
 }
@@ -64,11 +62,6 @@ const SHAPE = {
     id: true, trip_id: true, place_id: true, sort_order: true,
     planned_time: true, status: true, note: true, rating: true, place: true,
   } satisfies Record<keyof TripItem, true>,
-
-  reservations: {
-    id: true, user_id: true, place_id: true, trip_item_id: true,
-    reserved_at: true, party_size: true, deposit: true, status: true, place: true,
-  } satisfies Record<keyof Reservation, true>,
 
   shared_plans: {
     id: true, origin: true, author_user_id: true, title: true, description: true,
@@ -107,7 +100,6 @@ const EMPTY: LocalDb = {
   profiles: [],
   trips: [],
   trip_items: [],
-  reservations: [],
   shared_plans: [],
   shared_plan_items: [],
 }

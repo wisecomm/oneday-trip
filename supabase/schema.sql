@@ -13,8 +13,7 @@ create extension if not exists pg_trgm;
 -- ── 열거형 ───────────────────────────────────────────────────────────
 create type place_category   as enum ('babzip', 'cafe', 'sulzip', 'spot');
 create type transport_type   as enum ('walk', 'transit', 'car');
-create type trip_item_status as enum ('planned', 'reserved', 'visited');
-create type reservation_status as enum ('confirmed', 'cancelled');
+create type trip_item_status as enum ('planned', 'visited');
 
 -- 장소의 지역을 어느 순위로 판정했는지. 실패한 행을 성공 경로로 적어 두면
 -- 리포트의 성공률이 부풀려지므로 'unresolved' 를 따로 둔다.
@@ -284,24 +283,6 @@ create index trip_items_trip_idx on public.trip_items (trip_id, sort_order);
 -- places 는 on delete cascade 로 참조된다. 인덱스가 없으면 장소를 한 행 지울
 -- 때마다 이 테이블을 통째로 훑어 참조를 찾는다.
 create index trip_items_place_idx on public.trip_items (place_id);
-
--- ── RSV-05-01 예약 ───────────────────────────────────────────────────
-create table public.reservations (
-  id           uuid primary key default gen_random_uuid(),
-  user_id      uuid not null references auth.users on delete cascade,
-  place_id     text not null references public.places on delete cascade,
-  trip_item_id uuid references public.trip_items on delete set null,
-  reserved_at  timestamptz not null,
-  party_size   smallint not null check (party_size between 1 and 12),
-  deposit      integer not null default 0
-    constraint reservations_deposit_non_negative check (deposit >= 0),
-  status       reservation_status not null default 'confirmed',
-  created_at   timestamptz not null default now()
-);
-
-create index reservations_user_idx on public.reservations (user_id, reserved_at);
-create index reservations_place_idx on public.reservations (place_id);
-create index reservations_trip_item_idx on public.reservations (trip_item_id);
 
 -- ── SHARE-06 공용 여행 플랜 ──────────────────────────────────────────
 -- trips 에 is_public 플래그를 다는 방식을 쓰지 않는 이유는 둘이다.
@@ -823,7 +804,6 @@ alter table public.profiles     enable row level security;
 alter table public.places       enable row level security;
 alter table public.trips        enable row level security;
 alter table public.trip_items   enable row level security;
-alter table public.reservations enable row level security;
 alter table public.shared_plans      enable row level security;
 alter table public.shared_plan_items enable row level security;
 alter table public.plan_ratings      enable row level security;
@@ -860,11 +840,6 @@ create policy "own trip items"
   with check (
     exists (select 1 from public.trips t where t.id = trip_id and t.user_id = auth.uid())
   );
-
-create policy "own reservations"
-  on public.reservations for all
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
 
 -- trips·trip_items 의 정책은 관리자에게도 열지 않는다. 둘을 합치면 그 사람이
 -- 언제 어디 있었는지의 기록이 되고, 한 번 열면 "관리자는 모든 여행을 볼 수

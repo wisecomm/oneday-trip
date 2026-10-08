@@ -452,7 +452,7 @@ export function ExplorePage() {
                 </button>
               )}
               <Link to={`/places/${selected.id}`} className="btn-primary flex-1">
-                상세 · 예약
+                상세 보기
               </Link>
             </div>
           </div>

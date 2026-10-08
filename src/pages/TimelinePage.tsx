@@ -18,7 +18,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useAuth } from '@/lib/auth'
-import { reservations, sharedPlans, tripItems, trips } from '@/lib/db'
+import { sharedPlans, tripItems, trips } from '@/lib/db'
 import { routeDistanceKm, routeMinutes } from '@/lib/geo'
 import { CATEGORY_LABEL, MIN_PLAN_PLACES, type SharedPlan, type Trip, type TripItem } from '@/lib/types'
 import { CategoryDot, PlaceThumb } from '@/components/PlaceCard'
@@ -30,12 +30,11 @@ import { formatTripDate } from '@/lib/trip-date'
 /**
  * TRIP-03-01 · 03. 나의 여행 > 3.1 타임라인 관리 > 여행 리스트
  * 당일치기 서비스이므로 일자 구분 없이 하나의 방문 순서만 관리한다.
- * 드래그로 순서를 바꾸면 하단 동선 요약이 즉시 재계산되고,
- * 예약 상태는 카드 배지에 자동 바인딩된다.
+ * 드래그로 순서를 바꾸면 하단 동선 요약이 즉시 재계산된다.
  */
 export function TimelinePage() {
   const { tripId = '' } = useParams()
-  const { user, profile } = useAuth()
+  const { profile } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -49,7 +48,6 @@ export function TimelinePage() {
   const [loading, setLoading] = useState(true)
   // 조회 실패와 '없는 여행'은 다르다 (RoutePage 와 같은 이유)
   const [loadFailed, setLoadFailed] = useState(false)
-  const [statusByPlace, setStatusByPlace] = useState<Record<string, '예약 확정'>>({})
   const [shareTarget, setShareTarget] = useState<VisitCardInput | null>(null)
   const [reviewTarget, setReviewTarget] = useState<TripItem | null>(null)
   // 리뷰가 이미 있으면 '보기'로 열고, 그 안의 '수정' 버튼을 눌러야 편집 모드로 바뀐다
@@ -64,20 +62,13 @@ export function TimelinePage() {
       const [t, list] = await Promise.all([trips.get(tripId), tripItems.listByTrip(tripId)])
       setTrip(t)
       setItems(list)
-
-      if (user) {
-        const rs = await reservations.listByUser(user.id)
-        const map: Record<string, '예약 확정'> = {}
-        for (const r of rs) if (r.status === 'confirmed') map[r.place_id] = '예약 확정'
-        setStatusByPlace(map)
-      }
     } catch {
       setLoadFailed(true)
     } finally {
       // 성공이든 실패든 반드시 끈다. 이게 없으면 '불러오는 중'에서 영영 멈춘다
       setLoading(false)
     }
-  }, [tripId, user])
+  }, [tripId])
 
   useEffect(() => {
     void load()
@@ -297,7 +288,6 @@ export function TimelinePage() {
                     key={item.id}
                     item={item}
                     order={i + 1}
-                    badge={item.place ? statusByPlace[item.place.id] : undefined}
                     legMinutes={
                       i > 0 && item.place && orderedItems[i - 1].place
                         ? routeMinutes(
@@ -484,7 +474,6 @@ function StarRating({ value, onChange }: { value: number; onChange?: (n: number)
 function SortableItem({
   item,
   order,
-  badge,
   legMinutes,
   onOpen,
   onRemove,
@@ -493,7 +482,6 @@ function SortableItem({
 }: {
   item: TripItem
   order: number
-  badge?: '예약 확정'
   legMinutes: number | null
   onOpen: () => void
   onRemove: () => void
@@ -546,7 +534,6 @@ function SortableItem({
                 {place ? CATEGORY_LABEL[place.category] : ''} · {place?.open_hours}
               </span>
               {visited && <span className="badge bg-emerald-50 text-emerald-700">방문 완료</span>}
-              {badge && <span className="badge bg-brand-50 text-brand-700">{badge}</span>}
             </div>
           </button>
 

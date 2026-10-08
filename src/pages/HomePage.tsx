@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
-import { places as placesApi, regions as regionsApi, reservations, trips } from '@/lib/db'
+import { places as placesApi, regions as regionsApi, trips } from '@/lib/db'
 import { currentPosition, dayTripMinutes, formatDuration, type LatLng } from '@/lib/geo'
-import { MIN_RATING_DISPLAY, type Place, type Reservation, type Trip } from '@/lib/types'
+import { MIN_RATING_DISPLAY, type Place, type Trip } from '@/lib/types'
 import { PlaceCard } from '@/components/PlaceCard'
 import { Loading } from '@/components/ui'
 import { formatTripDate } from '@/lib/trip-date'
@@ -11,7 +11,6 @@ import { formatTripDate } from '@/lib/trip-date'
 export function HomePage() {
   const { user, profile, isGuest } = useAuth()
   const [myTrips, setMyTrips] = useState<Trip[]>([])
-  const [upcoming, setUpcoming] = useState<Reservation[]>([])
   const [loading, setLoading] = useState(true)
 
   /**
@@ -56,13 +55,9 @@ export function HomePage() {
     let alive = true
     async function load() {
       try {
-        const [t, r] = await Promise.all([
-          user ? trips.list(user.id) : Promise.resolve([]),
-          user ? reservations.listByUser(user.id) : Promise.resolve([]),
-        ])
+        const t = user ? await trips.list(user.id) : []
         if (!alive) return
         setMyTrips(t)
-        setUpcoming(r.filter((x) => x.status === 'confirmed').slice(0, 2))
       } catch (err) {
         // 여기서 멈추면 화면이 스피너에 갇힌다. 빈 홈이라도 보여주는 편이 낫다.
         console.error('[Home] 홈 데이터를 불러오지 못했습니다.', err)
@@ -135,27 +130,6 @@ export function HomePage() {
           <QuickLink to="/trips" icon="🧭" label="나의 여행" desc="동선 최적화" />
         </div>
       </section>
-
-      {upcoming.length > 0 && (
-        <section className="mb-6">
-          <h2 className="section-title mb-3">예약 확정</h2>
-          <ul className="flex flex-col gap-2">
-            {upcoming.map((r) => (
-              <li key={r.id} className="card flex items-center gap-3 p-3.5">
-                <span className="text-xl" aria-hidden>
-                  🎫
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[14px] font-bold text-ink-800">{r.place?.name}</p>
-                  <p className="text-[12.5px] text-ink-500">
-                    {new Date(r.reserved_at).toLocaleString('ko-KR')} · {r.party_size}명
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
 
       <section>
         <div className="mb-3 flex items-center justify-between">

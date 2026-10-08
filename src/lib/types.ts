@@ -192,20 +192,6 @@ export interface TripItem {
   place?: Place
 }
 
-export type ReservationStatus = 'confirmed' | 'cancelled'
-
-export interface Reservation {
-  id: string
-  user_id: string
-  place_id: string
-  trip_item_id: string | null
-  reserved_at: string
-  party_size: number
-  deposit: number
-  status: ReservationStatus
-  place?: Place
-}
-
 /* ───────────────── SHARE-06 공용 여행 플랜 ───────────────── */
 
 /** 운영자가 만든 플랜인지, 사용자가 올린 플랜인지 */
