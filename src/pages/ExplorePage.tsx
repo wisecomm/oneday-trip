@@ -36,6 +36,9 @@ let savedFilters: {
 } | null = null
 let savedViewport: { lat: number; lng: number; zoom: number } | null = null
 
+/** 검색 결과가 이보다 많으면 지도에 점으로 그린다 */
+const COMPACT_SEARCH_MIN = 300
+
 /**
  * MAP-04-01 · 04. 로컬 장소 탐색 > 4.1 맛집/명소 지도 > 실시간 지도 홈
  * 필터 클릭 시 마커 배열을 갱신·재렌더링하고, 마커 클릭 시 하단 미니 상세 카드를 띄운다.
@@ -268,6 +271,9 @@ export function ExplorePage() {
         userLocation={myLocation}
         initialViewport={initialViewport}
         onViewportChange={handleViewportChange}
+        // 시/도 전체(경기 3,357곳 등)는 이름표 없이 점으로 — 이름표 마커 수천 개는 겹쳐
+        // 읽히지도 않고 지도가 무거워진다. 전국 검색도 결과가 많으면 같은 이유로 점.
+        compact={searching ? list.length > COMPACT_SEARCH_MIN : sigunguCode === null}
       />
 
       {/* 상단 필터 */}

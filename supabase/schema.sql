@@ -715,6 +715,11 @@ as $$
   )));
 $$;
 
+-- home_picks() 가 호출자 권한으로 부르므로 쓸 역할에만 연다
+revoke all on function public.distance_km(double precision, double precision, double precision, double precision) from public;
+grant execute on function public.distance_km(double precision, double precision, double precision, double precision)
+  to anon, authenticated;
+
 
 -- ── 7. 홈 '하루에 다녀올 만한 곳' ─────────────────────────────────
 --

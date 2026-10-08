@@ -100,24 +100,48 @@ const flattenPlace = (row: PlaceRow): Place => ({
   group_name: row.region?.group?.name ?? '',
 })
 
+/** 장소 목록을 나눠 받을 때 한 번에 요청하는 행 수 — 서버 상한(max_rows)과 같게 둔다 */
+const PLACE_PAGE_ROWS = 1000
+
 export const places = {
   async list(filter: PlaceFilter = {}): Promise<Place[]> {
     if (isSupabaseConfigured) {
-      let query = sb()
-        .from('places')
-        .select(PLACE_SELECT)
-        // 미판정 장소는 목록에 넣지 않는다
-        .gte('tour_sigungu_code', 0)
-      if (filter.areaCode !== undefined) query = query.eq('tour_area_code', filter.areaCode)
-      if (filter.sigunguCode !== undefined)
-        query = query.eq('tour_sigungu_code', filter.sigunguCode)
-      if (filter.categories?.length) query = query.in('category', filter.categories)
-      if (filter.keyword) query = query.ilike('name', `%${filter.keyword}%`)
-      // 정렬 기준을 source_rating 으로 두지 않는다 — TourAPI 가 평점을 주지 않아
-      // 전부 null 이라 정렬이 무작위가 된다. 이름순이 최소한 예측 가능하다.
-      const { data, error } = await query.order('name')
-      if (error) throw error
-      return ((data ?? []) as unknown as PlaceRow[]).map(flattenPlace)
+      const query = (withCount: boolean) => {
+        let q = sb()
+          .from('places')
+          .select(PLACE_SELECT, withCount ? { count: 'exact' } : undefined)
+          // 미판정 장소는 목록에 넣지 않는다
+          .gte('tour_sigungu_code', 0)
+        if (filter.areaCode !== undefined) q = q.eq('tour_area_code', filter.areaCode)
+        if (filter.sigunguCode !== undefined) q = q.eq('tour_sigungu_code', filter.sigunguCode)
+        if (filter.categories?.length) q = q.in('category', filter.categories)
+        if (filter.keyword) q = q.ilike('name', `%${filter.keyword}%`)
+        // 정렬 기준을 source_rating 으로 두지 않는다 — TourAPI 가 평점을 주지 않아
+        // 전부 null 이라 정렬이 무작위가 된다. 이름순이 최소한 예측 가능하다.
+        // 이름이 같은 장소가 있어 id 로 끝까지 순서를 고정한다 — 나눠 받을 때 순서가
+        // 흔들리면 쪽 사이에서 장소가 빠지거나 두 번 온다.
+        return q.order('name').order('id')
+      }
+
+      // API 는 한 번에 최대 1,000행(config.toml max_rows)만 돌려주고, 넘쳐도 오류 없이
+      // 잘라 버린다. 경기(3,357곳)처럼 '시/도 전체'가 상한을 넘는 곳이 7곳이라
+      // 첫 쪽에서 전체 개수를 받고 나머지 쪽을 한꺼번에 받는다. 쪽 크기는 첫 쪽이 실제로
+      // 돌려준 행 수 — 운영 서버의 상한이 1,000 보다 작아도 그 크기로 이어 받는다.
+      const first = await query(true).range(0, PLACE_PAGE_ROWS - 1)
+      if (first.error) throw first.error
+      const rows = [...((first.data ?? []) as unknown as PlaceRow[])]
+      const total = first.count ?? rows.length
+      const step = rows.length
+      if (step > 0 && rows.length < total) {
+        const offsets: number[] = []
+        for (let from = step; from < total; from += step) offsets.push(from)
+        const pages = await Promise.all(offsets.map((from) => query(false).range(from, from + step - 1)))
+        for (const page of pages) {
+          if (page.error) throw page.error
+          rows.push(...((page.data ?? []) as unknown as PlaceRow[]))
+        }
+      }
+      return rows.map(flattenPlace)
     }
 
     return demo.places.filter((p) => {
@@ -128,7 +152,7 @@ export const places = {
       if (filter.categories?.length && !filter.categories.includes(p.category)) return false
       if (filter.keyword && !p.name.includes(filter.keyword)) return false
       return true
-    }).sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+    }).sort((a, b) => a.name.localeCompare(b.name, 'ko') || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
   },
 
   async get(id: string): Promise<Place | null> {

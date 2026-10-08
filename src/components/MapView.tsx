@@ -26,6 +26,11 @@ interface MapViewProps {
   initialViewport?: { lat: number; lng: number; zoom: number } | null
   /** 사용자가 지도를 움직일 때마다(드래그·줌) 현재 중심/줌을 알려준다 (네이버 SDK 지도만 지원) */
   onViewportChange?: (v: { lat: number; lng: number; zoom: number }) => void
+  /**
+   * 점 마커로 그린다 — 이름표 없이 카테고리색 작은 점. 시/도 전체처럼 수천 곳을 한 번에
+   * 그릴 때 쓴다. 고른 장소와 방문 순번 마커는 이 모드에서도 이름표 마커로 그린다.
+   */
+  compact?: boolean
 }
 
 /**
@@ -43,6 +48,7 @@ export function MapView({
   userLocation,
   initialViewport,
   onViewportChange,
+  compact,
 }: MapViewProps) {
   // 다른 화면에서 이미 인증 실패가 확인됐다면 처음부터 폴백으로 간다
   const [naverFailed, setNaverFailed] = useState(hasNaverAuthFailed)
@@ -62,6 +68,7 @@ export function MapView({
         userLocation={userLocation}
         initialViewport={initialViewport}
         onViewportChange={onViewportChange}
+        compact={compact}
         onFail={() => setNaverFailed(true)}
       />
     )
@@ -76,6 +83,7 @@ export function MapView({
       className={className}
       safeInsets={safeInsets}
       userLocation={userLocation}
+      compact={compact}
     />
   )
 }
@@ -91,11 +99,19 @@ function NaverMap({
   userLocation,
   initialViewport,
   onViewportChange,
+  compact,
   onFail,
 }: MapViewProps & { onFail: () => void }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
+  // 고른 장소가 바뀔 때 그 두 마커만 다시 그리려고 장소 id 로 마커를 찾아 둔다.
+  // 예전에는 고를 때마다 마커 전체를 지우고 다시 만들었는데, 시/도 전체(수천 곳)에서는
+  // 한 번 누를 때마다 그만큼을 다시 만든다.
+  const markerByIdRef = useRef(new Map<string, { marker: any; place: Place }>())
+  const selectedIdRef = useRef<string | null | undefined>(selectedId)
+  selectedIdRef.current = selectedId
+  const drawnSelectedRef = useRef<string | null | undefined>(null)
   const userMarkerRef = useRef<any>(null)
   const polylineRef = useRef<any>(null)
   // 복원할 위치가 있을 때, 마운트 직후 첫 자동 맞춤(fitBounds)만 건너뛰기 위한 플래그
@@ -146,6 +162,7 @@ function NaverMap({
       m.setMap(null)
     })
     markersRef.current = []
+    markerByIdRef.current = new Map()
     userMarkerRef.current?.setMap(null)
     userMarkerRef.current = null
     polylineRef.current?.setMap(null)
@@ -167,29 +184,24 @@ function NaverMap({
       })
     }
 
+    const currentSelected = selectedIdRef.current
     places.forEach((place) => {
       const pos = new naver.maps.LatLng(place.lat, place.lng)
       bounds.extend(pos)
 
-      const selected = place.id === selectedId
-      const size = selected ? 38 : 30
-
+      const selected = place.id === currentSelected
       const marker = new naver.maps.Marker({
         position: pos,
         map,
         zIndex: selected ? 10 : 1,
-        icon: {
-          content: markerHtml(place, orderIndex.get(place.id), selected),
-          // 콘텐츠는 이름표까지 포함한 MARKER_WIDTH 너비의 래퍼다. 원의 중앙 하단이
-          // 좌표에 오도록, 래퍼 가로 중앙(원도 이름표도 이 축에 맞춰 가운데 정렬된다)
-          // · 원의 세로 하단(래퍼 맨 위에서 size 만큼)을 앵커로 잡는다.
-          anchor: new naver.maps.Point(MARKER_WIDTH / 2, size),
-        },
+        icon: markerIcon(naver, place, orderIndex.get(place.id), selected, !!compact),
       })
 
       naver.maps.Event.addListener(marker, 'click', () => onSelect?.(place))
       markersRef.current.push(marker)
+      markerByIdRef.current.set(place.id, { marker, place })
     })
+    drawnSelectedRef.current = currentSelected
 
     if (route && route.length > 1) {
       polylineRef.current = new naver.maps.Polyline({
@@ -227,13 +239,63 @@ function NaverMap({
     } else if (places.length > 1) {
       map.fitBounds(bounds, { top: 56, right: 48, bottom: 56, left: 48 })
     }
-  }, [places, route, selectedId, onSelect, userLocation, initialViewport, ready])
+    // 고른 장소는 아래 효과가 따로 바꾼다 — 고를 때마다 지도를 다시 맞추지 않는다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [places, route, compact, onSelect, userLocation, initialViewport, ready])
+
+  // 고른 장소가 바뀌면 이전 것과 새 것, 두 마커의 모양만 바꾼다
+  useEffect(() => {
+    const naver = window.naver
+    if (!naver?.maps || !ready) return
+    const prev = drawnSelectedRef.current
+    if (prev === selectedId) return
+    const orderIndex = new Map(route?.map((p, i) => [p.id, i + 1]) ?? [])
+    for (const id of [prev, selectedId]) {
+      if (!id) continue
+      const hit = markerByIdRef.current.get(id)
+      if (!hit) continue
+      const selected = id === selectedId
+      hit.marker.setIcon(markerIcon(naver, hit.place, orderIndex.get(id), selected, !!compact))
+      hit.marker.setZIndex(selected ? 10 : 1)
+    }
+    drawnSelectedRef.current = selectedId
+  }, [selectedId, route, compact, ready])
 
   return <div ref={containerRef} className={className} />
 }
 
 /** 마커 콘텐츠 래퍼의 가로 너비(px) — 이름표가 원보다 넓어도 항상 이 축을 기준으로 가운데 정렬한다 */
 const MARKER_WIDTH = 92
+
+/** 점 마커 지름(px) — 흰 테두리 포함 */
+const DOT_SIZE = 12
+
+/**
+ * 네이버 마커 아이콘. 점 모드라도 고른 장소와 방문 순번이 있는 장소는 이름표 마커다 —
+ * 점을 눌렀을 때 무엇을 골랐는지 지도 위에서 보이게.
+ */
+function markerIcon(naver: any, place: Place, order: number | undefined, selected: boolean, compact: boolean) {
+  if (compact && !selected && order === undefined) {
+    return {
+      content: dotHtml(place),
+      anchor: new naver.maps.Point(DOT_SIZE / 2, DOT_SIZE / 2),
+    }
+  }
+  const size = selected ? 38 : 30
+  return {
+    content: markerHtml(place, order, selected),
+    // 콘텐츠는 이름표까지 포함한 MARKER_WIDTH 너비의 래퍼다. 원의 중앙 하단이
+    // 좌표에 오도록, 래퍼 가로 중앙(원도 이름표도 이 축에 맞춰 가운데 정렬된다)
+    // · 원의 세로 하단(래퍼 맨 위에서 size 만큼)을 앵커로 잡는다.
+    anchor: new naver.maps.Point(MARKER_WIDTH / 2, size),
+  }
+}
+
+function dotHtml(place: Place): string {
+  return `<div style="width:${DOT_SIZE}px;height:${DOT_SIZE}px;box-sizing:border-box;border-radius:999px;
+    background:${CATEGORY_COLOR[place.category]};border:2px solid #fff;cursor:pointer;
+    box-shadow:0 1px 3px rgba(0,0,0,.3)"></div>`
+}
 
 function escapeHtml(s: string): string {
   return s
@@ -289,6 +351,7 @@ function FallbackMap({
   className,
   safeInsets,
   userLocation,
+  compact,
 }: MapViewProps) {
   const boxRef = useRef<HTMLDivElement>(null)
   // 뷰박스를 컨테이너 픽셀 크기와 1:1로 맞춰야 마커가 왜곡되거나 잘리지 않는다
@@ -319,6 +382,9 @@ function FallbackMap({
   const points = allPoints.slice(0, places.length)
   const userPoint = userLocation ? allPoints[allPoints.length - 1] : null
   const byId = new Map(places.map((p, i) => [p.id, points[i]]))
+  const selectedIndex = places.findIndex((p) => p.id === selectedId)
+  const drawOrder = places.map((_, i) => i).filter((i) => i !== selectedIndex)
+  if (selectedIndex >= 0) drawOrder.push(selectedIndex)
   const orderIndex = new Map(route?.map((p, i) => [p.id, i + 1]) ?? [])
   const routePoints = (route ?? []).map((p) => byId.get(p.id)).filter(Boolean) as Array<{
     x: number
@@ -355,11 +421,28 @@ function FallbackMap({
           />
         )}
 
-        {places.map((place, i) => {
+        {/* 고른 장소를 맨 나중에 그려 점들 위에 오게 한다 — SVG 는 나중에 그린 것이 위다 */}
+        {drawOrder.map((i) => {
+          const place = places[i]
           const pt = points[i]
           if (!pt) return null
           const selected = place.id === selectedId
           const order = orderIndex.get(place.id)
+          if (compact && !selected && order === undefined) {
+            return (
+              <circle
+                key={place.id}
+                cx={pt.x}
+                cy={pt.y}
+                r={DOT_SIZE / 2 - 1}
+                fill={CATEGORY_COLOR[place.category]}
+                stroke="#fff"
+                strokeWidth="2"
+                onClick={() => onSelect?.(place)}
+                style={{ cursor: 'pointer' }}
+              />
+            )
+          }
           const r = selected ? 17 : 14
           return (
             <g
