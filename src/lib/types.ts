@@ -8,7 +8,7 @@ export type PlaceCategory = 'babzip' | 'cafe' | 'sulzip' | 'spot'
 export type Transport = 'walk' | 'transit' | 'car'
 
 /** 동행인 유형 (TRIP-02-01) */
-export type Companion = 'solo' | 'couple' | 'friends' | 'family' | 'pet'
+export type Companion = 'solo' | 'couple' | 'friends' | 'family'
 
 /**
  * 목적지 상위 지역(시/도).
@@ -388,14 +388,15 @@ export const COMPANION_LABEL: Record<Companion, string> = {
   couple: '연인',
   friends: '친구',
   family: '가족',
-  pet: '반려견 동반',
 }
 
-/** SYS-01-02: 선호 식당/테마 카테고리 태그 */
+/**
+ * SYS-01-02: 선호 식당/테마 카테고리 태그.
+ * 목록에서 뺀 태그가 저장값에 남아 있을 수 있어 화면은 knownTasteTags() 로 거른다.
+ */
 export const TASTE_TAGS = [
   '비건',
   '카페',
-  '반려견 동반',
   '노포',
   '오마카세',
   '뷰맛집',
@@ -406,3 +407,8 @@ export const TASTE_TAGS = [
   '디저트',
   '로컬맛집',
 ] as const
+
+/** 저장된 취향 태그 중 지금 목록(TASTE_TAGS)에 있는 것만 — 목록에서 뺀 태그를 화면에 남기지 않는다 */
+export function knownTasteTags(tags: string[]): string[] {
+  return tags.filter((t) => (TASTE_TAGS as readonly string[]).includes(t))
+}

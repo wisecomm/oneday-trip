@@ -3,6 +3,7 @@ import { useAuth } from '@/lib/auth'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { isNaverMapConfigured } from '@/lib/naver'
 import { EmptyState, PageHeader } from '@/components/ui'
+import { knownTasteTags } from '@/lib/types'
 
 export function MyPage() {
   const { user, profile, signOut } = useAuth()
@@ -54,10 +55,10 @@ export function MyPage() {
           {profile && (
             <>
               <div className="mt-4 flex flex-wrap gap-1.5">
-                {profile.taste_tags.length === 0 ? (
+                {knownTasteTags(profile.taste_tags).length === 0 ? (
                   <span className="hint">등록한 취향 태그가 없습니다</span>
                 ) : (
-                  profile.taste_tags.map((t) => (
+                  knownTasteTags(profile.taste_tags).map((t) => (
                     <span key={t} className="chip-off !cursor-default">
                       #{t}
                     </span>

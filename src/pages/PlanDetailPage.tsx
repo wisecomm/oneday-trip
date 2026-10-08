@@ -165,7 +165,8 @@ export function PlanDetailPage() {
             <span className="badge bg-ink-100 text-ink-600">
               {TRANSPORT_LABEL[plan.transport]}
             </span>
-            {plan.companions.map((c) => (
+            {/* 목록에서 뺀 동행인 값(데모 저장본에 남은 옛 값)은 라벨이 없어 빈 배지가 되므로 거른다 */}
+            {plan.companions.filter((c) => c in COMPANION_LABEL).map((c) => (
               <span key={c} className="badge bg-ink-100 text-ink-600">
                 {COMPANION_LABEL[c]}
               </span>

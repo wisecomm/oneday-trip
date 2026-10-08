@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/auth'
 import { places as placesApi, tripItems, trips } from '@/lib/db'
 import { useRegions } from '@/hooks/useRegions'
 import { contextLabel, fetchWeather, recommend, type Scored, type TripContext } from '@/lib/recommend'
-import { regionLabel, shownRating, type Trip } from '@/lib/types'
+import { knownTasteTags, regionLabel, shownRating, type Trip } from '@/lib/types'
 import { CategoryDot, PlaceThumb, RatingStar } from '@/components/PlaceCard'
 import { BottomSheet, EmptyState, Loading, PageHeader } from '@/components/ui'
 import { formatTripDate } from '@/lib/trip-date'
@@ -146,7 +146,7 @@ export function RecommendPage({ embedded = false }: { embedded?: boolean } = {})
                 {ctx.temperature !== null && <ContextChip>{Math.round(ctx.temperature)}°C</ContextChip>}
                 <ContextChip>{ctx.hour}시</ContextChip>
                 <ContextChip>
-                  {profile ? `취향 ${profile.taste_tags.length}개 반영` : '기본 추천'}
+                  {profile ? `취향 ${knownTasteTags(profile.taste_tags).length}개 반영` : '기본 추천'}
                 </ContextChip>
               </div>
             )}

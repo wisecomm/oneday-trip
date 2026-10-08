@@ -236,7 +236,7 @@ create table public.trips (
   -- `<@` 는 포함 검사이고 빈 배열은 통과한다.
   companions         text[] not null default '{}'
     constraint trips_companions_valid
-    check (companions <@ array['solo', 'couple', 'friends', 'family', 'pet']::text[]),
+    check (companions <@ array['solo', 'couple', 'friends', 'family']::text[]),
   transport          transport_type not null default 'transit',
   created_at         timestamptz not null default now(),
   -- 당일치기 서비스이므로 기간이 아닌 날짜 하나를 갖는다
@@ -298,7 +298,7 @@ create table public.shared_plans (
   transport          transport_type not null default 'transit',
   companions         text[] not null default '{}'
     constraint shared_plans_companions_valid
-    check (companions <@ array['solo', 'couple', 'friends', 'family', 'pet']::text[]),
+    check (companions <@ array['solo', 'couple', 'friends', 'family']::text[]),
   start_time         time not null default '09:00',
   end_time           time not null default '20:00',
   -- trip_date 대신 들어가는 값. 특정 날짜는 위치 이력이 된다.

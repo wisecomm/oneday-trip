@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { profiles } from '@/lib/db'
-import { TASTE_TAGS } from '@/lib/types'
+import { knownTasteTags, TASTE_TAGS } from '@/lib/types'
 import { PageHeader } from '@/components/ui'
 
 /**
@@ -24,7 +24,8 @@ export function ProfileSetupPage() {
   useEffect(() => {
     if (profile) {
       setNickname(profile.nickname)
-      setTags(profile.taste_tags)
+      // 목록에서 뺀 태그는 여기서 떨어져, 다시 저장하면 프로필에서도 사라진다
+      setTags(knownTasteTags(profile.taste_tags))
     } else if (user?.suggestedNickname) {
       // 소셜 가입 시 닉네임 자동 연동 (기획 가이드)
       setNickname(user.suggestedNickname)
