@@ -129,7 +129,6 @@ export interface Place {
    * 값이 null 이면 화면에서 별점 영역을 아예 숨긴다.
    */
   source_rating: number | null
-  price_level: number
   tags: string[]
   /** TourAPI 상세를 아직 받지 못했으면 빈 문자열 — 화면에서 그 영역을 숨긴다 */
   summary: string

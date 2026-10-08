@@ -79,7 +79,7 @@ export function PlaceCard({
           <p className="mt-0.5 truncate text-[12.5px] text-ink-500">{place.summary}</p>
         )}
         {/* 리뷰가 적은 장소에 ★ 를 찍지 않는다 (MIN_RATING_DISPLAY).
-            가격대(price_level)는 표시하지 않는다 — TourAPI 에 가격 정보가 없어 전 장소가 기본값 2라, 보이면 '보통 가격'이라는 거짓 정보가 된다. */}
+            가격대는 없다 — TourAPI 에 가격 정보가 없다 (price_level 칸은 20261008050000 에서 삭제). */}
         {shownRating(place) && (
           <p className="mt-1.5 text-[12px]">
             <RatingStar place={place} />

@@ -414,7 +414,7 @@ export function ExplorePage() {
                   </h2>
                 </div>
                 <p className="mt-0.5 text-[12.5px] text-ink-500">{selected.address}</p>
-                {/* 가격대(price_level)는 표시하지 않는다 — TourAPI 에 가격 정보가 없어 전 장소가 기본값 2라, 보이면 '보통 가격'이라는 거짓 정보가 된다 */}
+                {/* 가격대는 없다 — TourAPI 에 가격 정보가 없다 (price_level 칸은 20261008050000 에서 삭제) */}
                 {(shownRating(selected) || selected.open_hours) && (
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-2 text-[12.5px] text-ink-500">
                     <RatingStar place={selected} />

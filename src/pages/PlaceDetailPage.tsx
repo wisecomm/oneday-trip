@@ -92,7 +92,7 @@ export function PlaceDetailPage() {
           </div>
           <p className="mt-1 text-[13px] text-ink-500">{place.address}</p>
           {/* 값이 없는 항목은 줄째 숨긴다 — 빈 칸이 남은 화면이 그 영역이 아예 없는
-              화면보다 나쁘다. 가격대(price_level)는 표시하지 않는다 — TourAPI 에 가격 정보가 없어 전 장소가 기본값 2라, 보이면 '보통 가격'이라는 거짓 정보가 된다. */}
+              화면보다 나쁘다. 가격대는 없다 — TourAPI 에 가격 정보가 없다 (price_level 칸은 20261008050000 에서 삭제). */}
           {shownRating(place) && (
             <p className="mt-2 text-[13px]">
               <RatingStar place={place} /> <span className="text-ink-400">· 방문한 사람들의 별점</span>

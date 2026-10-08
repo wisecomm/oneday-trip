@@ -167,7 +167,6 @@ create table public.places (
   -- 0 으로 두면 '평점 없음'과 '0점'이 구분되지 않아 모든 장소가 ★ 0.0 으로 보인다.
   -- 사용자 리뷰를 집계한 내부 평점은 아래 rating_avg · rating_count 다.
   source_rating      numeric(2,1) check (source_rating between 0 and 5),
-  price_level        smallint not null default 2 check (price_level between 1 and 4),
   tags               text[] not null default '{}',
   summary            text not null default '',
   open_hours         text not null default '',
