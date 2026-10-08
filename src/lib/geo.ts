@@ -148,15 +148,42 @@ export const DAY_TRIP_RADIUS_KM = 120
 /**
  * 도시 사이 이동의 평균 속도(km/h). 고속도로 · KTX 를 섞은 값이다.
  *
- * TRANSPORT_SPEED_KMH(차 30km/h)를 쓰지 않는다. 그건 하루 일정 안에서 장소 사이를
- * 오가는 시내 이동용이라, 그대로 쓰면 '편도 2시간'이 46km 로 줄어든다.
+ * 처음부터 끝까지 이 속도로 나누면 가까운 곳이 비현실적으로 짧아진다 — 1km 가
+ * '차로 약 1분'. 그래서 출발 뒤 CITY_LEG_KM 까지는 시내 속도(차 30km/h)로,
+ * 나머지만 이 속도로 계산한다. 반대로 시내 속도만 쓰면 '편도 2시간'이 46km 로
+ * 줄어든다.
  */
 const INTERCITY_SPEED_KMH = 80
 
-/** 기준점에서 그 장소까지 차로 걸리는 대략의 시간(분). 우회 계수 1.3 은 travelMinutes 와 같다 */
-export function dayTripMinutes(from: LatLng, to: LatLng): number {
-  const km = distanceKm(from, to) * 1.3
-  return Math.max(1, Math.round((km / INTERCITY_SPEED_KMH) * 60))
+/** 출발 뒤 이 거리(도로 km)까지는 시내를 빠져나가는 구간으로 보고 시내 속도로 계산한다 */
+const CITY_LEG_KM = 10
+
+/** 걸어서 이 시간(분) 안이면 차 대신 도보로 보여 준다 */
+const WALK_MAX_MINUTES = 15
+
+export interface DayTripTravel {
+  mode: 'walk' | 'car'
+  minutes: number
+}
+
+/**
+ * 기준점에서 그 장소까지의 대략 이동 시간 (홈 '하루에 다녀올 만한 곳' 카드).
+ *
+ *   도로 거리 = 직선 × 1.3 (travelMinutes 와 같은 우회 계수)
+ *   걸어서 15분 안   → 도보 (4km/h)
+ *   그보다 멀면      → 차. 처음 10km 는 30km/h, 나머지는 80km/h
+ *
+ * 30분이 넘으면 5분 단위로 반올림한다 — '약 2시간 7분' 같은 정밀함은 거짓이다.
+ */
+export function dayTripTravel(from: LatLng, to: LatLng): DayTripTravel {
+  const road = distanceKm(from, to) * 1.3
+  const walk = (road / TRANSPORT_SPEED_KMH.walk) * 60
+  if (walk <= WALK_MAX_MINUTES) return { mode: 'walk', minutes: Math.max(1, Math.round(walk)) }
+
+  const city = Math.min(road, CITY_LEG_KM)
+  const raw = (city / TRANSPORT_SPEED_KMH.car) * 60 + ((road - city) / INTERCITY_SPEED_KMH) * 60
+  const minutes = raw >= 30 ? Math.round(raw / 5) * 5 : Math.max(1, Math.round(raw))
+  return { mode: 'car', minutes }
 }
 
 /** 65 → '약 1시간 5분', 40 → '약 40분', 120 → '약 2시간' */

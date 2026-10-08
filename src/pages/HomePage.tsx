@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { places as placesApi, regions as regionsApi, trips } from '@/lib/db'
-import { currentPosition, dayTripMinutes, formatDuration, type LatLng } from '@/lib/geo'
+import { currentPosition, dayTripTravel, formatDuration, type LatLng } from '@/lib/geo'
 import { MIN_RATING_DISPLAY, type Place, type Trip } from '@/lib/types'
 import { PlaceCard } from '@/components/PlaceCard'
 import { Loading } from '@/components/ui'
@@ -188,6 +188,7 @@ function QuickLink({
  */
 function PickMeta({ place, origin }: { place: Place; origin: LatLng | null }) {
   const showRating = place.rating_avg != null && place.rating_count >= MIN_RATING_DISPLAY
+  const travel = origin ? dayTripTravel(origin, place) : null
   return (
     <div className="shrink-0 text-right text-[12px] leading-tight">
       {showRating && (
@@ -196,9 +197,9 @@ function PickMeta({ place, origin }: { place: Place; origin: LatLng | null }) {
           <span className="font-normal text-ink-400">({place.rating_count})</span>
         </p>
       )}
-      {origin && (
+      {travel && (
         <p className="mt-0.5 whitespace-nowrap text-ink-500">
-          차로 {formatDuration(dayTripMinutes(origin, place))}
+          {travel.mode === 'walk' ? '도보' : '차로'} {formatDuration(travel.minutes)}
         </p>
       )}
     </div>
