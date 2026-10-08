@@ -1,4 +1,4 @@
-import type { Place, PlaceCategory, Profile } from './types'
+import { shownRating, type Place, type PlaceCategory, type Profile } from './types'
 
 /**
  * MAP-04-02 추천 엔진.
@@ -70,6 +70,30 @@ export async function fetchWeather(lat: number, lng: number): Promise<Pick<TripC
   }
 }
 
+/**
+ * 방문자 별점을 점수로 바꿀 때의 기준 (README-플로챠트.md ❶ 의 rating_avg).
+ *
+ * 리뷰가 적은 장소는 평균을 PRIOR_MEAN 쪽으로 당긴다(베이지안 평균) — 한 사람이
+ * 준 5점 하나로 순위 맨 위에 서지 못하게. PRIOR_WEIGHT 는 "가상의 보통 리뷰
+ * 몇 건을 미리 깔아 두는가"다.
+ *
+ *   리뷰 1건 5점  → 보정 3.7 → +1.3
+ *   리뷰 3건 5점  → 보정 4.2 → +2.4
+ *   리뷰 10건 5점 → 보정 4.7 → +3.3   (시간대 맥락 +4 와 비슷한 크기)
+ *   1점 쪽은 같은 크기로 깎는다.
+ */
+const RATING_PRIOR_MEAN = 3
+const RATING_PRIOR_WEIGHT = 2
+const RATING_SCORE_PER_STAR = 2
+
+function ratingScore(place: Place): number {
+  if (place.rating_avg == null || place.rating_count <= 0) return 0
+  const n = place.rating_count
+  const adjusted =
+    (place.rating_avg * n + RATING_PRIOR_MEAN * RATING_PRIOR_WEIGHT) / (n + RATING_PRIOR_WEIGHT)
+  return (adjusted - RATING_PRIOR_MEAN) * RATING_SCORE_PER_STAR
+}
+
 export interface Scored {
   place: Place
   score: number
@@ -84,10 +108,13 @@ export function recommend(
   limit = 8,
 ): Scored[] {
   const scored = list.map((place) => {
-    // source_rating 은 TourAPI 가 평점을 주지 않아 대개 null 이다. 0 으로 치면
-    // 모든 장소가 같은 기본 점수를 받아 이 항이 무의미해지므로, 값이 있을 때만 더한다.
-    let score = place.source_rating !== null ? place.source_rating * 2 : 0
+    // 0) 방문자 별점. source_rating(TourAPI 평점)은 쓰지 않는다 — 출처가 평점을 주지
+    //    않아 전부 null 이다. 리뷰 1~2건도 점수에는 들어가지만(작게), 근거 라벨은
+    //    화면의 ★ 와 같은 기준(3건 이상)일 때만 단다 — 한 사람의 별점이 드러나지 않게.
+    let score = ratingScore(place)
     const reasons: string[] = []
+    const shown = shownRating(place)
+    if (shown && shown.avg >= 4) reasons.push(`방문자 별점 ★${shown.avg.toFixed(1)}`)
 
     // 1) 취향 태그 일치 — 개인화 세그먼트
     const matched = profile?.taste_tags.filter((t) => place.tags.includes(t)) ?? []
