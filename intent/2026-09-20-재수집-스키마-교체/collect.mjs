@@ -13,6 +13,7 @@
  *   node collect.mjs --skip-detail  # 목록만
  *   node collect.mjs --detail-only  # 이미 받은 목록으로 상세만
  *   node collect.mjs --status       # 진행 상황 · 최근 실행만 보기 (API 호출 없음)
+ *   node collect.mjs --log [번호]   # 실행 하나의 연동 로그 다시 보기 (기본: 마지막 실행)
  *   node collect.mjs --report-only  # 수집 리포트만 (API 호출 없음)
  *   node collect.mjs --sync-dry     # 목록 갱신 · 사라진 장소 확인만 미리보기 — DB 를 바꾸지 않는다
  *   node collect.mjs --no-sync      # 목록 갱신 · 사라진 장소 확인을 건너뛴다
@@ -26,7 +27,8 @@
  *
  * 개발계정 일일 한도(약 2,000회)에 걸려 멈추면 다음 실행이 그 자리에서 이어서 받는다 —
  * 목록은 시군구 × 타입 단위(tour.list_fetches), 상세는 장소 단위로 바로 저장한다.
- * 실행마다 tour.runs 에 한 줄을 남긴다(시작 · 끝 · 호출 수 · 결과 · 오류).
+ * 실행마다 tour.runs 에 한 줄(시작 · 끝 · 호출 수 · 결과 · 오류), 화면에 찍는 줄은
+ * tour.run_logs 에 그대로 남긴다(run-log.mjs · 30일 보관).
  *
  * 비밀값: API 키는 환경 변수 TOUR_API_KEY → 이 폴더의 .key → 대화형 입력 순으로,
  * DB 접속 주소는 db.mjs 가 TOUR_DB_URL → .db-url 순으로 찾는다. 둘 다 커밋하지 않는다.
@@ -37,6 +39,7 @@ import { createInterface } from 'node:readline'
 import os from 'node:os'
 import path from 'node:path'
 import { connect } from './db.mjs'
+import { captureConsole, printRunLog } from './run-log.mjs'
 
 const BASE = 'https://apis.data.go.kr/B551011/KorService2'
 
@@ -743,8 +746,28 @@ async function main() {
   const skipDetail = args.includes('--skip-detail')
   const detailOnly = args.includes('--detail-only')
   const areaFilter = args.includes('--area') ? args[args.indexOf('--area') + 1] : null
+  const dry = args.includes('--sync-dry')
+  const readOnly = ['--status', '--report-only', '--log'].some((f) => args.includes(f))
 
-  db = await connect()
+  // 실제 실행이면 처음부터 화면 출력을 모은다 — 실행 번호가 정해지면 DB 에 넣는다
+  const log = readOnly || dry ? null : captureConsole()
+  try {
+    db = await connect()
+    await runMain(args, { skipDetail, detailOnly, areaFilter, dry, log })
+  } catch (e) {
+    console.error(e) // 로그를 멈추기 전에 찍어야 tour.run_logs 에도 남는다
+    process.exitCode = 1
+  } finally {
+    await log?.stop()
+  }
+}
+
+async function runMain(args, { skipDetail, detailOnly, areaFilter, dry, log }) {
+  if (args.includes('--log')) {
+    const n = args[args.indexOf('--log') + 1]
+    await printRunLog(db, /^\d+$/.test(n ?? '') ? n : null)
+    return
+  }
 
   if (args.includes('--status')) {
     await printProgress()
@@ -763,11 +786,14 @@ async function main() {
     return
   }
 
-  const dry = args.includes('--sync-dry')
   const result = { sync: null, hidden: null, details: 0, syncError: null, hiddenError: null }
   const [run] = dry
     ? [null]
     : await q(`insert into tour.runs (host) values ($1) returning id`, [process.env.TOUR_HOST || os.hostname()])
+  if (run) {
+    await log?.attach(run.id)
+    console.log(`실행 #${run.id} — 연동 로그는 tour.run_logs (node collect.mjs --log ${run.id})`)
+  }
   const finish = async (error) => {
     if (!run) return
     try {

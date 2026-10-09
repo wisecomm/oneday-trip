@@ -43,8 +43,8 @@ async function findUrl() {
   )
 }
 
-/** 접속한 pg.Client 를 돌려준다. 다 쓰면 client.end() */
-export async function connect() {
+/** 접속한 pg.Client 를 돌려준다. 다 쓰면 client.end(). quiet 면 접속 줄을 찍지 않는다 */
+export async function connect({ quiet = false } = {}) {
   const { url, from } = await findUrl()
   // 유닉스 소켓 주소(postgresql://user@/db?host=/소켓/폴더)는 URL 로 읽히지 않는다 — 그때는 그대로 쓴다
   let conn = url
@@ -73,6 +73,6 @@ export async function connect() {
   const client = new pg.Client({ connectionString: conn, ssl, application_name: 'oneday-trip-collect' })
   await client.connect()
   const { rows } = await client.query('select current_user as who')
-  console.log(`DB: ${local ? '로컬' : host} · ${rows[0].who} · ${tls} (${from})`)
+  if (!quiet) console.log(`DB: ${local ? '로컬' : host} · ${rows[0].who} · ${tls} (${from})`)
   return client
 }

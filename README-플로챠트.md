@@ -199,7 +199,7 @@ flowchart TD
 ```mermaid
 flowchart TD
     subgraph C["① 수집 — collect.mjs · 매일 0시 (launchd → run-daily.sh) · tour_collector 로 접속"]
-        C0["0시 자동 실행<br/>키: .key · DB: .db-url<br/>tour.runs 에 시작 기록"] --> S1["목록 갱신 — 목록 수정일(modifiedtime) 기준<br/>기준 시각 = tour.sync_state − 하루"]:::key
+        C0["0시 자동 실행<br/>키: .key · DB: .db-url<br/>tour.runs 에 시작 기록<br/>화면 출력은 줄마다 tour.run_logs 로"] --> S1["목록 갱신 — 목록 수정일(modifiedtime) 기준<br/>기준 시각 = tour.sync_state − 하루"]:::key
         S1 --> T1["타입 하나 고르기<br/>39 · 12 · 14 · 28 · 38 · 32 · 15 · 25 (8개)"]
         T1 --> T2["전국 목록 한 쪽 받기<br/>areaBasedList2 · 지역 조건 없음<br/>수정일 순(arrange Q) · 100곳"]:::key
         T2 --> T3{"앞 장소보다 수정일이<br/>최신인 장소가 있나?"}
@@ -240,7 +240,7 @@ flowchart TD
         L7 -- "예" --> D4["한 트랜잭션<br/>지역 · 시/도 통째 · 바뀐 장소만 upsert<br/>숨김은 hidden_at · 지문 갱신"]
         D4 --> D5["TourAPI 행(source = tour)만 갱신<br/>이름 · 주소 · 좌표 · 사진 · 소개 · 영업시간 · 전화 · 태그"]
         D4 --> D6["그대로 두는 것<br/>수동 등록(m-) 행 · manual 로 고친 지역<br/>별점 평균 · 리뷰 · 여행 · 코스"]
-        D4 --> D7["tour.runs 에 바뀐 수 · 주소 대조 결과"]
+        D4 --> D7["tour.runs 에 바뀐 수 · 주소 대조 결과<br/>화면 출력은 tour.run_logs"]
     end
 
     C10 --> L1
@@ -282,7 +282,7 @@ flowchart TD
 
 | 단계 | 언제 | 무엇이 남나 |
 |---|---|---|
-| ① 수집 | 매일 0시 자동. 먼저 목록 갱신(타입 8개 · 타입당 몇 호출) · 사라진 장소(2~3호출), 그다음 타입 묶음 1 → 2 → 3 순서로 목록 · 상세를 한도(약 2,000호출 = 장소 1,000곳)까지 받고 멈춤 | `tour.*` 원본 · `tour.sync_state` · `tour.runs` |
+| ① 수집 | 매일 0시 자동. 먼저 목록 갱신(타입 8개 · 타입당 몇 호출) · 사라진 장소(2~3호출), 그다음 타입 묶음 1 → 2 → 3 순서로 목록 · 상세를 한도(약 2,000호출 = 장소 1,000곳)까지 받고 멈춤 | `tour.*` 원본 · `tour.sync_state` · `tour.runs` · 연동 로그 `tour.run_logs`(30일) |
 | ② 반영 | 수집 바로 뒤 자동 | 운영 DB `places`(바뀐 것만) · `regions` · `region_groups` · `tour.place_out` 지문 |
 
 반영은 있는 행을 고쳐 쓰는 upsert 라 운영 DB 의 사용자 데이터(별점 평균 · 리뷰 · 여행 ·

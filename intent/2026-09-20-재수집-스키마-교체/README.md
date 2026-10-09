@@ -12,6 +12,7 @@ TourAPI 에서 장소를 받아(`collect.mjs`) 운영 DB 에 반영합니다(`lo
 | `load.mjs` | `tour.*` → 지역 판정 · 분류 · 태그 → **바뀐 장소만** `places` · `regions` · `region_groups` |
 | `raw-source.mjs` | `load.mjs` 가 읽는 원본 — DB 행을 예전 파일 단위로 묶어 준다 |
 | `db.mjs` | DB 접속 (`tour_collector` 역할) |
+| `run-log.mjs` | 연동 로그 — 화면에 찍는 줄을 `tour.run_logs` 에도 남긴다(30일) |
 | `run-daily.sh` | `collect.mjs` → `load.mjs` 를 한 번 (launchd 가 매일 0시) |
 
 ## 실행
@@ -20,6 +21,7 @@ TourAPI 에서 장소를 받아(`collect.mjs`) 운영 DB 에 반영합니다(`lo
 npm install                     # 저장소 루트에서 한 번 (pg)
 ./run-daily.sh                  # 수집 → 반영 한 번
 ./run-daily.sh --status         # 진행률 · 최근 실행 (= node collect.mjs --status)
+node collect.mjs --log          # 마지막 실행의 연동 로그 다시 보기 (--log 12 는 12번 실행)
 
 node collect.mjs                # 수집만 — 목록 갱신 → 사라진 장소 → 목록 · 상세
 node collect.mjs --area 1       # 특정 시/도만 (목록 갱신은 건너뜀)
@@ -54,9 +56,33 @@ launchctl load ~/Library/LaunchAgents/com.danyoh.oneday-trip.collect.plist
 ```
 
 매일 00:00 에 `run-daily.sh` 가 돕니다. 맥북이 잠들어 있었다면 깨어날 때 돕니다(cron 은 그날을
-건너뜁니다). 화면 출력은 `/tmp/oneday-trip-collect.out` · `.err` 에만 남고, 실행 기록은 DB 의
-`tour.runs` 에 있습니다 — `./run-daily.sh --status` 나 SQL 편집기에서
-`select * from tour.runs order by id desc limit 10;`.
+건너뜁니다).
+
+## 연동 로그 — DB 에 남는다
+
+실행한 컴퓨터(지금은 Mac, 나중엔 서버)에는 아무것도 남기지 않습니다. 모두 운영 DB 에 있습니다.
+
+| 표 | 한 행 | 보관 |
+| --- | --- | --- |
+| `tour.runs` | 실행 한 번 — 수집(호스트 이름) · 반영(`load@호스트`) 따로. 시작 · 끝 · 호출 수 · 결과 · 오류 | 계속 |
+| `tour.run_logs` | 그 실행이 화면에 찍은 줄 하나 — 순서 · 시각 · 수준(info / error) · 내용 | 30일 |
+
+로그 줄은 50줄마다 · 5초마다 · 끝날 때 넣으므로 실행 도중 죽어도 그때까지는 남습니다(끝 시각이
+비어 있으면 '진행 중 또는 끊김'). 본체와 다른 접속으로 넣어, 반영 트랜잭션이 되돌려져도 로그는
+남습니다. 로그를 넣지 못해도 수집 · 반영은 멈추지 않습니다.
+
+```sql
+-- 최근 실행
+select id, host, started_at, finished_at, calls, error from tour.runs order by id desc limit 10;
+-- 마지막 실행의 로그
+select level, message from tour.run_logs where run_id = (select max(id) from tour.runs) order by seq;
+-- 최근 일주일 오류 줄만
+select r.id, r.host, l.message from tour.run_logs l join tour.runs r on r.id = l.run_id
+ where l.level = 'error' and l.logged_at > now() - interval '7 days' order by l.logged_at;
+```
+
+`launchd` 의 화면 출력(`/tmp/oneday-trip-collect.out` · `.err`)은 DB 에 닿기 전 실패(node 를 못 찾음,
+DB 접속 실패)를 볼 때만 씁니다.
 
 ## 수집 — `collect.mjs`
 

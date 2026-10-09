@@ -247,7 +247,8 @@ update 할 권한이 없어서, 호출자 권한으로 돌면 **RLS 에 막혀 �
 | `list_items` | 장소 하나의 목록 원본 · 수정일 · 표출 중단(`hidden_at`) | `places-*.json` 항목 · `hidden.json` |
 | `details` | 장소 하나의 상세 원본 · `mt` | `detail-*.json` 항목 |
 | `sync_state` | 상태 값 하나 | `sync-state.json` |
-| `runs` | 실행 한 번 | `logs/` · `summary.txt` |
+| `runs` | 실행 한 번 — 시작 · 끝 · 호출 수 · 결과 · 오류 | `summary.txt` |
+| `run_logs` | 그 실행이 화면에 찍은 줄 하나(순서 · 시각 · info/error · 내용). 30일 지나면 실행 끝에 지운다 | `logs/*.log` |
 | `place_out` | 지난번 `places` 에 반영한 결과의 지문 | (새로) |
 
 **RLS · 권한** `tour` 는 앱 API 노출 스키마(`config.toml`)에 없고 `anon` · `authenticated`

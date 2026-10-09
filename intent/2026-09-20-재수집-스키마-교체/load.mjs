@@ -7,7 +7,7 @@
  * 네트워크(TourAPI)를 쓰지 않으므로 몇 번을 돌려도 결과가 같다. 파일을 쓰지 않는다
  * (--demo 의 src/lib/seed.ts 만 예외 — 앱 코드다).
  *
- *   node load.mjs           # 반영 + 리포트 (tour.runs 에 한 줄)
+ *   node load.mjs           # 반영 + 리포트 (tour.runs 에 한 줄 · 화면 출력은 tour.run_logs)
  *   node load.mjs --dry     # 무엇이 바뀔지만 — DB 를 바꾸지 않는다
  *   node load.mjs --demo    # src/lib/seed.ts (데모 모드 데이터) 도 함께 생성
  *   node load.mjs --force   # 안전 검사(장소 수 급감)를 무시하고 반영
@@ -27,6 +27,7 @@ import { createHash } from 'node:crypto'
 import os from 'node:os'
 import path from 'node:path'
 import { connect } from './db.mjs'
+import { captureConsole } from './run-log.mjs'
 import { readTour } from './raw-source.mjs'
 
 const HERE = import.meta.dirname
@@ -342,15 +343,42 @@ async function main() {
   const dry = args.includes('--dry')
   const force = args.includes('--force')
 
-  const db = await connect()
+  // 반영이면 처음부터 화면 출력을 모은다 — 실행(tour.runs) 번호가 정해지면 DB 에 넣는다
+  const log = dry ? null : captureConsole()
+  let db = null
+  let runId = null
   try {
-    await run(db, { dry, force, demo: args.includes('--demo') })
+    db = await connect()
+    if (!dry) {
+      const host = `load@${process.env.TOUR_HOST || os.hostname()}`
+      runId = (await db.query('insert into tour.runs (host) values ($1) returning id', [host])).rows[0].id
+      await log.attach(runId)
+      console.log(`실행 #${runId} — 연동 로그는 tour.run_logs (node collect.mjs --log ${runId})`)
+    }
+    await run(db, { dry, force, demo: args.includes('--demo'), runId })
+  } catch (e) {
+    console.error(e) // 로그를 멈추기 전에 찍어야 tour.run_logs 에도 남는다
+    process.exitCode = 1
+    if (db && runId) {
+      await db
+        .query('update tour.runs set finished_at = now(), error = $2 where id = $1 and finished_at is null', [runId, e.message])
+        .catch(() => {})
+    }
   } finally {
-    await db.end()
+    await log?.stop()
+    await db?.end().catch(() => {})
   }
 }
 
-async function run(db, { dry, force, demo }) {
+/** 실행 기록을 끝낸다 */
+const finishRun = (db, runId, result, error = null) =>
+  db.query('update tour.runs set finished_at = now(), result = $2::jsonb, error = $3 where id = $1', [
+    runId,
+    JSON.stringify(result),
+    error,
+  ])
+
+async function run(db, { dry, force, demo, runId }) {
   const src = await readTour(db)
   console.log(`원본: ${src.label}`)
   const files = src.names
@@ -974,11 +1002,7 @@ async function run(db, { dry, force, demo }) {
   } else if (current > 0 && places.length < current * MIN_KEEP_RATIO && !force) {
     const msg = `반영할 장소(${places.length})가 지금 places(${current})의 ${MIN_KEEP_RATIO * 100}% 보다 적음 — 반영하지 않음 (--force 로 무시)`
     console.error(`  ✗ ${msg}`)
-    await db.query(`insert into tour.runs (host, finished_at, result, error) values ($1, now(), $2::jsonb, $3)`, [
-      `load@${process.env.TOUR_HOST || os.hostname()}`,
-      JSON.stringify(result),
-      msg,
-    ])
+    await finishRun(db, runId, result, msg)
     process.exitCode = 1
     return
   } else {
@@ -987,17 +1011,10 @@ async function run(db, { dry, force, demo }) {
       await db.query(sql)
     } catch (e) {
       await db.query('rollback').catch(() => {})
-      await db.query(`insert into tour.runs (host, finished_at, result, error) values ($1, now(), $2::jsonb, $3)`, [
-        `load@${process.env.TOUR_HOST || os.hostname()}`,
-        JSON.stringify(result),
-        e.message,
-      ])
+      await finishRun(db, runId, result, e.message)
       throw e
     }
-    await db.query(`insert into tour.runs (host, finished_at, result) values ($1, now(), $2::jsonb)`, [
-      `load@${process.env.TOUR_HOST || os.hostname()}`,
-      JSON.stringify(result),
-    ])
+    await finishRun(db, runId, result)
     console.log(`  ✓ 반영 끝 (${((Date.now() - t0) / 1000).toFixed(1)}초)`)
   }
 
@@ -1106,7 +1123,4 @@ async function writeDemo(groupRows, regionRows, places) {
   )
 }
 
-main().catch((e) => {
-  console.error(e)
-  process.exit(1)
-})
+main()

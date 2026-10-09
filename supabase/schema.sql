@@ -871,6 +871,21 @@ create table tour.runs (
   error        text
 );
 
+-- 실행 한 번의 화면 출력 — 줄 하나에 한 행 (예전 raw/logs/*.log)
+-- 수집 · 반영 스크립트가 찍는 줄을 몇 줄마다 바로 넣으므로, 실행 도중 죽어도 그때까지는
+-- 남는다. 30일 지난 줄은 실행이 끝날 때마다 지운다(실행 요약 tour.runs 는 남긴다).
+create table tour.run_logs (
+  id         bigint generated always as identity primary key,
+  run_id     bigint not null references tour.runs on delete cascade,
+  seq        integer not null,               -- 그 실행 안에서의 줄 순서
+  logged_at  timestamptz not null default now(),
+  level      text not null check (level in ('info', 'error')),
+  message    text not null
+);
+
+create index run_logs_run_idx on tour.run_logs (run_id, seq);
+create index run_logs_logged_at_idx on tour.run_logs (logged_at);
+
 -- 지난번 places 에 반영한 변환 결과의 지문 — 다음 반영 때 바뀐 장소만 고르는 데 쓴다
 create table tour.place_out (
   id          text primary key,          -- places.id (= contentid)
