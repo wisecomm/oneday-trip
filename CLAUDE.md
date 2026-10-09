@@ -58,6 +58,7 @@
 `src/lib/seed.ts`(`load.mjs --demo`, 앱 코드).
 
 - 수집 작업은 `tour_collector` 역할로 접속합니다. 권한을 넓히는 변경(지우기, 별점 칸 등)은 하지 마세요.
+- 매일 실행은 GitHub Actions(`.github/workflows/collect.yml`, 0시 5분)입니다. 비밀값은 저장소 Secrets(`TOUR_API_KEY` · `TOUR_DB_URL` · `TOUR_DB_CA`) — 사용자가 직접 넣습니다. Mac 예약(launchd)과 함께 켜 두지 않습니다(하루 한도를 나눠 먹음).
 - 수집 · 반영 코드를 고치면 운영 DB 에 돌리기 전에 로컬 Postgres 에 마이그레이션을 재생하고
   가짜 TourAPI 응답으로 확인합니다. `load.mjs --dry` · `collect.mjs --sync-dry` 는 DB 를 바꾸지 않습니다.
 - 진행 · 기록 확인: `./run-daily.sh --status`, `node collect.mjs --log [번호]`,

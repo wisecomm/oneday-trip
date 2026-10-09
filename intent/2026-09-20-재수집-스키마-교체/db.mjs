@@ -9,9 +9,10 @@
  * tour_collector.<프로젝트 ref>, 비밀번호는 SQL 편집기에서 직접 정한 값이다.
  * 주소에는 비밀번호가 들어 있으므로 이 모듈은 주소를 화면에 찍지 않는다 — 호스트만 보인다.
  *
- * 암호화: 로컬(유닉스 소켓 · localhost)이 아니면 항상 TLS 로 접속한다. 이 폴더에
- * .db-ca.crt(대시보드에서 받는 Supabase CA 인증서)가 있으면 서버 인증서까지 검증하고,
- * 없으면 암호화만 한다. 주소의 sslmode 는 무시한다 — 위 규칙이 정한다.
+ * 암호화: 로컬(유닉스 소켓 · localhost)이 아니면 항상 TLS 로 접속한다. Supabase CA 인증서
+ * (대시보드에서 받는 것)가 환경 변수 TOUR_DB_CA(내용 — GitHub Actions Secrets) 나 이 폴더의
+ * .db-ca.crt(Mac)에 있으면 서버 인증서까지 검증하고, 없으면 암호화만 한다. 주소의 sslmode 는
+ * 무시한다 — 위 규칙이 정한다.
  */
 
 import { readFile, access } from 'node:fs/promises'
@@ -62,12 +63,16 @@ export async function connect({ quiet = false } = {}) {
   let ssl = false
   let tls = '로컬 · 암호화 없음'
   if (!local) {
-    if (await exists(CA_FILE)) {
+    const caEnv = process.env.TOUR_DB_CA?.trim()
+    if (caEnv) {
+      ssl = { ca: caEnv }
+      tls = 'TLS · 인증서 검증(TOUR_DB_CA)'
+    } else if (await exists(CA_FILE)) {
       ssl = { ca: await readFile(CA_FILE, 'utf8') }
       tls = 'TLS · 인증서 검증'
     } else {
       ssl = { rejectUnauthorized: false }
-      tls = 'TLS · 인증서 검증 안 함(.db-ca.crt 없음)'
+      tls = 'TLS · 인증서 검증 안 함(.db-ca.crt · TOUR_DB_CA 없음)'
     }
   }
   const client = new pg.Client({ connectionString: conn, ssl, application_name: 'oneday-trip-collect' })

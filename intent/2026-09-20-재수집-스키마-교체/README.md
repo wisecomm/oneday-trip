@@ -43,11 +43,19 @@ node load.mjs --force           # 안전 검사(장소 수 급감)를 무시하�
 - **DB 접속:** 환경 변수 `TOUR_DB_URL` → 이 폴더의 `.db-url`. Supabase 대시보드 **Connect → Session pooler** 의
   URI 에서 사용자 이름을 `tour_collector.<프로젝트 ref>` 로, 비밀번호를 SQL 편집기에서
   `alter role tour_collector with login password '…';` 로 정한 값으로 바꿔 넣습니다. 로컬이 아니면 늘 TLS 로
-  접속하고, 이 폴더에 `.db-ca.crt`(대시보드에서 받는 CA 인증서)가 있으면 서버 인증서까지 검증합니다.
+  접속하고, 환경 변수 `TOUR_DB_CA`(인증서 내용) 나 이 폴더의 `.db-ca.crt`(대시보드에서 받는 CA 인증서)가
+  있으면 서버 인증서까지 검증합니다.
   비밀번호를 바꾼 직후엔 pooler 가 옛 비밀번호를 한동안 기억해 인증이 실패할 수 있습니다 — 더 바꾸지 말고
   30분쯤 기다립니다(겪은 일은 검토 문서).
 
 ## 매일 자동 실행
+
+**서버(GitHub Actions)** — `.github/workflows/collect.yml`. 매일 0시 5분(한국 시각)에 수집 → 반영.
+맥이 꺼져 있어도 돕니다. 실패하면 GitHub 가 메일을 보냅니다. 옮기는 순서는 아래
+[서버로 옮기기](#서버로-옮기기--github-actions). **Mac 예약과 함께 켜 두지 않습니다** — 같은 키의
+하루 한도를 나눠 먹습니다.
+
+**Mac(launchd)** — 서버로 옮기기 전, 또는 서버가 안 될 때:
 
 ```bash
 cp com.danyoh.oneday-trip.collect.plist ~/Library/LaunchAgents/
@@ -56,7 +64,36 @@ launchctl load ~/Library/LaunchAgents/com.danyoh.oneday-trip.collect.plist
 ```
 
 매일 00:00 에 `run-daily.sh` 가 돕니다. 맥북이 잠들어 있었다면 깨어날 때 돕니다(cron 은 그날을
-건너뜁니다).
+건너뜁니다). 끄기: `launchctl unload ~/Library/LaunchAgents/com.danyoh.oneday-trip.collect.plist`
+(plist 파일은 남겨 두면 다시 켤 수 있습니다).
+
+### 서버로 옮기기 — GitHub Actions
+
+1. **비밀값 넣기** — 저장소 **Settings → Secrets and variables → Actions → New repository secret**.
+   값은 직접 넣습니다(채팅 · 커밋에 남기지 않음).
+
+   | 이름 | 값 |
+   | --- | --- |
+   | `TOUR_API_KEY` | `.key` 와 같은 값 |
+   | `TOUR_DB_URL` | `.db-url` 과 같은 값(Session pooler · `tour_collector.<ref>`) |
+   | `TOUR_DB_CA` | `.db-ca.crt` 파일 내용 전체(`-----BEGIN CERTIFICATE-----` 부터 끝까지) |
+
+   GitHub CLI(`gh`)가 있으면 이 폴더에서 화면에 값을 띄우지 않고 넣을 수 있습니다:
+   ```bash
+   gh secret set TOUR_API_KEY < .key
+   gh secret set TOUR_DB_URL  < .db-url
+   gh secret set TOUR_DB_CA   < .db-ca.crt
+   ```
+   (`.key` · `.db-url` 에 주석 줄이 있으면 값만 한 줄 남긴 뒤 넣습니다.)
+2. **수동으로 한 번 돌리기** — 저장소 **Actions → 장소 수집 · 반영 → Run workflow**.
+   그날 한도를 이미 썼다면 수집은 첫 호출에서 한도 응답으로 멈추고(빨간 표시) 반영은 돕니다 —
+   그래도 확인할 것은 다 확인됩니다.
+3. **확인** — `./run-daily.sh --status` 또는 점검.sql ⑨ 에 host `github-actions` · `load@github-actions`
+   두 줄이 생겼는지, 수집 로그(`node collect.mjs --log`)가 **한도 응답이나 정상 응답**인지 봅니다.
+   - 접속 실패(`DB: …` 줄 전에 오류) → Secrets 의 주소 · 인증서
+   - TourAPI 가 해외 IP 를 막는 경우(네트워크 오류 · HTTP 403 이 계속) → 서버로 옮기지 않고 Mac 을
+     계속 씁니다(검토 문서 '먼저 확인할 것' 1).
+4. **Mac 예약 끄기** — 확인되면 그날 0시 전에 위 `launchctl unload`. 다음 0시 5분부터 서버가 돕니다.
 
 ## 연동 로그 — DB 에 남는다
 

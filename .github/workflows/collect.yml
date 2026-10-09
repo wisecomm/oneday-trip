@@ -1,0 +1,67 @@
+# 장소 수집 · 반영 — 매일 0시 5분(한국 시각)
+#
+# Mac 의 run-daily.sh(launchd)와 같은 일을 GitHub 실행기에서 한다: 수집(collect.mjs → DB tour.*)
+# 다음 반영(load.mjs → 운영 places). 진행 · 기록은 DB(tour.runs · tour.run_logs)에 남으므로 어디서
+# 돌든 `./run-daily.sh --status` · 점검.sql ⑧~⑩ 로 같은 것을 본다. 실패하면 GitHub 가 메일을 보낸다.
+#
+# 비밀값은 저장소 Settings → Secrets and variables → Actions 에 사용자가 직접 넣는다(커밋 금지):
+#   TOUR_API_KEY   공공데이터포털 TourAPI 키(.key 와 같은 값)
+#   TOUR_DB_URL    Supabase Session pooler 주소, 사용자 tour_collector.<ref>(.db-url 과 같은 값)
+#   TOUR_DB_CA     Supabase CA 인증서 내용(.db-ca.crt 파일 내용) — 있으면 서버 인증서까지 검증
+#
+# Mac 예약(launchd)과 함께 돌리지 않는다 — 같은 키의 하루 한도(약 2,000회)를 나눠 먹는다.
+# 여기서 수동 실행으로 확인한 뒤 Mac 예약을 끈다(수집 폴더 README '서버로 옮기기').
+
+name: 장소 수집 · 반영
+
+on:
+  schedule:
+    # 15:05 UTC = 한국 0시 5분. 하루 한도가 0시에 새로 차므로 그 직후. 정각은 GitHub 예약이 몰려 늦는다
+    - cron: '5 15 * * *'
+  workflow_dispatch: {}
+
+# 같은 일이 겹쳐 돌지 않게 — 늦게 시작한 예약과 수동 실행이 겹쳐도 하나씩
+concurrency:
+  group: tour-collect
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      TOUR_API_KEY: ${{ secrets.TOUR_API_KEY }}
+      TOUR_DB_URL: ${{ secrets.TOUR_DB_URL }}
+      TOUR_DB_CA: ${{ secrets.TOUR_DB_CA }}
+      TOUR_HOST: github-actions
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # pg 만 있으면 되지만 잠금 파일 그대로 받는다. 스크립트는 막는다(supabase CLI 바이너리 내려받기 등)
+      - run: npm ci --ignore-scripts
+
+      - name: 수집 (collect.mjs)
+        id: collect
+        working-directory: intent/2026-09-20-재수집-스키마-교체
+        # 한도로 멈춰도 받은 만큼은 반영해야 하므로 실패해도 다음 단계로
+        continue-on-error: true
+        run: node collect.mjs
+
+      - name: 반영 (load.mjs)
+        working-directory: intent/2026-09-20-재수집-스키마-교체
+        run: node load.mjs
+
+      - name: 수집 결과
+        if: steps.collect.outcome == 'failure'
+        run: |
+          echo "수집이 도중에 멈췄습니다(하루 한도면 정상 — 다음 실행이 이어 받습니다)."
+          echo "까닭은 위 '수집' 단계 로그 끝, 또는 점검.sql ⑨ · ⑩."
+          exit 1
