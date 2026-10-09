@@ -167,7 +167,8 @@ export function ExplorePage() {
    * '강남'을 치는 동안 질의가 네 번 날아간다.
    *
    * 검색어가 있으면 지역 필터를 무시하고 전국에서 찾는다 — 이름을 알고 찾는
-   * 사람에게 "그 가게는 다른 구에 있습니다"는 도움이 안 된다.
+   * 사람에게 "그 가게는 다른 구에 있습니다"는 도움이 안 된다. 검색한 뒤 시/도 · 시군구를
+   * 고르면 검색을 지우고 그 지역을 본다(clearSearch).
    */
   const [keywordInput, setKeywordInput] = useState('')
   const [keyword, setKeyword] = useState('')
@@ -289,7 +290,17 @@ export function ExplorePage() {
 
   /** 상위 지역을 바꾸면 하위 선택은 '전체'로 되돌린다 — 특정 구 하나로 좁혀 놓은 채 다른 시/도로
    *  넘어가면 그 시/도에 없는 지역명이 남아 있는 꼴이라 혼란스럽다 */
+  /**
+   * 이름 검색을 끈다 — 검색 중에는 지역 칸이 무시되므로(전국에서 찾는다), 검색한 뒤 시/도 ·
+   * 시군구를 고르면 검색을 지우고 그 지역을 보여 준다. 300ms 기다리지 않고 바로 지운다.
+   */
+  function clearSearch() {
+    setKeywordInput('')
+    setKeyword('')
+  }
+
   function changeGroup(next: number) {
+    clearSearch()
     setNearMe(false)
     setAreaCode(next)
     setSigunguCode(null)
@@ -311,6 +322,7 @@ export function ExplorePage() {
   }
 
   function changeRegion(next: number | null) {
+    clearSearch()
     setSigunguCode(next)
     setParams((p) => {
       if (next === null) p.delete(P_SIGUNGU)
