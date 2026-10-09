@@ -204,13 +204,6 @@ export function RecommendPage({ embedded = false }: { embedded?: boolean } = {})
                   </option>
                 ))}
             </select>
-            <button
-              type="button"
-              onClick={load}
-              className="btn-ghost shrink-0 !py-2 text-[13.5px] whitespace-nowrap"
-            >
-              새로고침
-            </button>
           </div>
         </div>
 
