@@ -33,13 +33,13 @@ function better(a: Place, b: Place): number {
 
 function groupAt(places: Place[], level: number) {
   const cell = GRID_BASE_DEG / 2 ** level
-  const cells = new Map<string, { rep: Place; n: number }>()
+  const cells = new Map<string, { rep: Place; members: Place[] }>()
   for (const p of places) {
     const key = `${Math.floor((p.lat - GRID_ORIGIN.lat) / cell)}:${Math.floor(((p.lng - GRID_ORIGIN.lng) * LNG_SCALE) / cell)}`
     const c = cells.get(key)
-    if (!c) cells.set(key, { rep: p, n: 1 })
+    if (!c) cells.set(key, { rep: p, members: [p] })
     else {
-      c.n += 1
+      c.members.push(p)
       if (better(p, c.rep) < 0) c.rep = p
     }
   }
@@ -47,16 +47,17 @@ function groupAt(places: Place[], level: number) {
 }
 
 /**
- * 장소가 max 곳을 넘으면 주변끼리 묶어 대표 1곳씩만 남긴다 — 돌려주는 Map 은 대표 id → 묶인 곳 수.
+ * 장소가 max 곳을 넘으면 주변끼리 묶어 대표 1곳씩만 남긴다 — 돌려주는 Map 은 대표 id → 그 칸에
+ * 묶인 장소들(대표가 맨 앞, 나머지는 대표 우선순위 순). '+N' 마커를 누르면 화면이 이 목록을 보여 준다.
  *
  * 고정 격자(위)에서 대표가 max 이하가 되는 가장 잘은 단계를 이분 탐색으로 찾는다 — 단계가 내려갈수록
  * 칸이 넷으로 갈라지기만 하니 칸 수는 단계에 따라 줄지 않는다. 가장 큰 칸(0단계)은 남한 전체가
  * 칸 한두 개라 늘 답이 있다. 대표는 리뷰 많은 곳 → 평균 높은 곳 → id 순.
  */
-export function groupRepresentatives(places: Place[], max: number): Map<string, number> {
-  const result = new Map<string, number>()
+export function groupRepresentatives(places: Place[], max: number): Map<string, Place[]> {
+  const result = new Map<string, Place[]>()
   if (places.length <= max) {
-    for (const p of places) result.set(p.id, 1)
+    for (const p of places) result.set(p.id, [p])
     return result
   }
   let lo = 0
@@ -70,6 +71,8 @@ export function groupRepresentatives(places: Place[], max: number): Map<string, 
       best = cells
     } else hi = mid - 1
   }
-  for (const { rep, n } of best.values()) result.set(rep.id, n)
+  for (const { rep, members } of best.values()) {
+    result.set(rep.id, [rep, ...members.filter((m) => m !== rep).sort(better)])
+  }
   return result
 }

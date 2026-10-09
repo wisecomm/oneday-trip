@@ -67,6 +67,9 @@ const NEAR_LIMIT = 100
 /** 3.2km · 15km — 10km 아래만 소수 한 자리 */
 const formatKm = (km: number) => (km < 10 ? `${Math.max(km, 0.1).toFixed(1)}km` : `${Math.round(km)}km`)
 
+/** '+N' 묶음 목록에 한 번에 보여 주는 곳 수 — 묶음이 수천 곳일 수 있어 자른다 */
+const GROUP_LIST_MAX = 50
+
 /** 검색 결과가 이보다 많으면 지도에 점으로 그린다 */
 const COMPACT_SEARCH_MIN = 300
 
@@ -105,6 +108,11 @@ export function ExplorePage() {
   const [list, setList] = useState<Place[]>([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Place | null>(null)
+  /**
+   * '+N' 대표 마커를 눌렀을 때 그 칸에 묶인 장소들(대표가 맨 앞) — 목록 시트로 보여 주고,
+   * 목록에서 고르면 그 장소 시트(selected)를 연다
+   */
+  const [group, setGroup] = useState<Place[] | null>(null)
   const [trip, setTrip] = useState<Trip | null>(null)
   const [pickedCount, setPickedCount] = useState(0)
   const [toast, setToast] = useState<string | null>(null)
@@ -350,6 +358,7 @@ export function ExplorePage() {
         places={list}
         selectedId={selected?.id ?? null}
         onSelect={setSelected}
+        onSelectGroup={setGroup}
         className="h-full w-full bg-ink-100"
         safeInsets={{ top: 100, bottom: 120 }}
         userLocation={myLocation}
@@ -507,6 +516,51 @@ export function ExplorePage() {
       )}
 
       {/* 마커 클릭 시 하단 미니 상세 카드 */}
+      {/* '+N' 묶음 — 묶인 장소 목록. 고르면 아래 장소 시트로 */}
+      <BottomSheet
+        open={Boolean(group)}
+        onClose={() => setGroup(null)}
+        title={group ? `이 근처 ${group.length}곳` : undefined}
+      >
+        {group && (
+          <>
+            <ul className="-mx-1 flex flex-col">
+              {group.slice(0, GROUP_LIST_MAX).map((p) => (
+                <li key={p.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGroup(null)
+                      setSelected(p)
+                    }}
+                    className="flex w-full items-center gap-3 rounded-xl px-1 py-2.5 text-left hover:bg-ink-50"
+                  >
+                    <PlaceThumb place={p} size={44} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <CategoryDot category={p.category} />
+                        <p className="truncate text-[14.5px] font-bold text-ink-800">{p.name}</p>
+                      </div>
+                      <p className="mt-0.5 truncate text-[12px] text-ink-500">{p.address}</p>
+                    </div>
+                    {shownRating(p) && (
+                      <span className="shrink-0 text-[12px]">
+                        <RatingStar place={p} />
+                      </span>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {group.length > GROUP_LIST_MAX && (
+              <p className="mt-2 text-center text-[12.5px] text-ink-400">
+                외 {group.length - GROUP_LIST_MAX}곳 — 지도를 더 확대하면 나뉘어 보입니다
+              </p>
+            )}
+          </>
+        )}
+      </BottomSheet>
+
       <BottomSheet open={Boolean(selected)} onClose={() => setSelected(null)}>
         {selected && (
           <div>

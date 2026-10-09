@@ -25,6 +25,11 @@ interface MapViewProps {
   route?: Place[]
   selectedId?: string | null
   onSelect?: (place: Place) => void
+  /**
+   * '+N' 대표 마커를 눌렀을 때 — 그 칸에 묶인 장소들(대표가 맨 앞)을 넘긴다. 없으면 대표를 onSelect.
+   * 지도 탭은 목록 시트를 띄우고, 목록에서 고르면 onSelect 처럼 장소 시트를 연다.
+   */
+  onSelectGroup?: (places: Place[]) => void
   className?: string
   /** 지도의 '↻ 내 위치 다시 찾기' 버튼으로 확보한 사용자 위치 — 있으면 파란 점으로 표시하고 뷰에 포함시킨다 */
   userLocation?: LatLng | null
@@ -61,6 +66,7 @@ export function MapView({
   route,
   selectedId,
   onSelect,
+  onSelectGroup,
   className,
   safeInsets,
   userLocation,
@@ -83,6 +89,7 @@ export function MapView({
         route={route}
         selectedId={selectedId}
         onSelect={onSelect}
+        onSelectGroup={onSelectGroup}
         className={className}
         userLocation={userLocation}
         initialViewport={initialViewport}
@@ -116,6 +123,7 @@ function NaverMap({
   route,
   selectedId,
   onSelect,
+  onSelectGroup,
   className,
   userLocation,
   initialViewport,
@@ -148,6 +156,18 @@ function NaverMap({
   const captureBaseUntilRef = useRef(0)
   /** 점 마커 모드에서 마커마다 지금 그려 둔 모양 — 없으면 점 */
   const looksRef = useRef(new Map<string, MarkerLook>())
+  /** 지금 '+N' 대표인 마커의 묶음(대표가 맨 앞) — 누르면 이 목록을 넘긴다 */
+  const groupsRef = useRef(new Map<string, Place[]>())
+  /**
+   * 마커를 눌렀을 때 — 마커의 클릭 리스너는 만들 때 한 번 붙으므로, 그때그때의 모양
+   * (대표인지)과 최신 콜백을 ref 로 본다
+   */
+  const clickRef = useRef<(place: Place) => void>(() => {})
+  clickRef.current = (place) => {
+    const group = groupsRef.current.get(place.id)
+    if (group && group.length > 1 && onSelectGroup) onSelectGroup(group)
+    else onSelect?.(place)
+  }
   const orderIndexRef = useRef(new Map<string, number>())
   const compactRef = useRef(!!compact)
   compactRef.current = !!compact
@@ -173,6 +193,7 @@ function NaverMap({
     const base = baseZoomRef.current
     const zoomedIn = compactRef.current && base !== null && map.getZoom() > base
     const next = new Map<string, MarkerLook>()
+    const groups = new Map<string, Place[]>()
     if (zoomedIn) {
       const view = map.getBounds?.()
       const inView: Place[] = []
@@ -189,8 +210,9 @@ function NaverMap({
       } else {
         const reps = groupRepresentatives(inView, TAG_MAX)
         for (const p of inView) {
-          const n = reps.get(p.id)
-          next.set(p.id, n === undefined ? 'hidden' : n > 1 ? n : 'tag')
+          const members = reps.get(p.id)
+          next.set(p.id, members === undefined ? 'hidden' : members.length > 1 ? members.length : 'tag')
+          if (members && members.length > 1) groups.set(p.id, members)
         }
       }
     }
@@ -198,6 +220,7 @@ function NaverMap({
     const sel = selectedIdRef.current
     if (sel && next.get(sel) === 'hidden') next.set(sel, 'tag')
 
+    groupsRef.current = groups
     const prev = looksRef.current
     looksRef.current = next
     for (const id of new Set([...prev.keys(), ...next.keys()])) {
@@ -268,6 +291,7 @@ function NaverMap({
     markersRef.current = []
     markerByIdRef.current = new Map()
     looksRef.current = new Map()
+    groupsRef.current = new Map()
     userMarkerRef.current?.setMap(null)
     userMarkerRef.current = null
     polylineRef.current?.setMap(null)
@@ -303,7 +327,7 @@ function NaverMap({
         icon: markerIcon(naver, place, orderIndex.get(place.id), selected, !!compact),
       })
 
-      naver.maps.Event.addListener(marker, 'click', () => onSelect?.(place))
+      naver.maps.Event.addListener(marker, 'click', () => clickRef.current(place))
       markersRef.current.push(marker)
       markerByIdRef.current.set(place.id, { marker, place })
     })
