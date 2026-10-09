@@ -1,14 +1,19 @@
 #!/usr/bin/env node
 /**
- * 수집 원본(raw/) → 적재용 SQL.
+ * 수집 원본(DB tour.*) → 운영 DB(region_groups · regions · places)에 바로 반영.
  *
- * collect.mjs 가 받아 둔 목록·상세를 읽어 region_groups · regions · places 를
- * 만든다. 네트워크를 쓰지 않으므로 몇 번을 돌려도 결과가 같다.
+ * collect.mjs 가 받아 둔 목록 · 상세를 읽어 지역과 장소를 만들고, **바뀐 장소만**
+ * places 에 쓴다. 바뀌었는지는 지난번 반영한 결과의 지문(tour.place_out)과 비교한다.
+ * 네트워크(TourAPI)를 쓰지 않으므로 몇 번을 돌려도 결과가 같다. 파일을 쓰지 않는다
+ * (--demo 의 src/lib/seed.ts 만 예외 — 앱 코드다).
  *
- *   node load.mjs                 # supabase/seed.sql 생성 + 리포트
- *   node load.mjs --dry           # 파일을 쓰지 않고 리포트만
- *   node load.mjs --out <path>    # 출력 위치 지정
- *   node load.mjs --demo          # src/lib/seed.ts (데모 모드 데이터) 도 함께 생성
+ *   node load.mjs           # 반영 + 리포트 (tour.runs 에 한 줄)
+ *   node load.mjs --dry     # 무엇이 바뀔지만 — DB 를 바꾸지 않는다
+ *   node load.mjs --demo    # src/lib/seed.ts (데모 모드 데이터) 도 함께 생성
+ *   node load.mjs --force   # 안전 검사(장소 수 급감)를 무시하고 반영
+ *
+ * 접속은 db.mjs(tour_collector). 지역 · 장소를 한 트랜잭션으로 쓰고, 관리자 등록 장소
+ * (source = 'manual') · 사람이 고친 지역(region_source = 'manual') · 별점 칸은 덮지 않는다.
  *
  * 판정 순위(intent.md 5번)를 여기서 구현한다.
  *   1 tour       응답의 sigunguCode
@@ -17,12 +22,16 @@
  *   4 unresolved 미판정 코드(-1)로 격리하고 사유를 region_note 에 남긴다
  */
 
-import { readFile, readdir, writeFile, mkdir } from 'node:fs/promises'
+import { writeFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
+import os from 'node:os'
 import path from 'node:path'
+import { connect } from './db.mjs'
+import { readTour } from './raw-source.mjs'
 
 const HERE = import.meta.dirname
-const RAW = path.join(HERE, 'raw')
-const DEFAULT_OUT = path.join(HERE, '..', '..', 'supabase', 'seed.sql')
+/** 반영할 장소가 지금 places 의 이 비율보다 적으면 멈춘다 — 수집 · 판정이 크게 어긋난 것이다 */
+const MIN_KEEP_RATIO = 0.9
 
 /**
  * 앱에 넣는 TourAPI 콘텐츠 타입 — 원래 타입 번호는 places.content_type 에 그대로 남긴다.
@@ -31,8 +40,8 @@ const DEFAULT_OUT = path.join(HERE, '..', '..', 'supabase', 'seed.sql')
  *   12 관광지 · 14 문화시설        → 명소
  *   28 레포츠 · 38 쇼핑 · 32 숙박  → 명소 ('기타' 는 개념상 — 화면에 따로 표시하지 않는다)
  *
- * collect.mjs 는 15 축제 · 25 여행코스까지 8개를 다 받지만, 여기 없는 타입은 seed 에
- * 넣지 않고 raw/ 에만 둔다(리포트에 개수만). 화면에 보이게 하려면 이 표에 한 줄 더한다.
+ * collect.mjs 는 15 축제 · 25 여행코스까지 8개를 다 받지만, 여기 없는 타입은 places 에
+ * 넣지 않고 tour.* 에만 둔다(리포트에 개수만). 화면에 보이게 하려면 이 표에 한 줄 더한다.
  */
 const CONTENT_TYPES = [39, 12, 14, 28, 38, 32]
 
@@ -321,7 +330,6 @@ const num = (v) => (v === null || v === undefined || Number.isNaN(v) ? 'null' : 
 
 /* ───────────────────────── 적재 ───────────────────────── */
 
-const readJson = async (p) => JSON.parse(await readFile(p, 'utf8'))
 
 /** TourAPI modifiedtime(한국 시각 YYYYMMDDHHMMSS) → timestamptz 문자열. 없으면 null */
 function stampToTs(mt) {
@@ -332,15 +340,25 @@ function stampToTs(mt) {
 async function main() {
   const args = process.argv.slice(2)
   const dry = args.includes('--dry')
-  const out = args.includes('--out') ? args[args.indexOf('--out') + 1] : DEFAULT_OUT
+  const force = args.includes('--force')
 
-  const files = new Set(await readdir(RAW))
+  const db = await connect()
+  try {
+    await run(db, { dry, force, demo: args.includes('--demo') })
+  } finally {
+    await db.end()
+  }
+}
+
+async function run(db, { dry, force, demo }) {
+  const src = await readTour(db)
+  console.log(`원본: ${src.label}`)
+  const files = src.names
   if (!files.has('area-codes.json')) {
-    console.error('raw/area-codes.json 이 없습니다. 먼저 collect.mjs 를 돌리세요.')
-    process.exit(1)
+    throw new Error(`${src.label} 에 시/도 코드표(area-codes)가 없습니다. 먼저 collect.mjs 를 돌리세요.`)
   }
 
-  const areas = await readJson(path.join(RAW, 'area-codes.json'))
+  const areas = await src.read('area-codes.json')
 
   // ── 시군구 코드표 ────────────────────────────────────────────────
   /** `${area}-${sigungu}` → { areaCode, code, name } */
@@ -350,7 +368,7 @@ async function main() {
   for (const a of areas) {
     const f = `sigungu-${a.code}.json`
     if (!files.has(f)) continue
-    const sgs = await readJson(path.join(RAW, f))
+    const sgs = await src.read(f)
     // name 은 화면·DB 에 쓸 이름, match 는 TourAPI 원본 이름이다. 주소 매칭과
     // 코드↔주소 대조는 원본 이름으로 해야 한다 — 고친 이름으로 주소를 뒤지면
     // '제물포·영종(옛 중구)' 같은 문자열을 찾게 되어 아무것도 맞지 않는다.
@@ -383,9 +401,9 @@ async function main() {
       for (const t of CONTENT_TYPES) {
         const lf = `places-${a.code}-${c}-${t}.json`
         if (!files.has(lf)) continue
-        const items = await readJson(path.join(RAW, lf))
+        const items = await src.read(lf)
         const df = `detail-${a.code}-${c}-${t}.json`
-        const detail = files.has(df) ? await readJson(path.join(RAW, df)) : {}
+        const detail = files.has(df) ? await src.read(df) : {}
 
         for (const it of items) {
           const lat = Number(it.mapy)
@@ -573,16 +591,18 @@ async function main() {
   groupRows.push({ code: NO_CODE, name: NO_NAME, ...KR, order: 999 })
   regionRows.push({ area: NO_CODE, code: NO_CODE, name: NO_NAME, ldong: null, ...KR, order: 999 })
 
-  // ── SQL ──────────────────────────────────────────────────────────
+  // ── 바뀐 장소만 고르기 ───────────────────────────────────────────
+  //
+  // 장소 하나의 변환 결과 전체로 지문을 만들어 지난번 반영한 지문(tour.place_out)과
+  // 비교한다. places 에 행이 없으면(관리자가 지웠거나 처음) 지문이 같아도 다시 넣는다.
+  const hashOf = (p) => createHash('sha1').update(JSON.stringify(p)).digest('hex')
+  const applied = new Map((await db.query('select id, hash from tour.place_out')).rows.map((r) => [r.id, r.hash]))
+  const present = new Set((await db.query("select id from public.places where source = 'tour'")).rows.map((r) => r.id))
+  const changed = places.filter((p) => !present.has(p.id) || applied.get(p.id) !== hashOf(p))
+
+  // ── SQL (한 번에 보내는 한 트랜잭션) ─────────────────────────────
   const L = []
-  L.push('-- =====================================================================')
-  L.push('-- 지역 + 장소 카탈로그 — intent/2026-09-20-재수집-스키마-교체/load.mjs 가 생성')
-  L.push(`-- 생성: ${new Date().toISOString()}`)
-  L.push(`-- 시/도 ${groupRows.length} · 시군구 ${regionRows.length} · 장소 ${places.length}`)
-  L.push('--')
-  L.push('-- 손으로 고치지 마세요. 수집 원본(raw/)을 고치고 load.mjs 를 다시 돌리세요.')
-  L.push('-- =====================================================================')
-  L.push('')
+  L.push(`-- load.mjs — 시/도 ${groupRows.length} · 시군구 ${regionRows.length} · 장소 ${places.length} 중 바뀐 ${changed.length}`)
   L.push('-- 한 트랜잭션으로 넣는다. `set local` 은 트랜잭션 안에서만 듣기 때문에,')
   L.push('-- 감싸지 않으면 재적재 때 지역 변경 트리거가 region_source 를 manual 로')
   L.push('-- 바꿔 버려 다음 적재가 그 행을 영영 갱신하지 못한다.')
@@ -611,8 +631,8 @@ async function main() {
 
   // 장소는 덩어리로 나눠 넣는다 — 한 문장이 지나치게 길면 편집기가 버거워진다
   const CHUNK = 500
-  for (let i = 0; i < places.length; i += CHUNK) {
-    const part = places.slice(i, i + CHUNK)
+  for (let i = 0; i < changed.length; i += CHUNK) {
+    const part = changed.slice(i, i + CHUNK)
     L.push(
       'insert into public.places (id, name, category, tour_area_code, tour_sigungu_code,' +
         ' address, lat, lng, image_url, tags, content_type, summary, open_hours,' +
@@ -654,12 +674,12 @@ async function main() {
 
   // ── 표출 중단된 장소 숨기기 ─────────────────────────────────────
   //
-  // collect.mjs 가 동기화 목록(areaBasedSyncList2)에서 표출 중단(showflag 0)을 보면 그
-  // 장소를 목록 파일에서 빼고 raw/hidden.json 에 남긴다. 지우지 않고 hidden_at 만
-  // 채운다 — 행을 지우면 그 장소를 담은 타임라인 항목이 cascade 로 사라진다.
-  // 목록에 다시 들어온 장소(위 upsert 가 숨김을 푼다)는 여기서 다시 숨기지 않는다.
+  // collect.mjs 가 동기화 목록(areaBasedSyncList2)에서 표출 중단(showflag 0)을 보면
+  // tour.list_items.hidden_at 을 채운다. 여기서는 places 의 hidden_at 만 채운다 — 행을
+  // 지우면 그 장소를 담은 타임라인 항목이 cascade 로 사라진다. 숨긴 장소의 지문은
+  // 지워 둔다 — 다시 표출되면 지문이 없어 다시 넣고, 그 upsert 가 숨김을 푼다.
   const inApp = new Set(places.map((p) => p.id))
-  const hidden = files.has('hidden.json') ? await readJson(path.join(RAW, 'hidden.json')) : {}
+  const hidden = files.has('hidden.json') ? await src.read('hidden.json') : {}
   const hiddenRows = Object.entries(hidden)
     .filter(([id]) => !inApp.has(id))
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
@@ -672,9 +692,21 @@ async function main() {
         .join(',\n') + '\n) v(id, at)',
     )
     L.push("where p.id = v.id and p.source = 'tour' and p.hidden_at is null;")
+    L.push(`delete from tour.place_out where id in (${hiddenRows.map(([id]) => q(id)).join(', ')});`)
     L.push('')
   }
   stats.hidden = hiddenRows.length
+
+  // 반영한 지문
+  for (let i = 0; i < changed.length; i += CHUNK) {
+    L.push('insert into tour.place_out (id, hash) values')
+    L.push(
+      changed
+        .slice(i, i + CHUNK)
+        .map((p) => `  (${q(p.id)}, '${hashOf(p)}')`)
+        .join(',\n') + '\non conflict (id) do update set hash = excluded.hash, applied_at = now();',
+    )
+  }
 
   L.push('commit;')
   const sql = L.join('\n')
@@ -758,7 +790,7 @@ async function main() {
   //   · 코드표에 있는 다른 구 — TourAPI 원본의 코드 오류이거나, 남해대교처럼
   //     두 시군에 걸친 명소다. 사람이 하나씩 보고 판단할 대상이다.
   //
-  // 전체 목록은 raw/addr-mismatch.json 에 남긴다. 예시만 콘솔에 띄우면
+  // 전체 목록은 실행 기록(tour.runs.result.addr)에 남긴다. 예시만 콘솔에 띄우면
   // "쌓이는 걸 아무도 모른다"는 14번의 문제가 그대로 되풀이된다.
   const leafOf = new Map()
   const matchNamesOfArea = new Map()
@@ -819,25 +851,8 @@ async function main() {
     byKind[m.kind]++
     byArea[m.area] = (byArea[m.area] ?? 0) + 1
   }
-  if (!dry) {
-    await writeFile(
-      path.join(RAW, 'addr-mismatch.json'),
-      JSON.stringify(
-        {
-          generatedAt: new Date().toISOString(),
-          checked: stats.tour,
-          noAddress: noAddr,
-          byKind,
-          byArea,
-          rows: mismatches,
-          coordOutliers,
-        },
-        null,
-        2,
-      ) + '\n',
-      'utf8',
-    )
-  }
+  // 주소 대조 결과는 실행 기록(tour.runs.result)에 남긴다 — 예전 raw/addr-mismatch.json
+  const addrReport = { checked: stats.tour, noAddress: noAddr, byKind, byArea, rows: mismatches.slice(0, 1000), coordOutliers }
 
   // ── 리포트 ───────────────────────────────────────────────────────
   const byCat = {}
@@ -907,7 +922,7 @@ async function main() {
   for (const m of mismatches.filter((x) => x.kind === 'wrong-code' || x.kind === 'wrong-area').slice(0, 5)) {
     console.log(`    · ${m.name} — ${m.area} ${m.assigned} 로 들어감 | ${m.address}`)
   }
-  console.log('  전체 목록: raw/addr-mismatch.json')
+  console.log('  전체 목록: tour.runs 의 result.addr')
   console.log('')
   console.log(`── 상세 없는 장소: ${stats.noDetail}건 (${((stats.noDetail / tot) * 100).toFixed(1)}%) ──`)
   console.log('   소개·영업시간·전화가 빈 채로 적재됩니다. 수집이 끝나면 다시 돌리세요.')
@@ -924,29 +939,69 @@ async function main() {
   for (const f of files) {
     const m = /^places-\d+-\d+-(\d+)\.json$/.exec(f)
     if (!m || CONTENT_TYPES.includes(Number(m[1]))) continue
-    const n = (await readJson(path.join(RAW, f))).length
+    const n = (await src.read(f)).length
     rawOnly.set(m[1], (rawOnly.get(m[1]) ?? 0) + n)
   }
   console.log('── 앱에 넣는 타입 · 받아만 둔 타입 ──')
   const byType = new Map()
   for (const p of places) byType.set(p.content_type, (byType.get(p.content_type) ?? 0) + 1)
   console.log(`  앱: ${CONTENT_TYPES.map((t) => `${t}=${byType.get(t) ?? 0}`).join(' · ')}`)
-  console.log(`  raw 에만: ${[...rawOnly].map(([t, n]) => `${t}=${n}`).join(' · ') || '없음'}`)
-  console.log(`  표출 중단으로 숨김: ${stats.hidden}곳 (raw/hidden.json)`)
+  console.log(`  받아만 둠: ${[...rawOnly].map(([t, n]) => `${t}=${n}`).join(' · ') || '없음'}`)
+  console.log(`  표출 중단으로 숨김: ${stats.hidden}곳`)
   console.log('')
   console.log('── 시군구별 장소 수 (미판정 제외) ──')
   for (const [k, v] of Object.entries(buckets)) console.log(`  ${k.padEnd(6)}곳: ${v}개`)
   console.log('')
 
-  if (dry) {
-    console.log(`--dry 이므로 파일을 쓰지 않았습니다. (SQL ${(sql.length / 1024 / 1024).toFixed(1)}MB 예상)`)
-    return
+  // ── 반영 ─────────────────────────────────────────────────────────
+  const [{ n: current }] = (
+    await db.query("select count(*)::int as n from public.places where source = 'tour' and hidden_at is null")
+  ).rows
+  console.log('── 반영 ──')
+  console.log(`  장소 ${places.length}곳 중 바뀐 ${changed.length}곳 · 숨김 ${stats.hidden}곳 · 지금 places ${current}곳`)
+  const result = {
+    places: places.length,
+    changed: changed.length,
+    hidden: stats.hidden,
+    regions: regionRows.length,
+    groups: groupRows.length,
+    stats,
+    addr: addrReport,
   }
-  await mkdir(path.dirname(out), { recursive: true })
-  await writeFile(out, sql + '\n', 'utf8')
-  console.log(`${path.relative(process.cwd(), out)} 에 썼습니다 — ${(sql.length / 1024 / 1024).toFixed(1)}MB`)
 
-  if (args.includes('--demo')) await writeDemo(groupRows, regionRows, places)
+  if (dry) {
+    console.log(`  --dry 이므로 DB 를 바꾸지 않았습니다. (SQL ${(sql.length / 1024 / 1024).toFixed(1)}MB)`)
+  } else if (current > 0 && places.length < current * MIN_KEEP_RATIO && !force) {
+    const msg = `반영할 장소(${places.length})가 지금 places(${current})의 ${MIN_KEEP_RATIO * 100}% 보다 적음 — 반영하지 않음 (--force 로 무시)`
+    console.error(`  ✗ ${msg}`)
+    await db.query(`insert into tour.runs (host, finished_at, result, error) values ($1, now(), $2::jsonb, $3)`, [
+      `load@${process.env.TOUR_HOST || os.hostname()}`,
+      JSON.stringify(result),
+      msg,
+    ])
+    process.exitCode = 1
+    return
+  } else {
+    const t0 = Date.now()
+    try {
+      await db.query(sql)
+    } catch (e) {
+      await db.query('rollback').catch(() => {})
+      await db.query(`insert into tour.runs (host, finished_at, result, error) values ($1, now(), $2::jsonb, $3)`, [
+        `load@${process.env.TOUR_HOST || os.hostname()}`,
+        JSON.stringify(result),
+        e.message,
+      ])
+      throw e
+    }
+    await db.query(`insert into tour.runs (host, finished_at, result) values ($1, now(), $2::jsonb)`, [
+      `load@${process.env.TOUR_HOST || os.hostname()}`,
+      JSON.stringify(result),
+    ])
+    console.log(`  ✓ 반영 끝 (${((Date.now() - t0) / 1000).toFixed(1)}초)`)
+  }
+
+  if (demo) await writeDemo(groupRows, regionRows, places)
 }
 
 /**

@@ -65,10 +65,12 @@ schema_paths = []
 
 [db.seed]
 # If enabled, seeds the database after migrations during a db reset.
-enabled = true
+# 꺼 둔다(2026-10-09) — 장소 · 지역은 seed.sql 이 아니라 수집 작업(load.mjs)이 운영 DB 에
+# 바로 쓴다. 로컬 db reset 은 장소 없이 시작한다. 앱을 장소와 함께 보려면 데모 모드(.env 없이)를 쓴다.
+enabled = false
 # Specifies an ordered list of seed files to load during db reset.
 # Supports glob patterns relative to supabase directory: "./seeds/*.sql"
-sql_paths = ["./seed.sql"]
+sql_paths = []
 
 [db.network_restrictions]
 # Enable management of network restrictions.

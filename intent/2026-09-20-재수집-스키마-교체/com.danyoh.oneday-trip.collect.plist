@@ -13,6 +13,9 @@
     launchctl unload ~/Library/LaunchAgents/com.danyoh.oneday-trip.collect.plist
   지금 한 번 돌려보기:
     launchctl start com.danyoh.oneday-trip.collect
+
+  2026-10-09: 수집 원본 · 실행 기록이 DB 로 옮겨 가 화면 출력만 /tmp 에 남긴다(재부팅 때
+  지워져도 된다 — 기록은 tour.runs). 이 파일을 고친 뒤에는 위 '해제' 다음 '설치'를 다시 한다.
 -->
 <plist version="1.0">
 <dict>
@@ -46,8 +49,8 @@
   <false/>
 
   <key>StandardOutPath</key>
-  <string>/Users/danyoh/XXX-GARDE/oneday-trip/intent/2026-09-20-재수집-스키마-교체/raw/logs/launchd.out</string>
+  <string>/tmp/oneday-trip-collect.out</string>
   <key>StandardErrorPath</key>
-  <string>/Users/danyoh/XXX-GARDE/oneday-trip/intent/2026-09-20-재수집-스키마-교체/raw/logs/launchd.err</string>
+  <string>/tmp/oneday-trip-collect.err</string>
 </dict>
 </plist>

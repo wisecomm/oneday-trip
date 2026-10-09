@@ -122,7 +122,7 @@ flowchart TD
   `trip_items_place_idx`(REVIEW-08 에서 넣은 외래키 인덱스)를 탑니다.
 - 리뷰 저장 · 수정 · 삭제와 별점 칸 변경, 그리고 cascade 로 지워지는 경우를 모두
   받도록 `insert` · `update of rating` · `delete` 에 겁니다.
-- 마이그레이션에서 **이미 남긴 리뷰로 한 번 채워 넣습니다.** 장소 적재(`seed.sql`)
+- 마이그레이션에서 **이미 남긴 리뷰로 한 번 채워 넣습니다.** 장소 반영(`load.mjs`)
   upsert 는 이 두 칸을 건드리지 않으므로 재수집해도 평균이 사라지지 않습니다.
 - 데모 모드는 DB · 트리거가 없으니 **읽을 때** 기기에 저장된 리뷰로 같은 계산
   (사람당 최근 한 표)을 합니다. 데모 리뷰는 한 기기 안에서만 있어 미리 저장해 둘
@@ -191,14 +191,15 @@ flowchart TD
 ## 여행정보 · 장소 업데이트 흐름
 
 > 홈 · 지도 · 추천이 읽는 장소(`places`)가 TourAPI 에서 운영 DB 까지 오는 길입니다.
-> 2026-10-09 기준 실제 코드(`collect.mjs` · `load.mjs` · `run-daily.sh`) 그대로이고,
-> 빨간 칸은 아직 메우지 않은 빈틈입니다. 실행 방법은 [수집 폴더 README](intent/2026-09-20-재수집-스키마-교체/README.md),
-> 운영 반영 절차는 [디비-갱신-절차.md](intent/2026-09-23-디비-검토/디비-갱신-절차.md) 에 있습니다.
+> 2026-10-09 기준 실제 코드(`collect.mjs` · `load.mjs` · `run-daily.sh`) 그대로입니다.
+> **파일을 거치지 않습니다** — 원본 · 상태 · 실행 기록은 DB 의 `tour` 스키마, 앱이 보는 장소는
+> `places`. 실행 방법은 [수집 폴더 README](intent/2026-09-20-재수집-스키마-교체/README.md),
+> 이렇게 바꾼 이유는 [서버 수집 검토](intent/2026-10-09-서버-수집-검토/검토.md) 에 있습니다.
 
 ```mermaid
 flowchart TD
-    subgraph C["① 여행정보 수집 — collect.mjs · 매일 0시 (launchd → run-daily.sh)"]
-        C0["0시 자동 실행<br/>.key 에서 API 키 읽음"] --> S1["목록 갱신 시작 — 목록 수정일(modifiedtime) 기준<br/>기준 시각 = 마지막 갱신(sync-state.json) − 하루<br/>raw/places-*.json 읽어 '장소 → 파일' 색인"]:::key
+    subgraph C["① 수집 — collect.mjs · 매일 0시 (launchd → run-daily.sh) · tour_collector 로 접속"]
+        C0["0시 자동 실행<br/>키: .key · DB: .db-url<br/>tour.runs 에 시작 기록"] --> S1["목록 갱신 — 목록 수정일(modifiedtime) 기준<br/>기준 시각 = tour.sync_state − 하루"]:::key
         S1 --> T1["타입 하나 고르기<br/>39 · 12 · 14 · 28 · 38 · 32 · 15 · 25 (8개)"]
         T1 --> T2["전국 목록 한 쪽 받기<br/>areaBasedList2 · 지역 조건 없음<br/>수정일 순(arrange Q) · 100곳"]:::key
         T2 --> T3{"앞 장소보다 수정일이<br/>최신인 장소가 있나?"}
@@ -207,48 +208,44 @@ flowchart TD
         T4 -- "아니오 · 다음 쪽 있음" --> T2
         T4 -- "예 · 또는 마지막 쪽" --> T5{"남은 타입이 있나?"}
         T5 -- "있음" --> T1
-        T5 -- "없음 · 8타입 끝" --> S4["바뀐 장소를 시군구 목록 파일에 반영<br/>수정 · 새로 · 시군구 이동<br/>시군구 = areacode → 없으면 법정동 코드<br/>목록을 아직 안 받은 타입은 건너뜀<br/>하나도 못 이으면 시각을 앞당기지 않음<br/>sync-state.json 에 시각 기록"]
-        S3 --> C1
-        S4 --> C1["시/도 · 시군구 코드표<br/>areaCode2 · 파일 있으면 건너뜀"]
-        C1 --> C2{"목록 파일 있음?<br/>places-시/도-시군구-타입.json"}
-        C2 -- "없음" --> C3["목록 받기 areaBasedList2<br/>시군구 234 × 콘텐츠 타입 8개<br/>묶음 1(39·12·14) → 2(28·38·32) → 3(15·25)<br/>묶음마다 목록 → 상세 순서"]
+        T5 -- "없음 · 8타입 끝" --> S4["바뀐 장소를 tour.list_items 에 반영<br/>수정 · 새로 · 시군구 이동<br/>시군구 = areacode → 없으면 법정동 코드<br/>하나도 못 이으면 기준 시각을 앞당기지 않음"]
+        S3 --> H1
+        S4 --> H1["사라진 장소 — 동기화 목록 날짜별<br/>표출 중단 → list_items.hidden_at<br/>(아래 '사라진 장소 정리')"]
+        H1 --> C1["코드표 tour.code_tables<br/>있으면 건너뜀"]
+        C1 --> C2{"목록 단위 받음?<br/>tour.list_fetches (시도 · 시군구 · 타입)"}
+        C2 -- "없음" --> C3["목록 받기 areaBasedList2<br/>묶음 1(39·12·14) → 2(28·38·32) → 3(15·25)<br/>묶음마다 목록 → 상세"]
         C2 -- "있음" --> C4["건너뜀<br/>바뀐 것은 목록 갱신이 이미 반영"]
         C3 --> C5
-        C4 --> C5{"장소마다 상세가 필요?<br/>목록 수정일 vs 저장해 둔 mt"}:::key
-        C5 -- "새 장소 · 목록 수정일이 mt 와 다름" --> C6["상세 받기<br/>detailCommon2 + detailIntro2<br/>장소당 2호출 · 받을 때마다 저장<br/>mt = 그때의 목록 수정일"]
-        C5 -- "이미 받음 · 그대로" --> C7["건너뜀"]
-        C6 --> C8{"일일 한도?<br/>약 2,000호출 · HTTP 429"}
+        C4 --> C5{"장소마다 상세가 필요?<br/>목록 수정일 vs tour.details.mt"}:::key
+        C5 -- "새 장소 · 수정일이 mt 와 다름" --> C6["상세 받기<br/>detailCommon2 + detailIntro2<br/>장소당 2호출 · 한 곳마다 tour.details 에 저장"]
+        C5 -- "이미 받음 · 숨긴 장소" --> C7["건너뜀"]
+        C6 --> C8{"일일 한도?<br/>약 2,000호출"}
         C8 -- "남음" --> C5
-        C8 -- "초과" --> C9["중단 · 종료코드 1<br/>다음 날 0시 그 자리에서 이어받음"]
+        C8 -- "초과" --> C9["멈춤 · 종료코드 1<br/>다음 날 그 자리에서 이어받음"]
         C7 --> C10
-        C9 --> C10["raw/ 에 원본 그대로 쌓임<br/>logs/summary.txt 에 진행률 한 줄"]
+        C9 --> C10["tour.runs 에 결과 · 호출 수 · 오류"]
     end
 
-    subgraph L["② 장소 정보 만들기 — load.mjs · 네트워크 없음 · 몇 번 돌려도 같은 결과"]
-        L1["raw/ 목록 · 상세 읽기"] --> L2{"좌표가 믿을 만한가?<br/>한국 범위 · COORD_SUSPECT"}
+    subgraph L["② 반영 — load.mjs · 수집 바로 뒤 (한도로 멈춘 날도)"]
+        L1["tour.* 읽기<br/>목록 순서 = 수정일 내림차순 → contentid"] --> L2{"좌표가 믿을 만한가?<br/>한국 범위 · COORD_SUSPECT"}
         L2 -- "아니오" --> L9["미판정(-1)으로 격리<br/>사유를 region_note 에"]
         L2 -- "예" --> L3["지역 판정<br/>1 응답의 시군구코드 → 2 주소의 시군구명"]
         L3 -- "못 찾음" --> L9
         L3 --> L4["사람 교정 덮어쓰기<br/>PLACE_REGION_FIX → region_source = manual"]
-        L4 --> L5["내용 정리 · 원래 타입은 content_type 에<br/>분류: 39 → 밥집·카페·술집 · 12·14·28·38·32 → 명소<br/>15·25 → seed 에 넣지 않음(raw 에만)<br/>소개 첫 문장 · 영업시간(줄 유지) · 전화 · 태그"]
+        L4 --> L5["내용 정리 · 원래 타입은 content_type 에<br/>분류: 39 → 밥집·카페·술집 · 12·14·28·38·32 → 명소<br/>15·25 → 넣지 않음(tour.* 에만)<br/>소개 첫 문장 · 영업시간 · 전화 · 태그"]
         L9 --> L5
-        L5 --> L6["주소 대조 리포트<br/>raw/addr-mismatch.json"]
-        L6 --> L7["supabase/seed.sql 생성<br/>--demo 면 src/lib/seed.ts 도"]
-    end
-
-    subgraph D["③ 운영 반영 — 사람이 실행"]
-        D1["커밋 · git push"] --> D2["SQL 편집기<br/>delete from supabase_migrations.seed_files"]
-        D2 --> D3["npx supabase db push --linked --include-seed"]
-        D3 --> D4["places upsert (on conflict id)"]
+        L5 --> L6["지문(hash) 비교<br/>tour.place_out 과 다른 장소만"]:::key
+        L6 --> L7{"안전 검사<br/>반영할 장소 ≥ 지금 places 의 90%?"}
+        L7 -- "아니오" --> L8["반영 안 함 · tour.runs 에 실패"]
+        L7 -- "예" --> D4["한 트랜잭션<br/>지역 · 시/도 통째 · 바뀐 장소만 upsert<br/>숨김은 hidden_at · 지문 갱신"]
         D4 --> D5["TourAPI 행(source = tour)만 갱신<br/>이름 · 주소 · 좌표 · 사진 · 소개 · 영업시간 · 전화 · 태그"]
         D4 --> D6["그대로 두는 것<br/>수동 등록(m-) 행 · manual 로 고친 지역<br/>별점 평균 · 리뷰 · 여행 · 코스"]
-        D4 --> D7["TourAPI 에서 사라진 장소는 지우지 않음"]:::gap
+        D4 --> D7["tour.runs 에 바뀐 수 · 주소 대조 결과"]
     end
 
-    C10 -. "원하는 때 실행" .-> L1
-    L7 -. "seed.sql 커밋" .-> D1
+    C10 --> L1
+    M["--demo 를 붙이면 데모 모드 데이터<br/>src/lib/seed.ts 도 다시 만든다(앱 코드)"] -.-> L5
 
-    classDef gap fill:#fdecea,stroke:#d93025,color:#7a1c13
     classDef key fill:#e8f0fe,stroke:#1a73e8,color:#0b3d91
 ```
 
@@ -274,30 +271,29 @@ flowchart TD
 | 39 음식점 | 1 | 밥집 · 카페 · 술집 |
 | 12 관광지 · 14 문화시설 | 1 | 명소 |
 | 28 레포츠 · 38 쇼핑 · 32 숙박 (기타) | 2 | 명소 — 지도 · 추천 · 홈의 명소에 함께 |
-| 15 축제공연행사 · 25 여행코스 | 3 | 데이터만(`raw/`) — seed 에 넣지 않음 |
+| 15 축제공연행사 · 25 여행코스 | 3 | 데이터만(`tour.*`) — places 에 넣지 않음 |
 
-새 타입도 업데이트는 같은 방식입니다 — 처음엔 목록 파일이 없어 시군구 목록과 상세를 받고,
+새 타입도 업데이트는 같은 방식입니다 — 처음엔 받은 목록 단위가 없어 시군구 목록과 상세를 받고,
 그 뒤로는 매일 목록 갱신이 8개 타입을 모두 봅니다. 화면에 보일 타입을 바꾸려면
 `load.mjs` 의 `CONTENT_TYPES` 표 한 줄만 고칩니다.
 
-세 단계는 따로 돈다는 것이 요점입니다. 수집은 매일 밤 저절로 쌓이기만 하고, 앱에
-반영되려면 사람이 ②와 ③을 돌려야 합니다. 수집이 진행돼도 그 사이 앱의 장소 정보는
-마지막으로 시드를 넣은 때 그대로입니다.
+수집과 반영이 한 번에 이어서 돕니다(2026-10-09~). 예전에는 수집이 `raw/` 파일에 쌓이기만 하고,
+앱에 반영되려면 사람이 `seed.sql` 을 만들어 커밋하고 `db push --include-seed` 를 돌려야 했습니다.
 
 | 단계 | 언제 | 무엇이 남나 |
 |---|---|---|
-| ① 수집 | 매일 0시 자동. 먼저 목록 갱신(타입 8개 · 타입당 몇 호출), 그다음 타입 묶음 1 → 2 → 3 순서로 목록 · 상세를 한도(약 2,000호출 = 장소 1,000곳)까지 받고 멈춤 | `raw/` 원본 · `raw/sync-state.json` · `logs/summary.txt` 진행률 |
-| ② 만들기 | 사람이 `node load.mjs --demo` | `supabase/seed.sql` · `src/lib/seed.ts` |
-| ③ 반영 | 사람이 push → `seed_files` 비우기 → `--include-seed` | 운영 DB `places` · `regions` · `region_groups` |
+| ① 수집 | 매일 0시 자동. 먼저 목록 갱신(타입 8개 · 타입당 몇 호출) · 사라진 장소(2~3호출), 그다음 타입 묶음 1 → 2 → 3 순서로 목록 · 상세를 한도(약 2,000호출 = 장소 1,000곳)까지 받고 멈춤 | `tour.*` 원본 · `tour.sync_state` · `tour.runs` |
+| ② 반영 | 수집 바로 뒤 자동 | 운영 DB `places`(바뀐 것만) · `regions` · `region_groups` · `tour.place_out` 지문 |
 
-시드는 있는 행을 고쳐 쓰는 upsert 라 운영 DB 의 사용자 데이터(별점 평균 · 리뷰 · 여행 ·
+반영은 있는 행을 고쳐 쓰는 upsert 라 운영 DB 의 사용자 데이터(별점 평균 · 리뷰 · 여행 ·
 코스)는 그대로 남습니다. 사람이 손댄 것 — 관리자가 등록한 장소(`m-` 접두사)와 지역을
-`manual` 로 고친 장소 — 도 덮지 않습니다.
+`manual` 로 고친 장소 — 도 덮지 않습니다. 수집 작업의 DB 역할(`tour_collector`)에는 그렇게
+묶인 권한만 있습니다 — 지우는 권한도 없습니다.
 
 ### 빈틈 (빨간 칸)
 
 - ~~**목록을 다시 받지 않는다.**~~ → **메움(2026-10-09).** 매 실행 첫머리의 '목록 갱신'이
-  전국 목록을 수정일 순으로 받아 마지막 확인 이후 바뀐 장소만 시군구 목록 파일에
+  전국 목록을 수정일 순으로 받아 마지막 확인 이후 바뀐 장소만 `tour.list_items` 에
   반영합니다. 그러면 상세 단계가 수정시각(mt)을 비교해 그 장소의 상세만 다시 받습니다.
   응답이 수정일 내림차순이 아니면 적용하지 않고, 실패해도 상세 수집은 계속합니다.
   미리보기는 `node collect.mjs --sync-dry`.
@@ -322,22 +318,22 @@ TourAPI 는 장소를 지우지 않고 **표출 중단(showflag 0)** 으로 돌�
 ```mermaid
 flowchart TD
     subgraph C["① collect.mjs — 목록 갱신 다음 단계"]
-        H0["목록 갱신 끝"] --> H1["사라진 장소 확인 시작<br/>기준 날짜 = 마지막 확인 날짜 − 하루<br/>(처음이면 목록 파일 받은 날)"]
+        H0["목록 갱신 끝"] --> H1["사라진 장소 확인 시작<br/>기준 날짜 = tour.sync_state 의 확인 날짜 − 하루<br/>(처음이면 목록을 처음 받은 날)"]
         H1 --> H2["날짜 하나 고르기<br/>기준 날짜 → 오늘 · 하루씩"]
         H2 --> H3["동기화 목록 받기<br/>areaBasedSyncList2<br/>그날 수정된 장소 · 전 타입 · 쪽 넘김"]:::key
         H3 --> H4{"표출 중단(showflag 0)?"}:::key
         H4 -- "아니오 · 표출 중" --> H7
-        H4 -- "예" --> H5{"우리 목록 파일에 있나?"}
+        H4 -- "예" --> H5{"tour.list_items 에 있나?"}
         H5 -- "없음 · 받은 적 없음" --> H7
-        H5 -- "있음" --> H6["목록 파일에서 빼고<br/>raw/hidden.json 에 기록<br/>contentid · 날짜 · 이름 · 타입<br/>상세 파일은 남김(되살릴 때 씀)"]
+        H5 -- "있음" --> H6["hidden_at · hidden_mt 채움<br/>행 · 상세는 남김(되살릴 때 씀)"]
         H6 --> H7{"남은 쪽 · 날짜?"}
         H7 -- "있음" --> H2
-        H7 -- "없음" --> H8["sync-state.json 에<br/>확인한 날짜 기록"]
+        H7 -- "없음" --> H8["tour.sync_state 에<br/>확인한 날짜 기록"]
     end
 
     subgraph L["② load.mjs"]
-        L1["raw/hidden.json 읽기"] --> L2["seed.sql 끝에<br/>update places set hidden_at = 날짜<br/>where id in (…) and source = 'tour'<br/>and hidden_at is null"]
-        L3["목록에 다시 나온 장소<br/>(표출 재개)"] --> L4["upsert 가 hidden_at = null<br/>hidden.json 에서도 뺌"]
+        L1["숨긴 list_items 읽기"] --> L2["update places set hidden_at = 날짜<br/>where id in (…) and source = 'tour'<br/>and hidden_at is null<br/>그 장소의 지문(place_out)은 지움"]
+        L3["다시 표출된 장소<br/>(collect 가 hidden_at 을 비움)"] --> L4["지문이 없어 다시 upsert<br/>→ hidden_at = null"]
     end
 
     subgraph A["③ 앱"]
