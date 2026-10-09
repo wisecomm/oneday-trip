@@ -19,7 +19,11 @@ export interface MapViewport {
 
 interface MapViewProps {
   places: Place[]
-  /** 폴백 지도에서 마커가 침범하면 안 되는 상·하 UI 영역(px) */
+  /**
+   * 지도 위에 떠 있는 상·하 UI 영역(px) — 자동 맞춤이 마커를 이 아래 · 위로만 놓는다(네이버 ·
+   * 폴백 둘 다). 예전엔 네이버 지도가 위 56px 만 비워, 전국 검색에서 서울 쪽 마커가 검색창 ·
+   * 필터 밑에 숨었다('용산' → 용산역광장이 안 보임).
+   */
   safeInsets?: { top?: number; bottom?: number }
   /** 순번 마커(1,2,3…)와 Polyline 을 그릴 방문 순서. 미지정 시 일반 마커만 표시 */
   route?: Place[]
@@ -106,6 +110,7 @@ export function MapView({
         onViewportChange={onViewportChange}
         compact={compact}
         fitUserLocation={fitUserLocation}
+        safeInsets={safeInsets}
         groupOverlaps={groupOverlaps}
         groupKeyword={groupKeyword}
         onFail={() => setNaverFailed(true)}
@@ -142,6 +147,7 @@ function NaverMap({
   onViewportChange,
   compact,
   fitUserLocation = true,
+  safeInsets,
   groupOverlaps,
   groupKeyword,
   onFail,
@@ -224,7 +230,9 @@ function NaverMap({
       if (inView.length <= TAG_MAX) {
         for (const p of inView) next.set(p.id, 'tag')
       } else {
-        const reps = groupRepresentatives(inView, TAG_MAX)
+        // 검색 결과면 대표는 검색어에 더 맞는 이름
+        const kw = overlapRef.current.keyword
+        const reps = groupRepresentatives(inView, TAG_MAX, kw ? keywordPreference(kw) : undefined)
         for (const p of inView) {
           const members = reps.get(p.id)
           next.set(p.id, members === undefined ? 'hidden' : members.length > 1 ? members.length : 'tag')
@@ -375,6 +383,13 @@ function NaverMap({
       })
     }
 
+    // 맞출 때 비울 가장자리 — 위 · 아래는 떠 있는 UI 높이만큼 더(이름표 높이 여유 24px)
+    const fitPadding = {
+      top: Math.max(56, (safeInsets?.top ?? 0) + 24),
+      right: 48,
+      bottom: Math.max(56, (safeInsets?.bottom ?? 0) + 24),
+      left: 48,
+    }
     let fitted = true
     if (initialViewport && !appliedInitialViewport.current) {
       fitted = false
@@ -392,13 +407,13 @@ function NaverMap({
         map.setCenter(new naver.maps.LatLng(userLocation.lat, userLocation.lng))
         map.setZoom(14)
       } else {
-        map.fitBounds(bounds, { top: 56, right: 48, bottom: 56, left: 48 })
+        map.fitBounds(bounds, fitPadding)
       }
     } else if (places.length === 1) {
       map.setCenter(new naver.maps.LatLng(places[0].lat, places[0].lng))
       map.setZoom(15)
     } else if (places.length > 1) {
-      map.fitBounds(bounds, { top: 56, right: 48, bottom: 56, left: 48 })
+      map.fitBounds(bounds, fitPadding)
     } else {
       fitted = false
     }
@@ -410,7 +425,7 @@ function NaverMap({
     refreshTags.current()
     // 고른 장소는 아래 효과가 따로 바꾼다 — 고를 때마다 지도를 다시 맞추지 않는다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [places, route, compact, onSelect, userLocation, initialViewport, ready, fitUserLocation, groupOverlaps, groupKeyword])
+  }, [places, route, compact, onSelect, userLocation, initialViewport, ready, fitUserLocation, groupOverlaps, groupKeyword, safeInsets?.top, safeInsets?.bottom])
 
   // 고른 장소가 바뀌면 이전 것과 새 것, 두 마커의 모양만 바꾼다
   useEffect(() => {

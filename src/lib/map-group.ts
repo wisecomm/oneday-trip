@@ -56,24 +56,28 @@ function groupAt(places: Place[], level: number, prefer: Better = better) {
  * 칸이 넷으로 갈라지기만 하니 칸 수는 단계에 따라 줄지 않는다. 가장 큰 칸(0단계)은 남한 전체가
  * 칸 한두 개라 늘 답이 있다. 대표는 리뷰 많은 곳 → 평균 높은 곳 → id 순.
  */
-export function groupRepresentatives(places: Place[], max: number): Map<string, Place[]> {
-  return toResult(pickLevel(places, max))
+export function groupRepresentatives(
+  places: Place[],
+  max: number,
+  prefer: Better = better,
+): Map<string, Place[]> {
+  return toResult(pickLevel(places, max, prefer))
 }
 
-function pickLevel(places: Place[], max: number) {
-  if (places.length <= max) return { cells: groupAt(places, MAX_LEVEL), prefer: better }
+function pickLevel(places: Place[], max: number, prefer: Better) {
+  if (places.length <= max) return { cells: groupAt(places, MAX_LEVEL, prefer), prefer }
   let lo = 0
   let hi = MAX_LEVEL
-  let best = groupAt(places, 0)
+  let best = groupAt(places, 0, prefer)
   while (lo < hi) {
     const mid = Math.ceil((lo + hi) / 2)
-    const cells = groupAt(places, mid)
+    const cells = groupAt(places, mid, prefer)
     if (cells.size <= max) {
       lo = mid
       best = cells
     } else hi = mid - 1
   }
-  return { cells: best, prefer: better }
+  return { cells: best, prefer }
 }
 
 function toResult({

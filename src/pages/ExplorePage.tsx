@@ -70,8 +70,15 @@ const formatKm = (km: number) => (km < 10 ? `${Math.max(km, 0.1).toFixed(1)}km` 
 /** '+N' 묶음 목록에 한 번에 보여 주는 곳 수 — 묶음이 수천 곳일 수 있어 자른다 */
 const GROUP_LIST_MAX = 50
 
-/** 검색 결과가 이보다 많으면 지도에 점으로 그린다 */
+/** 내 위치 주변 결과가 이보다 많으면 지도에 점으로 그린다 */
 const COMPACT_SEARCH_MIN = 300
+
+/**
+ * 이름 검색 결과가 이보다 많을 때만 점으로 그린다. 그 아래는 이름표 + 겹침 묶기('+N', 대표는
+ * 검색어에 더 맞는 이름) — 겹침 묶기가 화면에 보이는 마커 수를 칸 수만큼으로 줄여 준다.
+ * 예전엔 300 이었는데, '용산'처럼 결과가 300을 넘으면 점이 돼 이름이 안 보였다.
+ */
+const COMPACT_KEYWORD_MIN = 2000
 
 /**
  * MAP-04-01 · 04. 로컬 장소 탐색 > 4.1 맛집/명소 지도 > 실시간 지도 홈
@@ -113,6 +120,20 @@ export function ExplorePage() {
    * 목록에서 고르면 그 장소 시트(selected)를 연다
    */
   const [group, setGroup] = useState<Place[] | null>(null)
+
+  /**
+   * 지도 위 상단 UI(검색창 · 지역 · 카테고리 · 검색 결과 줄)의 실제 높이 — 지도가 자동으로 맞출 때
+   * 마커를 이 아래에만 놓는다. 검색 결과 줄이 생기면 높아지므로 잴 때마다 바꾼다.
+   */
+  const topRef = useRef<HTMLDivElement>(null)
+  const [topInset, setTopInset] = useState(150)
+  useEffect(() => {
+    const el = topRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => setTopInset(Math.round(el.getBoundingClientRect().height)))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
   const [trip, setTrip] = useState<Trip | null>(null)
   const [pickedCount, setPickedCount] = useState(0)
   const [toast, setToast] = useState<string | null>(null)
@@ -360,7 +381,7 @@ export function ExplorePage() {
         onSelect={setSelected}
         onSelectGroup={setGroup}
         className="h-full w-full bg-ink-100"
-        safeInsets={{ top: 100, bottom: 120 }}
+        safeInsets={{ top: topInset, bottom: 120 }}
         userLocation={myLocation}
         // 내 위치까지 화면에 넣는 것은 '내 위치 주변'일 때만 — 강동구를 고르면 강동구에만 맞춘다
         fitUserLocation={nearMe && !searching}
@@ -370,14 +391,19 @@ export function ExplorePage() {
         initialViewport={initialViewport}
         onViewportChange={handleViewportChange}
         // 시/도 전체(경기 3,357곳 등)는 이름표 없이 점으로 — 이름표 마커 수천 개는 겹쳐
-        // 읽히지도 않고 지도가 무거워진다. 전국 검색 · 내 위치 주변도 결과가 많으면 같은 이유로 점.
+        // 읽히지도 않고 지도가 무거워진다. 내 위치 주변도 결과가 많으면 같은 이유로 점.
+        // 이름 검색은 2,000곳 넘을 때만 점 — 그 아래는 이름표 + 겹침 묶기
         compact={
-          searching || nearMe ? list.length > COMPACT_SEARCH_MIN : sigunguCode === null
+          searching
+            ? list.length > COMPACT_KEYWORD_MIN
+            : nearMe
+              ? list.length > COMPACT_SEARCH_MIN
+              : sigunguCode === null
         }
       />
 
-      {/* 상단 필터 */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 p-3">
+      {/* 상단 필터 — 높이를 재서 지도가 마커를 이 아래로만 맞추게 한다 */}
+      <div ref={topRef} className="pointer-events-none absolute inset-x-0 top-0 p-3">
         <div className="pointer-events-auto mb-2 flex items-center gap-1.5">
           <input
             value={keywordInput}
