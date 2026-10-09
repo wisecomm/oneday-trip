@@ -6,7 +6,7 @@ import {
   onNaverAuthFailure,
 } from '@/lib/naver'
 import { projectToViewport, type LatLng } from '@/lib/geo'
-import { groupRepresentatives } from '@/lib/map-group'
+import { groupOverlapping, groupRepresentatives, keywordPreference } from '@/lib/map-group'
 import { CATEGORY_COLOR, CATEGORY_ICON, type Place } from '@/lib/types'
 
 /** 지도 위치 — baseZoom 은 점 마커 모드에서 '전체를 맞춘 줌'(복원할 때 이름표 기준으로 쓴다) */
@@ -54,6 +54,14 @@ interface MapViewProps {
    * 장소에만 맞추고, 내 위치 점은 그 화면 안에 있을 때 그대로 보인다.
    */
   fitUserLocation?: boolean
+  /**
+   * 이름표 마커가 화면에서 겹치면 '+N' 대표 하나로 묶는다(줌에 맞춘 고정 격자, 확대하면 갈라짐).
+   * 지도 탭은 이름 검색 결과에 켠다 — '용산'으로 찾으면 전국 결과에 맞추느라 용산역 쪽 마커가
+   * 겹쳐 가려졌다. 점 마커 모드(compact)에는 쓰지 않는다(그쪽은 확대 시 개수로 묶는다).
+   */
+  groupOverlaps?: boolean
+  /** groupOverlaps 의 대표 고르기 — 이 검색어에 더 맞는 이름(같음 → 앞이 같음 → 포함)이 대표 */
+  groupKeyword?: string
 }
 
 /**
@@ -74,6 +82,8 @@ export function MapView({
   onViewportChange,
   compact,
   fitUserLocation,
+  groupOverlaps,
+  groupKeyword,
 }: MapViewProps) {
   // 다른 화면에서 이미 인증 실패가 확인됐다면 처음부터 폴백으로 간다
   const [naverFailed, setNaverFailed] = useState(hasNaverAuthFailed)
@@ -96,6 +106,8 @@ export function MapView({
         onViewportChange={onViewportChange}
         compact={compact}
         fitUserLocation={fitUserLocation}
+        groupOverlaps={groupOverlaps}
+        groupKeyword={groupKeyword}
         onFail={() => setNaverFailed(true)}
       />
     )
@@ -130,6 +142,8 @@ function NaverMap({
   onViewportChange,
   compact,
   fitUserLocation = true,
+  groupOverlaps,
+  groupKeyword,
   onFail,
 }: MapViewProps & { onFail: () => void }) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -171,6 +185,8 @@ function NaverMap({
   const orderIndexRef = useRef(new Map<string, number>())
   const compactRef = useRef(!!compact)
   compactRef.current = !!compact
+  const overlapRef = useRef<{ on: boolean; keyword: string }>({ on: false, keyword: '' })
+  overlapRef.current = { on: !!groupOverlaps, keyword: groupKeyword ?? '' }
 
   /** 이 마커를 지금 어떤 모양으로 그릴지 — 고른 장소는 늘 이름표 */
   const iconFor = (id: string, place: Place, selected: boolean) => {
@@ -213,6 +229,19 @@ function NaverMap({
           const members = reps.get(p.id)
           next.set(p.id, members === undefined ? 'hidden' : members.length > 1 ? members.length : 'tag')
           if (members && members.length > 1) groups.set(p.id, members)
+        }
+      }
+    } else if (!compactRef.current && overlapRef.current.on) {
+      // 겹침 묶기 — 지금 줌에서 마커 하나 크기의 칸끼리. 줌마다 다시 보고(idle), 확대하면 갈라진다
+      const all = [...markerByIdRef.current.values()].map((x) => x.place)
+      const { keyword } = overlapRef.current
+      const reps = groupOverlapping(all, map.getZoom(), keyword ? keywordPreference(keyword) : undefined)
+      for (const p of all) {
+        const members = reps.get(p.id)
+        if (members === undefined) next.set(p.id, 'hidden')
+        else if (members.length > 1) {
+          next.set(p.id, members.length)
+          groups.set(p.id, members)
         }
       }
     }
@@ -381,7 +410,7 @@ function NaverMap({
     refreshTags.current()
     // 고른 장소는 아래 효과가 따로 바꾼다 — 고를 때마다 지도를 다시 맞추지 않는다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [places, route, compact, onSelect, userLocation, initialViewport, ready, fitUserLocation])
+  }, [places, route, compact, onSelect, userLocation, initialViewport, ready, fitUserLocation, groupOverlaps, groupKeyword])
 
   // 고른 장소가 바뀌면 이전 것과 새 것, 두 마커의 모양만 바꾼다
   useEffect(() => {

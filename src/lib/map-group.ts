@@ -31,7 +31,9 @@ function better(a: Place, b: Place): number {
   )
 }
 
-function groupAt(places: Place[], level: number) {
+type Better = (a: Place, b: Place) => number
+
+function groupAt(places: Place[], level: number, prefer: Better = better) {
   const cell = GRID_BASE_DEG / 2 ** level
   const cells = new Map<string, { rep: Place; members: Place[] }>()
   for (const p of places) {
@@ -40,7 +42,7 @@ function groupAt(places: Place[], level: number) {
     if (!c) cells.set(key, { rep: p, members: [p] })
     else {
       c.members.push(p)
-      if (better(p, c.rep) < 0) c.rep = p
+      if (prefer(p, c.rep) < 0) c.rep = p
     }
   }
   return cells
@@ -55,11 +57,11 @@ function groupAt(places: Place[], level: number) {
  * 칸 한두 개라 늘 답이 있다. 대표는 리뷰 많은 곳 → 평균 높은 곳 → id 순.
  */
 export function groupRepresentatives(places: Place[], max: number): Map<string, Place[]> {
-  const result = new Map<string, Place[]>()
-  if (places.length <= max) {
-    for (const p of places) result.set(p.id, [p])
-    return result
-  }
+  return toResult(pickLevel(places, max))
+}
+
+function pickLevel(places: Place[], max: number) {
+  if (places.length <= max) return { cells: groupAt(places, MAX_LEVEL), prefer: better }
   let lo = 0
   let hi = MAX_LEVEL
   let best = groupAt(places, 0)
@@ -71,8 +73,50 @@ export function groupRepresentatives(places: Place[], max: number): Map<string, 
       best = cells
     } else hi = mid - 1
   }
-  for (const { rep, members } of best.values()) {
-    result.set(rep.id, [rep, ...members.filter((m) => m !== rep).sort(better)])
+  return { cells: best, prefer: better }
+}
+
+function toResult({
+  cells,
+  prefer,
+}: {
+  cells: Map<string, { rep: Place; members: Place[] }>
+  prefer: Better
+}): Map<string, Place[]> {
+  const result = new Map<string, Place[]>()
+  for (const { rep, members } of cells.values()) {
+    result.set(rep.id, [rep, ...members.filter((m) => m !== rep).sort(prefer)])
   }
   return result
+}
+
+/**
+ * 지도 줌에 맞춘 격자 단계 — 칸이 화면에서 대략 마커 하나(가로 MARKER_CELL_PX) 크기가 되게.
+ * 줌이 1 오르면 단계도 1 올라(칸이 넷으로 갈라져) 확대해도 대표가 흔들리지 않는다.
+ * 네이버 지도 줌은 웹 메르카토르 표준(줌 z 에서 경도 1px = 360 / (256 · 2^z) 도)이다.
+ */
+const MARKER_CELL_PX = 72
+export function levelForZoom(zoom: number): number {
+  const lngDegPerPx = 360 / (256 * 2 ** zoom)
+  const cell = MARKER_CELL_PX * lngDegPerPx * LNG_SCALE // groupAt 의 칸은 경도에 LNG_SCALE 을 곱한 단위
+  return Math.max(0, Math.min(MAX_LEVEL, Math.floor(Math.log2(GRID_BASE_DEG / cell))))
+}
+
+/**
+ * 검색어에 더 맞는 이름이 먼저 — 정확히 같음 → 앞이 같음 → 포함, 같으면 짧은 이름, 그다음 기본
+ * 대표 순서(리뷰 많은 곳 → 평균 → id). 검색 결과에서 겹친 마커의 대표를 고를 때 쓴다.
+ */
+export function keywordPreference(keyword: string): Better {
+  const k = keyword.trim()
+  const rank = (p: Place) => (p.name === k ? 0 : p.name.startsWith(k) ? 1 : 2)
+  return (a, b) => rank(a) - rank(b) || a.name.length - b.name.length || better(a, b)
+}
+
+/**
+ * 화면에서 겹치는 마커끼리 묶는다 — 줌으로 정한 단계(levelForZoom)의 고정 격자에서 같은 칸끼리.
+ * 개수와 상관없이 겹침만 본다(검색 결과 등 이름표 마커가 적어도 한곳에 몰리면 가려지므로).
+ * 대표는 prefer 순(검색이면 keywordPreference).
+ */
+export function groupOverlapping(places: Place[], zoom: number, prefer: Better = better): Map<string, Place[]> {
+  return toResult({ cells: groupAt(places, levelForZoom(zoom), prefer), prefer })
 }
