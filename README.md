@@ -40,7 +40,7 @@ Supabase 대신 localStorage 를, 네이버 지도 대신 SVG 폴백 지도를 �
 
 기능 코드가 붙지 않은 화면도 있습니다 — 홈([HomePage.tsx](src/pages/HomePage.tsx) · '하루에 다녀올 만한 곳' 로직은 [README-플로챠트.md](README-플로챠트.md)),
 내 여행 목록([TripListPage.tsx](src/pages/TripListPage.tsx)),
-장소 상세([PlaceDetailPage.tsx](src/pages/PlaceDetailPage.tsx) · 예약 RSV-05-01 을 걷어낸 뒤 남은 화면),
+장소 상세([PlaceDetailPage.tsx](src/pages/PlaceDetailPage.tsx)),
 마이페이지([MyPage.tsx](src/pages/MyPage.tsx)),
 가입([SignupPage.tsx](src/pages/SignupPage.tsx)),
 소셜 로그인 콜백([AuthCallbackPage.tsx](src/pages/AuthCallbackPage.tsx)),
@@ -53,14 +53,14 @@ Supabase 대신 localStorage 를, 네이버 지도 대신 SVG 폴백 지도를 �
 - **이동수단별 소요 시간** — [geo.ts](src/lib/geo.ts) `travelMinutes()`, 직선 거리에 1.3배 우회 계수 적용
 - **동선 최적화** — 최근접 이웃 + 2-opt ([geo.ts](src/lib/geo.ts) `optimizeOrder()`). 순서 변경 시 요약이 즉시 재계산
 - **코스 작성자 표기** — 닉네임을 쓰지 않고 '운영자' 또는 '회원'으로만 표시합니다 ([types.ts](src/lib/types.ts) `planAuthorLabel()`)
-- **순서 바꾸기** — 타임라인·동선 최적화·추천 코스 공유 세 화면 모두 드래그 핸들로 통일했습니다 (dnd-kit). 화살표 버튼은 쓰지 않습니다
+- **순서 바꾸기** — 타임라인 · 동선 최적화 두 화면이 드래그 핸들로 바꿉니다 (dnd-kit). 화살표 버튼은 쓰지 않습니다. 추천 코스 공유 화면에는 순서 조정이 없습니다 — 여행에서 정한 순서를 그대로 올립니다
 - **장소 상세 전화 연결** — TourAPI 로 받아온 `places.phone` 이 있으면 상세 페이지에 `tel:` 링크 버튼으로 노출 ([PlaceDetailPage.tsx](src/pages/PlaceDetailPage.tsx))
 
 ## Supabase 연결
 
 스키마는 CLI 마이그레이션으로 관리합니다. `supabase/migrations/` 를 모두 적용한 결과가
 [schema.sql](supabase/schema.sql) 과 같습니다. 장소 · 지역 데이터는 시드 파일이 아니라 수집
-작업([load.mjs](intent/2026-09-20-재수집-스키마-교체/load.mjs))이 운영 DB 에 바로 씁니다(2026-10-09~).
+작업([load.mjs](intent/2026-09-20-재수집-스키마-교체/load.mjs))이 운영 DB 에 바로 씁니다.
 
 ```bash
 npx supabase login                      # 브라우저 인증
@@ -106,18 +106,17 @@ Authentication > Sign In / Providers > Email 에 비슷한 토글이 나란히 �
 
 **[supabase/DATA-MODEL.md](supabase/DATA-MODEL.md) 가 정본입니다.** 관계도, 테이블별
 설계 근거, 화면→테이블 대응, RLS 가 실제로 막는 것이 거기 있습니다. 여기 표를 두면
-스키마가 바뀔 때마다 두 곳이 어긋나므로 — 실제로 한동안 어긋나 있었습니다 —
-방향만 적습니다.
+스키마가 바뀔 때마다 두 곳이 어긋나므로 방향만 적습니다.
 
-테이블은 아홉 개입니다. 지역 둘(`region_groups` · `regions`), 장소 하나(`places`),
+앱 테이블은 아홉 개입니다. 지역 둘(`region_groups` · `regions`), 장소 하나(`places`),
 사용자 하나(`profiles`), 개인 여행 둘(`trips` · `trip_items`), 공용 플랜 셋
-(`shared_plans` · `shared_plan_items` · `plan_ratings`).
+(`shared_plans` · `shared_plan_items` · `plan_ratings`). 그 밖에 수집 원본 · 실행 기록 ·
+연동 로그를 담는 `tour` 스키마가 있습니다 — 앱 API 에 열려 있지 않고 수집 작업만 씁니다.
 
 **지역 키는 이름이 아니라 TourAPI 코드 복합키입니다.** `(tour_area_code,
-tour_sigungu_code)` 로 `regions` 를 참조합니다. 이름으로 참조하던 옛 구조는
-REGION-07 에서 걷어냈습니다 —
-[intent/2026-09-20-재수집-스키마-교체/intent.md](intent/2026-09-20-재수집-스키마-교체/intent.md)
-에 왜 그렇게 했는지가 있습니다.
+tour_sigungu_code)` 로 `regions` 를 참조합니다 — 이름은 바뀌어도 키는 그대로라 개칭이 싸고,
+같은 이름의 구(서울 · 부산 강서구)도 구별됩니다. 결정 근거는
+[intent/2026-09-20-재수집-스키마-교체/intent.md](intent/2026-09-20-재수집-스키마-교체/intent.md).
 
 RLS 는 전 테이블에 걸려 있습니다. 지역과 장소는 비로그인도 읽을 수 있고, 나머지는
 자기 행만 읽고 씁니다. 공용 플랜은 올린 사람이 아니어도 읽을 수 있습니다.
@@ -146,21 +145,19 @@ RLS 는 전 테이블에 걸려 있습니다. 지역과 장소는 비로그인�
 한도에 걸려 죽어도 이미 받은 것은 건너뛰고 다음 날 그 자리에서 이어받습니다.
 받은 원본은 DB 의 `tour` 스키마에 쌓이고, 수집 바로 뒤
 [load.mjs](intent/2026-09-20-재수집-스키마-교체/load.mjs) 가 바뀐 장소만 `places` 에
-반영합니다 — 파일을 거치지 않습니다(2026-10-09~). 실행 기록은 `tour.runs`, 화면 출력
+반영합니다 — 파일을 거치지 않습니다. 실행 기록은 `tour.runs`, 화면 출력
 (연동 로그)은 `tour.run_logs`(30일)에 남습니다 — 보는 법은
 [수집 폴더 README](intent/2026-09-20-재수집-스키마-교체/README.md).
 
 **TourAPI 가 주지 않는 값은 정직하게 비워 뒀습니다.**
 
-- **평점 · 가격대** — TourAPI 는 둘 다 주지 않습니다. 근거 없이 채워 두던
-  `source_rating`(전부 null) · `price_level`(전부 2) 칸은 지웠습니다
-  (`20261008050000` · `20261008060000`). 화면의 ★ 는 사용자 리뷰 평균
-  (`rating_avg`, 리뷰 3건 이상)입니다.
+- **평점 · 가격대** — TourAPI 는 둘 다 주지 않아 칸을 두지 않습니다. 화면의 ★ 는 사용자
+  리뷰 평균(`rating_avg`, 리뷰 3건 이상)입니다.
 - `tags` — 응답의 정해진 칸 · 메뉴 글자에서 확실히 나오는 다섯을 채웁니다: 카페 ·
   주차가능 · 심야영업(자정 이후 마감 · 24시간 · 익일) · 오마카세 · 디저트(메뉴). 규칙은
-  `load.mjs` 의 `tagsOf()`. 회원 취향 태그(온보딩)도 이 다섯뿐입니다 — 근거 없이 고를
-  수만 있던 태그(비건 · 노포 · 뷰맛집 · 가성비 · 혼밥 · 로컬맛집 등)는 뺐습니다. 상세를 아직 받지 못한 장소는 '카페' 말고는
-  비어 있고, 수집이 진행되면 채워집니다.
+  `load.mjs` 의 `tagsOf()`. 회원 취향 태그(온보딩)도 이 다섯뿐입니다 — 장소에 붙지 않는
+  태그는 고를 수 없게 했습니다. 상세를 아직 받지 못한 장소는 '카페' 말고는 비어 있고,
+  수집이 진행되면 채워집니다.
 - **술집(`sulzip`) 카테고리가 희박합니다.** TourAPI 는 관광·가족 단위 콘텐츠 위주라
   주점 분류(FD04)가 원래 적습니다. 카카오 로컬 API 등 다른 소스로 보충하기 전까지는
   이 상태가 유지됩니다.
@@ -173,7 +170,7 @@ RLS 는 전 테이블에 걸려 있습니다. 지역과 장소는 비로그인�
 일정에 넣으면 동선이 170km 서쪽으로 끌려갑니다.
 이 장소들은 드롭다운·지도·추천 어디에도 나오지 않습니다 — 제외 조건은
 [db.ts](src/lib/db.ts) 한 곳에만 있습니다. 코드를 손으로 고치면 `region_source` 가
-`manual` 로 자동 전환되어 바로 서비스에 등장하고, 재수집을 다시 돌려도 그 값이
+`manual` 로 자동 전환되어 바로 서비스에 등장하고, 다음 반영 때도 그 값이
 덮어써지지 않습니다.
 
 **최근 행정구역 개편이 주소에는 들어와 있지만 지역 배정은 한 세대 뒤처져
@@ -234,12 +231,11 @@ values (6, 12, '동래구', '2626000000', 35.2048, 129.0788, 12);
 ```
 
 **이름에 시/도 접두어를 붙이지 마세요.** `'부산 동래구'` 가 아니라 `'동래구'` 입니다.
-옛 구조에서는 이름이 키여서 서울 강서구와 부산 강서구를 구분하려고 접두어를 붙였지만,
-지금은 `(tour_area_code, tour_sigungu_code)` 가 키라 같은 이름이 시/도마다 따로 있어도
-됩니다. 접두어를 붙이면 화면에 '부산 부산 동래구'처럼 나옵니다.
+`(tour_area_code, tour_sigungu_code)` 가 키라 같은 이름이 시/도마다 따로 있어도 되고,
+접두어를 붙이면 화면에 '부산 부산 동래구'처럼 나옵니다.
 
 `tour_sigungu_code` 는 그 시/도 안에서만 유일하면 됩니다. TourAPI 가 실제로 쓰는
-코드를 넣는 것이 원칙입니다 — 손으로 지어낸 코드를 쓰면 다음 재수집 때 그 구의
+코드를 넣는 것이 원칙입니다 — 손으로 지어낸 코드를 쓰면 다음 반영 때 그 구의
 장소가 들어오지 못합니다. 코드는 `sigunguCode2` 오퍼레이션으로 확인할 수 있고,
 받아 둔 결과가
 DB 의 `tour.code_tables`(`sigungu-N`)에 있습니다.
@@ -305,7 +301,7 @@ Open-Meteo (날씨, 인증 불필요)
 
 ## 구현되지 않은 것
 
-- **예약 · 결제** — 2026-10-08 에 걷어냈습니다. 실제 PG 연동 없이 UI 만 있던 기능이라 예약 화면 · 홈 '예약 확정' · 마이페이지 '예약 내역' · 타임라인 배지와 `reservations` 테이블을 모두 지웠습니다 (`20261008040000_drop_reservations.sql`).
+- **예약 · 결제** — 없습니다. 실제 PG 연동 없이 UI 만 있던 기능이라 화면과 테이블을 모두 걷어냈습니다.
 - **카카오톡 공유** — Kakao SDK 대신 Web Share API(미지원 시 클립보드 복사)를 사용합니다. 템플릿 카드가 필요하면 Kakao JavaScript SDK 의 `Kakao.Share.sendDefault()` 로 교체하세요.
 - **추천 장소와 추천 코스를 한 목록에 섞기** — 지금은 추천 탭 안에 하위 탭으로 나란히 둡니다. 한 목록에서 순위를 매기려면 장소 단위와 하루 단위를 같은 점수로 재야 하고, 담은 수(`clone_count`)가 쌓이기 전에는 그 점수의 재료가 없습니다.
 

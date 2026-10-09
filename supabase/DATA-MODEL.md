@@ -41,13 +41,16 @@ erDiagram
 세 덩어리로 읽으면 쉽습니다.
 
 **카탈로그** — `region_groups` → `regions` → `places`. 전부 공개 읽기이고,
-TourAPI 수집 배치가 채웁니다.
+TourAPI 수집 작업(`load.mjs`)이 매일 채웁니다.
 
 **개인** — `profiles`, `trips` → `trip_items`. 전부
 `auth.uid()` 소유자만 접근합니다. **관리자도 남의 것을 읽지 못합니다.**
 
 **공유** — `shared_plans` → `shared_plan_items`, 거기 붙는 `plan_ratings`.
 공개 읽기이고, 개인 덩어리와는 **복사로만** 오갑니다.
+
+**수집 원본** — `tour` 스키마(관계도 밖). TourAPI 원본 · 수집 상태 · 실행 기록 · 연동 로그.
+앱 API 에 열려 있지 않고 수집 작업만 씁니다 — 아래 `tour.*`.
 
 ### 우리가 만들지 않은 테이블 — `auth.users`
 
@@ -76,9 +79,8 @@ delete cascade` 가 두 세계를 잇는 유일한 연결이고, 나머지 개�
 
 **읽지 않습니다.** 이메일이 필요하면 세션의 `user.email` 을 씁니다.
 
-> 이 테이블이 없는 환경에서 마이그레이션을 재생하려면 스텁이 필요합니다.
-> 2026-10-01 검증 때 임시 Postgres 에 `auth.users` 와 `auth.uid()` 를 직접
-> 만들어 넣어야 했습니다.
+> 이 테이블이 없는 환경(임시 Postgres)에서 마이그레이션을 재생하려면 `auth.users` 와
+> `auth.uid()` 스텁을 먼저 만들어 넣어야 합니다.
 
 ---
 
@@ -93,7 +95,7 @@ delete cascade` 가 두 세계를 잇는 유일한 연결이고, 나머지 개�
 **쓰는 화면** 목적지·지역 필터가 있는 거의 모든 화면. `useRegions` 훅이
 한 번 읽어 공유합니다.
 
-**RLS** 누구나 읽기. 쓰기는 수집 배치(service_role)만.
+**RLS** 누구나 읽기. 쓰기는 수집 작업(`tour_collector` — 넣기 · 고치기 정책)만.
 
 **주의** 각 시/도마다 `(N, -1) 미판정` 행이 있습니다. 판정에 실패한 장소를
 격리하는 자리이지 실제 지역이 아니며, `db.ts` 가 `.gte('tour_sigungu_code', 0)`
@@ -108,7 +110,8 @@ delete cascade` 가 두 세계를 잇는 유일한 연결이고, 나머지 개�
 `RecommendPage` · `AdminPlacesPage`(수동 등록 목록) · `MapView` ·
 `HomePage`(`home_picks()` 로 고른 5곳).
 
-**RLS** 누구나 읽기. insert·update·delete 는 `is_admin()` 만.
+**RLS** 누구나 읽기. insert·update·delete 는 `is_admin()`. 수집 작업(`tour_collector`)은
+`source = 'tour'` 행만 넣고 고칩니다(배치가 채우는 칸만 · 지우기 없음).
 
 **주의** `rating_avg`·`rating_count` 는 **사용자 리뷰 집계**이고 트리거가
 유지합니다 — 앱이 쓰지 않습니다. 개인 리뷰(`trip_items.rating`)를 사람당 가장
@@ -141,7 +144,7 @@ delete cascade` 가 두 세계를 잇는 유일한 연결이고, 나머지 개�
 `ilike '%키워드%'` 는 앞뒤가 열려 있어 B-tree 를 못 타고, 인덱스가 없으면
 15,518행을 매번 전부 훑습니다. **다만 한글은 DB 로케일에 걸려 있습니다** —
 로케일이 `C` 면 한글에서 삼중자가 하나도 나오지 않아 인덱스가 걸려도 거르지
-못합니다(2026-10-02 실측). 운영 DB 는 `en_US.UTF-8` 이라 제 몫을 합니다.
+못합니다. 운영 DB 는 `en_US.UTF-8` 이라 제 몫을 합니다.
 다른 환경에 올릴 때는 `select datcollate from pg_database where datname =
 current_database();` 를 먼저 보세요.
 
@@ -152,9 +155,8 @@ current_database();` 를 먼저 보세요.
 **쓰는 화면** `ProfileSetupPage`(온보딩) · `MyPage`. 역할은 `RequireAdmin`
 가드와 모든 `is_admin()` 판정이 읽습니다.
 
-**RLS** 자기 행만. **관리자도 남의 프로필을 못 읽습니다.** 닉네임을 밖으로
-내보내는 창(`public_profiles` 뷰)이 있었지만 2026-10-01 에 없앴습니다 —
-플랜 작성자는 '운영자' 아니면 '회원' 으로만 표시합니다.
+**RLS** 자기 행만. **관리자도 남의 프로필을 못 읽습니다.** 닉네임을 밖으로 내보내는
+창은 없습니다 — 플랜 작성자는 '운영자' 아니면 '회원' 으로만 표시합니다.
 
 **주의** `role` 은 API 로 바꿀 수 없습니다. 테이블 단위 update·insert 권한을
 회수하고 `nickname`·`taste_tags` 만 다시 주었으며, 트리거가 한 겹 더 막습니다.
@@ -177,9 +179,9 @@ current_database();` 를 먼저 보세요.
 
 **주의** `published_plan_id` 는 반대 방향, **이 여행을 공유해 만든 코스**입니다
 (Q23). 있으면 타임라인이 공유 버튼 대신 '공유 완료'를 보여 주고, 같은 여행을 두 번
-공유하지 못하게 막습니다. 연결을 **비공개 쪽에 둔 것이 요점**입니다 — 코스 쪽에
-여행 id 를 싣던 `source_trip_id` 는 공개 행에 개인 여행 id 가 드러나서 뺐습니다.
-`trips` 는 주인만 읽으므로 이 값은 밖으로 나가지 않습니다. 코스가 지워지면 null.
+공유하지 못하게 막습니다. 연결을 **비공개 쪽에 둔 것이 요점**입니다 — 코스(공개 행)에
+여행 id 를 실으면 개인 여행 id 가 드러납니다. `trips` 는 주인만 읽으므로 이 값은 밖으로
+나가지 않습니다. 코스가 지워지면 null.
 
 ### `shared_plans` · `shared_plan_items` — 공용 플랜
 
@@ -200,22 +202,19 @@ current_database();` 를 먼저 보세요.
 `author_user_id` 가 null 입니다.
 
 **스냅샷입니다.** 올리는 순간 `trip_items` 를 그대로 베껴 넣고, 그 뒤로
-원본 여행을 고쳐도 공개본은 바뀌지 않습니다. 원본으로 되돌아가는 링크도
-없습니다 — `source_trip_id` 는 2026-10-01 에 뺐습니다. 비공개 여행의 id 를
-전체 공개 테이블에 적는 셈이었고, 읽는 쪽은 "다시 올리기" 링크 하나뿐인데
-그 경로가 갱신이 아니라 **중복 플랜 생성**이었기 때문입니다. 고친 동선을
-올리려면 지금은 새로 올리고 옛 플랜을 내립니다.
+원본 여행을 고쳐도 공개본은 바뀌지 않습니다. 공개본에서 원본으로 되돌아가는 링크도
+없습니다 — 비공개 여행의 id 를 전체 공개 테이블에 적게 되기 때문입니다. 고친 동선을
+올리려면 새로 올리고 옛 플랜을 내립니다.
 
 `rating_avg` 는 평가가 없으면 **0 이 아니라 null** 입니다. 0 이면 '평가 없음'과
-'최하점'이 구분되지 않습니다(지금은 지운 `places.source_rating` 에서 겪은 함정).
+'최하점'이 구분되지 않습니다.
 
 **`hidden_reason` 은 "누가 내렸는가"입니다.** 작성자가 스스로 내리면 null,
 운영자가 내리면 `admin`, 담긴 장소가 사라져 트리거가 내리면 `place_removed`
 입니다. 이 구분이 있어야 작성자 화면에서 "다시 공개" 버튼을 내보낼지
 판단할 수 있습니다 — 운영자가 내린 것을 작성자가 바로 되살리면 운영자
-조치가 의미를 잃습니다. 네 번째 값이던 `reported` 는 2026-10-01 에
-신고 기능을 통째로 걷어내면서 없앴습니다 — 사용자가 공유하면 확인 없이
-바로 뜨고, 사후 통제는 운영자 조치만 남습니다.
+조치가 의미를 잃습니다. 신고 기능은 없습니다 — 사용자가 공유하면 확인 없이
+바로 뜨고, 사후 통제는 운영자 조치뿐입니다.
 
 ### `plan_ratings` — 플랜 만족도
 
@@ -236,20 +235,19 @@ update 할 권한이 없어서, 호출자 권한으로 돌면 **RLS 에 막혀 �
 
 ### `tour.*` — 수집 원본 (앱이 쓰지 않음)
 
-**담는 것** TourAPI 에서 받은 원본과 수집 상태 · 실행 기록. 2026-10-09 부터 수집
-(`collect.mjs`)과 반영(`load.mjs`)은 파일 없이 이 테이블만 읽고 씁니다 — 예전 수집 폴더의
-`raw/` 파일을 옮겨 왔습니다(검토: `intent/2026-10-09-서버-수집-검토/검토.md`).
+**담는 것** TourAPI 에서 받은 원본과 수집 상태 · 실행 기록 · 연동 로그. 수집(`collect.mjs`)과
+반영(`load.mjs`)은 파일 없이 이 테이블만 읽고 씁니다(실행 방법: 수집 폴더 README).
 
-| 테이블 | 한 행 | 예전 파일 |
-| --- | --- | --- |
-| `code_tables` | 코드표 하나 | `area-codes.json` · `sigungu-N.json` |
-| `list_fetches` | 받은 목록 단위(시/도 · 시군구 · 타입) | `places-*.json` 이 있다는 사실 |
-| `list_items` | 장소 하나의 목록 원본 · 수정일 · 표출 중단(`hidden_at`) | `places-*.json` 항목 · `hidden.json` |
-| `details` | 장소 하나의 상세 원본 · `mt` | `detail-*.json` 항목 |
-| `sync_state` | 상태 값 하나 | `sync-state.json` |
-| `runs` | 실행 한 번 — 시작 · 끝 · 호출 수 · 결과 · 오류 | `summary.txt` |
-| `run_logs` | 그 실행이 화면에 찍은 줄 하나(순서 · 시각 · info/error · 내용). 30일 지나면 실행 끝에 지운다 | `logs/*.log` |
-| `place_out` | 지난번 `places` 에 반영한 결과의 지문 | (새로) |
+| 테이블 | 한 행 |
+| --- | --- |
+| `code_tables` | 시/도 · 시군구 코드표 하나 |
+| `list_fetches` | 받은 목록 단위(시/도 · 시군구 · 타입) — 있으면 그 목록은 다시 받지 않는다 |
+| `list_items` | 장소 하나의 목록 원본 · 수정일 · 표출 중단(`hidden_at`) |
+| `details` | 장소 하나의 상세 원본 · `mt`(받을 때의 목록 수정일) |
+| `sync_state` | 상태 값 하나(목록 갱신 기준 시각 · 사라진 장소 확인 날짜 등) |
+| `runs` | 실행 한 번 — 시작 · 끝 · 호출 수 · 결과 · 오류 |
+| `run_logs` | 그 실행이 화면에 찍은 줄 하나(순서 · 시각 · info/error · 내용). 30일 지나면 실행 끝에 지운다 |
+| `place_out` | 지난번 `places` 에 반영한 결과의 지문 — 바뀐 장소만 고르는 데 쓴다 |
 
 **RLS · 권한** `tour` 는 앱 API 노출 스키마(`config.toml`)에 없고 `anon` · `authenticated`
 에는 스키마 사용 권한도 없습니다. 수집 작업만 `tour_collector` 역할로 읽고 씁니다. 이
@@ -257,7 +255,7 @@ update 할 권한이 없어서, 호출자 권한으로 돌면 **RLS 에 막혀 �
 `alter role tour_collector with login password '…';` 로 정합니다 — 비밀번호를 git 에
 남기지 않기 위해서입니다.
 
-`tour_collector` 는 `load.mjs` 로 운영 테이블에도 바로 씁니다(`20261012000000`). `region_groups` ·
+`tour_collector` 는 `load.mjs` 로 운영 테이블에도 바로 씁니다. `region_groups` ·
 `regions` 는 넣기 · 고치기, `places` 는 배치가 채우는 칸만 넣기 · 고치기(별점 · 등록자 · 출처 칸은
 못 바꿈)이고, RLS 정책이 `source = 'tour'` 행으로 묶습니다 — 관리자 등록 장소는 못 건드립니다.
 지우는 권한은 어디에도 없습니다. `places` 의 관리자 정책이 `is_admin()` 을 부르므로 그 실행
@@ -306,10 +304,10 @@ update 한 번으로 바꾸는 단순 속성입니다. 복합 FK 는 `MATCH SIMP
 다시 올리기" 배너가 필요합니다.
 
 **수동 장소 id 는 `m-` 접두사.** TourAPI contentid 는 전부 숫자라 겹칠 수
-없습니다. 다만 실제 안전장치는 접두사 규약이 아니라 수집 배치의
-`on conflict ... where places.source = 'tour'` 입니다. 관리자 직접 등록과
-요청 승인은 **같은 시퀀스**(`manual_place_seq`)를 씁니다 — 둘 중 하나를
-지울 일이 생겨도 시퀀스는 남겨야 합니다.
+없습니다. 다만 실제 안전장치는 접두사 규약이 아니라 수집 작업의
+`on conflict ... where places.source = 'tour'` 와 `tour_collector` 의 RLS 정책
+(`source = 'tour'` 행만)입니다. 수동 id 는 `admin_create_place()` 안에서만
+`manual_place_seq` 로 매깁니다.
 
 **`security definer` 를 쓴 자리와 이유.**
 
@@ -317,17 +315,18 @@ update 한 번으로 바꾸는 단순 속성입니다. 복합 FK 는 `MATCH SIMP
 |---|---|
 | `is_admin()` | 정책 안에서 `profiles` 를 읽으면 그 테이블의 RLS 가 또 평가돼 무한 재귀 |
 | `clone_shared_plan()` | RLS 아래에서 남의 `clone_count` 를 올릴 수 없음 |
-| `admin_create_place()` | 같은 시퀀스로 id 를 매겨야 함 |
+| `admin_create_place()` | 시퀀스(`manual_place_seq`)로 id 를 매기는 길을 하나로 묶음 |
 | `plan_ratings_refresh()` | 평가자가 남의 `shared_plans` 를 update 할 수 없음 |
 | `shared_plan_items_hide_parent()` | 같은 이유 |
-| `place_rating_recompute()` · `trip_items_rating_refresh()` · `trips_rating_refresh()` | 리뷰 쓴 사람의 권한이면 RLS 때문에 **자기 리뷰만으로** 평균을 냄(오류 없이 틀린 값), 게다가 `places` 쓰기는 관리자만 |
+| `place_rating_recompute()` · `trip_items_rating_refresh()` · `trips_rating_refresh()` | 리뷰 쓴 사람의 권한이면 RLS 때문에 **자기 리뷰만으로** 평균을 냄(오류 없이 틀린 값), 게다가 `places` 의 별점 칸은 아무도 직접 못 씀 |
 | `profiles_guard_role()` | **반대로 definer 면 안 됨** — 정의자 권한 안에서는 `current_user` 가 호출자가 아니라 함수 소유자가 되어 판정이 항상 통과 |
 
 **장소가 사라지면 플랜을 내립니다.** `shared_plan_items` 는 `on delete
 cascade` 로 `places` 를 참조하는데, 항목만 조용히 지우면 3곳짜리 플랜이
 2곳이 된 채 공개돼 있고 아무도 모릅니다. 반대로 FK 를 `restrict` 로 걸면
-재수집 배치가 통째로 실패합니다. 그래서 cascade 를 두고, 트리거가 부모
-플랜을 `hidden_reason = 'place_removed'` 로 내립니다.
+관리자가 장소를 지울 수 없습니다. 그래서 cascade 를 두고, 트리거가 부모
+플랜을 `hidden_reason = 'place_removed'` 로 내립니다. 수집 작업은 장소를 지우지
+않습니다 — TourAPI 에서 내려간 장소는 `hidden_at` 으로 숨깁니다.
 
 **DB 를 나누지 않습니다.** "여행과 플랜을 다른 DB 로" 라는 생각이 나올
 자리인데, 나누면 평가 자격 검사(`plan_ratings` 정책이 `trips` 를 봅니다),
@@ -350,8 +349,9 @@ cascade` 로 `places` 를 참조하는데, 항목만 조용히 지우면 3곳짜
 - 운영자 플랜을 자기 것으로 가로채기
 - 담지 않은 사람의 평가, `user_id` 를 속인 평가, 작성자의 자기 플랜 평가
 - 남의 평가 수정·삭제
-- `status='approved'` 로 요청 위조, 남의 요청 조회, 요청 자가 승인
 - 비관리자의 `admin_create_place()` 직접 호출
+- 비로그인 · 회원의 `tour` 스키마 접근(스키마 사용 권한부터 없음)
+- 수집 작업(`tour_collector`)의 관리자 등록 장소 수정, 장소 삭제, 별점 · 등록자 칸 수정
 
 반대로 **열려 있어야 하는 것**: 비로그인의 지역·장소·공개 플랜·만족도 조회.
 공유 링크를 받은 사람이 로그인 벽을 먼저 만나면 공유가 성립하지 않습니다.
