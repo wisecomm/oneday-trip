@@ -13,13 +13,16 @@
  *   node collect.mjs --detail-only  # 이미 받은 목록으로 상세만
  *   node collect.mjs --report-only  # 이미 받은 파일로 리포트만 다시 출력
  *   node collect.mjs --backfill-mt  # 예전에 받은 상세에 modifiedtime 채우기 (호출 0회)
- *   node collect.mjs --sync-dry     # 목록 갱신만 미리보기 — 파일을 바꾸지 않는다
- *   node collect.mjs --no-sync      # 목록 갱신을 건너뛴다
+ *   node collect.mjs --sync-dry     # 목록 갱신 · 사라진 장소 확인만 미리보기 — 파일을 바꾸지 않는다
+ *   node collect.mjs --no-sync      # 목록 갱신 · 사라진 장소 확인을 건너뛴다
  *
  * 목록 갱신(syncLists): 매 실행 첫머리에 전국 목록을 수정일 순으로 받아, 마지막
  * 확인 이후 새로 생기거나 고쳐진 장소만 시군구 목록 파일에 반영한다. 그러면 뒤의
  * 상세 단계가 mt 를 비교해 그 장소들의 상세만 다시 받는다. 목록 파일이 있으면
  * 건너뛰던 탓에 첫 수집 뒤 바뀐 장소를 알아채지 못하던 빈틈을 메운다.
+ *
+ * 사라진 장소 확인(syncHidden): 이어서 동기화 목록을 날짜별로 받아 표출 중단된 장소를
+ * 목록 파일에서 빼고 raw/hidden.json 에 남긴다. load.mjs 가 그 장소를 숨긴다(hidden_at).
  *
  * 전국이면 호출이 6,700회쯤 된다. 개발계정 일일 한도(1,000건 수준)에 걸려 죽으면
  * 다음 날 그냥 다시 실행하면 이어서 받는다 — 장소 단위로 이미 받은 것을 건너뛴다.
@@ -330,7 +333,10 @@ function toKstStamp(d) {
  *   · 같은 시군구 파일에 있으면 그 항목을 새 값으로 바꾼다
  *   · 다른 파일에 있으면(시군구가 바뀐 경우) 옛 파일에서 빼고 새 파일에 넣는다
  *   · 처음 보는 장소면 그 시군구 파일에 더한다
- *   · 그 시군구 · 타입 파일이 아예 없으면(코드표 밖 시군구 등) 건너뛰고 센다
+ *   · 시군구는 areacode · sigungucode 로, 비어 있으면 법정동 코드로 찾는다. 그래도 못
+ *     찾으면 이미 있는 장소는 원래 파일에서 고치고, 처음 보는 장소는 건너뛰고 센다
+ *   · 목록을 아직 한 번도 받지 않은 타입은 건너뛴다 — 나중에 통째로 받을 때 최신으로 온다
+ *   · 받은 타입의 바뀐 장소를 하나도 잇지 못하면 기준 시각을 앞당기지 않는다
  *
  * 사라진 장소는 여기서 다루지 않는다 — 목록에 안 나오는 것과 지워진 것을 구별할 수 없다.
  */
@@ -396,17 +402,53 @@ async function syncLists({ dry }) {
   }
 
   // 반영
+  // 시군구 파일을 고르는 법: 목록 항목의 areacode · sigungucode 를 먼저 쓰고, 비어 있으면
+  // 법정동 코드(lDongRegnCd · lDongSignguCd)를 지금 목록 파일들에서 가장 많이 짝지어진
+  // 시군구로 바꿔 쓴다. 그래도 못 정하면 이미 있는 장소는 원래 파일에 그대로 고친다.
+  const lDongVotes = new Map() // 'lDong시도-lDong시군구' → Map('area-sigungu' → 개수)
+  for (const items of lists.values()) {
+    for (const x of items) {
+      if (!x.lDongRegnCd || !x.areacode) continue
+      const k = `${x.lDongRegnCd}-${x.lDongSignguCd ?? ''}`
+      const v = `${x.areacode}-${x.sigungucode || '0'}`
+      const m = lDongVotes.get(k) ?? new Map()
+      m.set(v, (m.get(v) ?? 0) + 1)
+      lDongVotes.set(k, m)
+    }
+  }
+  const areaKeyOf = (it) => {
+    if (it.areacode) return `${it.areacode}-${it.sigungucode || '0'}`
+    const m = lDongVotes.get(`${it.lDongRegnCd ?? ''}-${it.lDongSignguCd ?? ''}`)
+    return m ? [...m].sort((a, b) => b[1] - a[1])[0][0] : null
+  }
+  const collectedTypes = new Set([...lists.keys()].map((f) => Number(f.split('-')[3].split('.')[0])))
+
   const touched = new Set()
-  const stats = { updated: 0, moved: 0, added: 0, noFile: 0 }
+  const stats = { updated: 0, moved: 0, added: 0, noFile: 0, notCollected: 0 }
   const samples = []
+  const misses = []
   for (const { type, it } of changed) {
-    const id = String(it.contentid)
-    const target = `places-${it.areacode}-${it.sigungucode || '0'}-${type.id}.json`
-    if (!lists.has(target)) {
-      stats.noFile++
+    // 아직 목록을 한 번도 받지 않은 타입은 나중에 목록을 통째로 받을 때 최신으로 온다
+    if (!collectedTypes.has(type.id)) {
+      stats.notCollected++
       continue
     }
+    const id = String(it.contentid)
     const from = where.get(id)
+    const key = areaKeyOf(it)
+    let target = key ? `places-${key}-${type.id}.json` : null
+    if (target && !lists.has(target)) target = null
+    if (!target) target = from ?? null // 시군구를 못 정하면 있던 자리에서 고친다
+    if (!target) {
+      stats.noFile++
+      if (misses.length < 3) {
+        misses.push(
+          `${it.title} — areacode=${it.areacode ?? '없음'} sigungucode=${it.sigungucode ?? '없음'} ` +
+            `lDong=${it.lDongRegnCd ?? '없음'}-${it.lDongSignguCd ?? '없음'}`,
+        )
+      }
+      continue
+    }
     if (from && from !== target) {
       lists.set(from, lists.get(from).filter((x) => String(x.contentid) !== id))
       touched.add(from)
@@ -427,17 +469,161 @@ async function syncLists({ dry }) {
   }
   console.log(
     `    반영: 수정 ${stats.updated} · 새로 ${stats.added} · 시군구 이동 ${stats.moved}` +
-      (stats.noFile ? ` · 해당 목록 파일 없음 ${stats.noFile}(건너뜀)` : '') +
+      (stats.noFile ? ` · 시군구를 못 정함 ${stats.noFile}(건너뜀)` : '') +
+      (stats.notCollected ? ` · 목록을 아직 안 받은 타입 ${stats.notCollected}(나중에 통째로 받음)` : '') +
       ` — 호출 ${calls - callsBefore}회`,
+  )
+  for (const x of samples) console.log(`      ${x}`)
+  for (const x of misses) console.log(`      ? ${x}`)
+
+  // 받은 목록 타입의 바뀐 장소를 하나도 반영하지 못했다면 규칙이 어긋난 것이다 — 기준 시각을
+  // 앞당기지 않아야 고친 뒤 다음 실행이 같은 장소들을 다시 받는다.
+  const applicable = changed.length - stats.notCollected
+  const allMissed = applicable > 0 && stats.noFile === applicable
+  if (allMissed) {
+    console.log('    ✗ 바뀐 장소를 하나도 시군구 파일에 잇지 못함 — 기준 시각을 그대로 둠(다음 실행이 다시 받음)')
+  }
+
+  if (dry) return
+  for (const f of touched) await writeJson(path.join(OUT, f), lists.get(f))
+  if (allMissed) return
+  await writeJson(SYNC_STATE, {
+    ...((await exists(SYNC_STATE)) ? await readJson(SYNC_STATE) : {}),
+    lastSyncStartedAt: startedAt.toISOString(),
+    lastSyncStamp: toKstStamp(startedAt),
+    lastResult: stats,
+  })
+}
+
+/* ───────────────────────────── 사라진 장소 ───────────────────────────── */
+
+const HIDDEN_FILE = path.join(OUT, 'hidden.json')
+/** 한 날짜에서 최대 이만큼 쪽을 넘긴다 — 하루 수정이 수천 건이면 날짜 인자가 안 먹은 것이다 */
+const HIDDEN_MAX_PAGES = 30
+
+/** YYYYMMDD 에 하루를 더하거나 뺀다 */
+function shiftDay(ymd, days) {
+  const d = new Date(Date.UTC(+ymd.slice(0, 4), +ymd.slice(4, 6) - 1, +ymd.slice(6, 8) + days))
+  return d.toISOString().slice(0, 10).replaceAll('-', '')
+}
+
+/**
+ * TourAPI 에서 표출 중단(showflag 0)된 장소를 목록 파일에서 빼고 raw/hidden.json 에 남긴다.
+ * load.mjs 가 그 장소의 hidden_at 을 채운다 — DB 행은 지우지 않는다 (README-플로챠트.md).
+ *
+ * 표출 중단된 장소는 일반 목록(areaBasedList2)에 나오지 않아 목록 갱신으로는 모른다.
+ * 동기화 목록(areaBasedSyncList2)은 표출 여부(showflag)와 함께 나오므로 날짜(modifiedtime
+ * YYYYMMDD)마다 받아 본다. 같은 장소가 여러 날짜에 나오면 수정일이 가장 늦은 기록만 본다.
+ *
+ * 반영 규칙
+ *   · 표출 중단 + 우리 목록에 있음 → 목록 파일에서 빼고 hidden.json 에 기록(상세는 남김)
+ *   · 표출 중단 + 우리 목록에 없음 → 받은 적 없는 장소, 무시
+ *   · 표출 중 + hidden.json 에 있음 → 되살림(목록 파일에 새 기록으로 되돌리고 hidden 에서 뺌)
+ *
+ * 안전장치 — 하나라도 걸리면 아무것도 바꾸지 않는다
+ *   · 응답 장소의 수정일이 요청한 날짜가 아님 → 날짜 인자가 듣지 않는 것
+ *   · 응답에 showflag 칸이 하나도 없음 → 무엇을 숨길지 알 수 없음
+ */
+async function syncHidden({ dry }) {
+  const callsBefore = calls
+  const state = (await exists(SYNC_STATE)) ? await readJson(SYNC_STATE) : {}
+
+  const files = (await readdir(OUT)).filter((f) => /^places-\d+-\d+-\d+\.json$/.test(f))
+  if (files.length === 0) return
+  const lists = new Map()
+  const where = new Map()
+  let oldest = Infinity
+  for (const f of files) {
+    const items = await readJson(path.join(OUT, f))
+    lists.set(f, items)
+    for (const it of items) where.set(String(it.contentid), f)
+    oldest = Math.min(oldest, (await stat(path.join(OUT, f))).mtimeMs)
+  }
+
+  const today = toKstStamp(new Date()).slice(0, 8)
+  const from = shiftDay(state.hiddenCheckedDate ?? toKstStamp(new Date(oldest)).slice(0, 8), -1)
+  const dates = []
+  for (let d = from; d <= today; d = shiftDay(d, 1)) dates.push(d)
+  console.log(`사라진 장소 확인${dry ? ' (미리보기)' : ''}: ${from} ~ ${today} (${dates.length}일)`)
+
+  const latest = new Map() // contentid → 가장 늦은 기록
+  for (const date of dates) {
+    for (let pageNo = 1; pageNo <= HIDDEN_MAX_PAGES; pageNo++) {
+      const { items, totalCount } = await call('areaBasedSyncList2', {
+        modifiedtime: date,
+        numOfRows: NUM_OF_ROWS,
+        pageNo,
+      })
+      await sleep(DELAY_MS)
+      for (const it of items) {
+        const mt = String(it.modifiedtime ?? '')
+        if (!mt.startsWith(date)) {
+          throw new Error(`${date} 를 물었는데 수정일 ${mt} 인 장소가 옴 — 날짜 인자가 듣지 않음, 적용하지 않음`)
+        }
+        const id = String(it.contentid)
+        const prev = latest.get(id)
+        if (!prev || String(prev.modifiedtime) <= mt) latest.set(id, it)
+      }
+      if (items.length === 0 || pageNo * NUM_OF_ROWS >= totalCount) break
+      if (pageNo === HIDDEN_MAX_PAGES) {
+        throw new Error(`${date}: ${HIDDEN_MAX_PAGES}쪽을 넘김 — 적용하지 않음`)
+      }
+    }
+  }
+
+  const records = [...latest.values()]
+  const flagged = records.filter((it) => it.showflag !== undefined && it.showflag !== null && it.showflag !== '')
+  if (records.length > 0 && flagged.length === 0) {
+    throw new Error(`기록 ${records.length}건에 showflag 칸이 없음 — 적용하지 않음`)
+  }
+
+  const hidden = (await exists(HIDDEN_FILE)) ? await readJson(HIDDEN_FILE) : {}
+  const touched = new Set()
+  const stats = { records: records.length, off: 0, hidden: 0, unknown: 0, restored: 0 }
+  const samples = []
+  for (const it of flagged) {
+    const id = String(it.contentid)
+    if (String(it.showflag) === '0') {
+      stats.off++
+      const f = where.get(id)
+      if (!f) {
+        if (!hidden[id]) stats.unknown++
+        continue
+      }
+      const old = lists.get(f).find((x) => String(x.contentid) === id)
+      lists.set(f, lists.get(f).filter((x) => String(x.contentid) !== id))
+      where.delete(id)
+      touched.add(f)
+      hidden[id] = { mt: it.modifiedtime ?? null, title: old?.title ?? it.title ?? '', file: f, item: old ?? null }
+      stats.hidden++
+      if (samples.length < 8) samples.push(`숨김 · ${hidden[id].title} (${it.modifiedtime})`)
+    } else if (hidden[id]) {
+      const h = hidden[id]
+      if (!where.has(id) && h.file && lists.has(h.file)) {
+        // 새 기록을 덮어 수정일이 바뀌게 한다 — 상세 단계가 그 장소를 다시 받는다
+        lists.get(h.file).push({ ...(h.item ?? {}), ...it })
+        where.set(id, h.file)
+        touched.add(h.file)
+      }
+      delete hidden[id]
+      stats.restored++
+      if (samples.length < 8) samples.push(`되살림 · ${h.title} (${it.modifiedtime})`)
+    }
+  }
+  console.log(
+    `    바뀐 기록 ${stats.records} · 표출 중단 ${stats.off} → 숨김 ${stats.hidden}` +
+      (stats.unknown ? ` (받은 적 없는 장소 ${stats.unknown})` : '') +
+      ` · 되살림 ${stats.restored} · 지금 숨긴 장소 ${Object.keys(hidden).length} — 호출 ${calls - callsBefore}회`,
   )
   for (const x of samples) console.log(`      ${x}`)
 
   if (dry) return
   for (const f of touched) await writeJson(path.join(OUT, f), lists.get(f))
+  await writeJson(HIDDEN_FILE, hidden)
   await writeJson(SYNC_STATE, {
-    lastSyncStartedAt: startedAt.toISOString(),
-    lastSyncStamp: toKstStamp(startedAt),
-    lastResult: stats,
+    ...((await exists(SYNC_STATE)) ? await readJson(SYNC_STATE) : {}),
+    hiddenCheckedDate: today,
+    hiddenLastResult: stats,
   })
 }
 
@@ -666,6 +852,11 @@ async function main() {
       await syncLists({ dry: args.includes('--sync-dry') })
     } catch (e) {
       console.error(`    ✗ 목록 갱신 건너뜀: ${e.message}`)
+    }
+    try {
+      await syncHidden({ dry: args.includes('--sync-dry') })
+    } catch (e) {
+      console.error(`    ✗ 사라진 장소 확인 건너뜀: ${e.message}`)
     }
     console.log('')
     if (args.includes('--sync-dry')) return

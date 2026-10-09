@@ -1,6 +1,6 @@
 -- =====================================================================
 -- 지역 + 장소 카탈로그 — intent/2026-09-20-재수집-스키마-교체/load.mjs 가 생성
--- 생성: 2026-10-08T23:36:28.539Z
+-- 생성: 2026-10-08T23:56:40.702Z
 -- 시/도 18 · 시군구 247 · 장소 15518
 --
 -- 손으로 고치지 마세요. 수집 원본(raw/)을 고치고 load.mjs 를 다시 돌리세요.
@@ -1317,6 +1317,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -2371,6 +2372,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -3365,6 +3367,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -4304,6 +4307,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -5170,6 +5174,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -5975,6 +5980,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -6801,6 +6807,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -7777,6 +7784,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -8797,6 +8805,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -9761,6 +9770,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -10608,6 +10618,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -11544,6 +11555,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -12520,6 +12532,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -13418,6 +13431,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -14012,6 +14026,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -14690,6 +14705,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -15400,6 +15416,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -16099,6 +16116,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -16617,6 +16635,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -17135,6 +17154,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -17653,6 +17673,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -18171,6 +18192,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -18689,6 +18711,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -19207,6 +19230,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -19725,6 +19749,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -20243,6 +20268,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -20761,6 +20787,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -21279,6 +21306,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -21797,6 +21825,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -22315,6 +22344,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -22833,6 +22863,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,
@@ -22869,6 +22900,7 @@ on conflict (id) do update set
   image_url = excluded.image_url, summary = excluded.summary,
   open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,
   content_type = excluded.content_type,
+  hidden_at = null,
   source_modified_at = excluded.source_modified_at,
   tour_area_code = case when public.places.region_source = 'manual'
     then public.places.tour_area_code else excluded.tour_area_code end,

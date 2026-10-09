@@ -111,6 +111,8 @@ export const places = {
           .select(PLACE_SELECT, withCount ? { count: 'exact' } : undefined)
           // 미판정 장소는 목록에 넣지 않는다
           .gte('tour_sigungu_code', 0)
+          // TourAPI 에서 표출 중단된 장소도 — 이미 담긴 일정에서는 get · 조인으로 그대로 연다
+          .is('hidden_at', null)
         if (filter.areaCode !== undefined) q = q.eq('tour_area_code', filter.areaCode)
         if (filter.sigunguCode !== undefined) q = q.eq('tour_sigungu_code', filter.sigunguCode)
         if (filter.categories?.length) q = q.in('category', filter.categories)
@@ -145,6 +147,7 @@ export const places = {
     const ratings = demoPlaceRatings()
     return demo.places.map((p) => withDemoRating(p, ratings)).filter((p) => {
       if (p.tour_sigungu_code < 0) return false
+      if (p.hidden_at) return false
       if (filter.areaCode !== undefined && p.tour_area_code !== filter.areaCode) return false
       if (filter.sigunguCode !== undefined && p.tour_sigungu_code !== filter.sigunguCode)
         return false

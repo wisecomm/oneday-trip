@@ -91,6 +91,12 @@ export function PlaceDetailPage() {
             <h2 className="text-[20px] font-extrabold text-ink-800">{place.name}</h2>
           </div>
           <p className="mt-1 text-[13px] text-ink-500">{place.address}</p>
+          {place.hidden_at && (
+            <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-[12.5px] text-amber-800">
+              관광정보에서 내려간 장소입니다. 문을 닫았거나 정보가 바뀌었을 수 있어요 — 가기 전에
+              확인해 주세요.
+            </p>
+          )}
           {/* 값이 없는 항목은 줄째 숨긴다 — 빈 칸이 남은 화면이 그 영역이 아예 없는
               화면보다 나쁘다. 가격대는 없다 — TourAPI 에 가격 정보가 없다 (price_level 칸은 20261008050000 에서 삭제). */}
           {shownRating(place) && (

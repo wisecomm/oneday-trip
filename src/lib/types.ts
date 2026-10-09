@@ -154,6 +154,12 @@ export interface Place {
    * 32 숙박). 화면 분류는 category 가 정한다 — 28 · 38 · 32 도 명소다. 수동 등록은 null.
    */
   content_type: number | null
+  /**
+   * TourAPI 에서 표출 중단된 시각. null(또는 없음)이면 보인다. 숨긴 장소는 지도 · 검색 ·
+   * 추천 · 홈 후보에서 빠지고, 이미 담긴 타임라인 · 장소 상세는 그대로 열며 안내를 붙인다.
+   * 데모 시드에는 이 칸이 없다 — 데모 장소는 늘 보인다.
+   */
+  hidden_at?: string | null
 }
 
 /**

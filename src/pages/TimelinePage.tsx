@@ -543,6 +543,9 @@ function SortableItem({
                 {place?.open_hours ? ` · ${openHoursOneLine(place.open_hours)}` : ''}
               </span>
               {visited && <span className="badge bg-emerald-50 text-emerald-700">방문 완료</span>}
+              {place?.hidden_at && (
+                <span className="badge bg-amber-50 text-amber-700">관광정보에서 내려감</span>
+              )}
             </div>
           </button>
 

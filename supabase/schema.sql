@@ -187,8 +187,13 @@ create table public.places (
   -- TourAPI 원래 콘텐츠 타입(39 음식점 · 12 관광지 · 14 문화시설 · 28 레포츠 · 38 쇼핑 ·
   -- 32 숙박). 앱 분류는 category 가 정하고 이 칸은 출처를 남긴다 — 28 · 38 · 32 는
   -- category 'spot' 으로 명소에 함께 나온다. 수동 등록 행은 null. 허용 값 제약은 일부러
-  -- 두지 않는다(타입을 늘릴 때 load.mjs 한 줄로 끝나게). (마이그레이션 alter 순서대로 끝)
+  -- 두지 않는다(타입을 늘릴 때 load.mjs 한 줄로 끝나게).
   content_type       smallint,
+  -- TourAPI 에서 표출 중단(showflag 0)된 시각. null 이면 보인다. 숨긴 장소는 지도 ·
+  -- 검색 · 추천 · 홈 후보에서만 빠지고, 이미 담긴 타임라인은 그대로 연다 — 행을 지우면
+  -- trip_items 가 cascade 로 함께 지워진다. 표출이 재개되면 시드 upsert 가 null 로
+  -- 되돌린다. (마이그레이션 alter 순서대로 끝)
+  hidden_at          timestamptz,
   foreign key (tour_area_code, tour_sigungu_code)
     references public.regions (tour_area_code, tour_sigungu_code)
 );
@@ -752,6 +757,7 @@ begin
      cross join lateral (select public.distance_km(v_lat, v_lng, p.lat, p.lng) as km) d
      where p.tour_sigungu_code >= 0
        and p.category in ('spot', 'babzip', 'cafe')
+       and p.hidden_at is null
   ),
   ranked as (
     -- 평균·개수는 리뷰 묶음 안에서만 순서를 정한다. 나머지는 null 로 두어 거리만 본다.

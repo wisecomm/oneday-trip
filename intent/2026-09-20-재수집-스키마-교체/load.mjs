@@ -323,6 +323,12 @@ const num = (v) => (v === null || v === undefined || Number.isNaN(v) ? 'null' : 
 
 const readJson = async (p) => JSON.parse(await readFile(p, 'utf8'))
 
+/** TourAPI modifiedtime(한국 시각 YYYYMMDDHHMMSS) → timestamptz 문자열. 없으면 null */
+function stampToTs(mt) {
+  const m = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/.exec(String(mt ?? ''))
+  return m ? `${m[1]}-${m[2]}-${m[3]} ${m[4]}:${m[5]}:${m[6]}+09` : null
+}
+
 async function main() {
   const args = process.argv.slice(2)
   const dry = args.includes('--dry')
@@ -627,6 +633,8 @@ async function main() {
     L.push('  image_url = excluded.image_url, summary = excluded.summary,')
     L.push('  open_hours = excluded.open_hours, phone = excluded.phone, tags = excluded.tags,')
     L.push('  content_type = excluded.content_type,')
+    // 목록에 다시 나왔으면 표출이 재개된 것이다 — 숨김을 푼다
+    L.push('  hidden_at = null,')
     L.push('  source_modified_at = excluded.source_modified_at,')
     // 사람이 고친 지역은 재적재가 덮지 않는다
     L.push("  tour_area_code = case when public.places.region_source = 'manual'")
@@ -643,6 +651,30 @@ async function main() {
     L.push("  where public.places.source = 'tour';")
     L.push('')
   }
+
+  // ── 표출 중단된 장소 숨기기 ─────────────────────────────────────
+  //
+  // collect.mjs 가 동기화 목록(areaBasedSyncList2)에서 표출 중단(showflag 0)을 보면 그
+  // 장소를 목록 파일에서 빼고 raw/hidden.json 에 남긴다. 지우지 않고 hidden_at 만
+  // 채운다 — 행을 지우면 그 장소를 담은 타임라인 항목이 cascade 로 사라진다.
+  // 목록에 다시 들어온 장소(위 upsert 가 숨김을 푼다)는 여기서 다시 숨기지 않는다.
+  const inApp = new Set(places.map((p) => p.id))
+  const hidden = files.has('hidden.json') ? await readJson(path.join(RAW, 'hidden.json')) : {}
+  const hiddenRows = Object.entries(hidden)
+    .filter(([id]) => !inApp.has(id))
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+  if (hiddenRows.length) {
+    L.push(`-- 표출 중단 ${hiddenRows.length}곳 — 숨김(hidden_at). 이미 숨긴 행의 시각은 그대로 둔다`)
+    L.push('update public.places p set hidden_at = coalesce(v.at, now()) from (values')
+    L.push(
+      hiddenRows
+        .map(([id, h]) => `  (${q(id)}, ${q(stampToTs(h.mt))}::timestamptz)`)
+        .join(',\n') + '\n) v(id, at)',
+    )
+    L.push("where p.id = v.id and p.source = 'tour' and p.hidden_at is null;")
+    L.push('')
+  }
+  stats.hidden = hiddenRows.length
 
   L.push('commit;')
   const sql = L.join('\n')
@@ -900,6 +932,7 @@ async function main() {
   for (const p of places) byType.set(p.content_type, (byType.get(p.content_type) ?? 0) + 1)
   console.log(`  앱: ${CONTENT_TYPES.map((t) => `${t}=${byType.get(t) ?? 0}`).join(' · ')}`)
   console.log(`  raw 에만: ${[...rawOnly].map(([t, n]) => `${t}=${n}`).join(' · ') || '없음'}`)
+  console.log(`  표출 중단으로 숨김: ${stats.hidden}곳 (raw/hidden.json)`)
   console.log('')
   console.log('── 시군구별 장소 수 (미판정 제외) ──')
   for (const [k, v] of Object.entries(buckets)) console.log(`  ${k.padEnd(6)}곳: ${v}개`)
