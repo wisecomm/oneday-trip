@@ -106,66 +106,103 @@ export interface Ranked extends Scored {
   tie: number
 }
 
-/** 후보 전부에 점수를 매겨 높은 순으로 — 동점은 무작위(새로고침마다 다른 곳이 섞인다) */
-export function rankAll(list: Place[], ctx: TripContext, profile: Profile | null): Ranked[] {
-  const scored = list.map((place) => {
-    // 0) 방문자 별점. 리뷰 1~2건도 점수에는 들어가지만(작게), 근거 라벨은
-    //    화면의 ★ 와 같은 기준(3건 이상)일 때만 단다 — 한 사람의 별점이 드러나지 않게.
-    let score = ratingScore(place)
-    const reasons: string[] = []
-    const shown = shownRating(place)
-    if (shown && shown.avg >= 4) reasons.push(`방문자 별점 ★${shown.avg.toFixed(1)}`)
+/**
+ * 장소 하나의 점수와 근거 라벨 — 추천 장소의 규칙 그 자체.
+ *
+ * **DB 함수 recommend_places(`20261016000000_recommend_places.sql`)가 같은 점수를 SQL 로 매긴다** —
+ * 운영의 추천 장소는 서버가 고른 10곳에 이 함수로 근거 라벨만 다시 붙인다. 규칙을 바꾸면 두 곳을
+ * 함께 바꾸고 플로챠트/추천.md 도 고친다.
+ */
+export function scorePlace(
+  place: Place,
+  ctx: Pick<TripContext, 'hour' | 'weather'>,
+  tasteTags: string[],
+): { score: number; reasons: string[] } {
+  // 0) 방문자 별점. 리뷰 1~2건도 점수에는 들어가지만(작게), 근거 라벨은
+  //    화면의 ★ 와 같은 기준(3건 이상)일 때만 단다 — 한 사람의 별점이 드러나지 않게.
+  let score = ratingScore(place)
+  const reasons: string[] = []
+  const shown = shownRating(place)
+  if (shown && shown.avg >= 4) reasons.push(`방문자 별점 ★${shown.avg.toFixed(1)}`)
 
-    // 1) 취향 태그 일치 — 개인화 세그먼트
-    const matched = profile?.taste_tags.filter((t) => place.tags.includes(t)) ?? []
-    if (matched.length > 0) {
-      score += matched.length * 3
-      reasons.push(`취향 태그 ${matched.join('·')}`)
-    }
+  // 1) 취향 태그 일치 — 개인화 세그먼트
+  const matched = tasteTags.filter((t) => place.tags.includes(t))
+  if (matched.length > 0) {
+    score += matched.length * 3
+    reasons.push(`취향 태그 ${matched.join('·')}`)
+  }
 
-    // 2) 시간대 맥락
-    const h = ctx.hour
-    if (h >= 11 && h < 14 && place.category === 'babzip') {
+  // 2) 시간대 맥락
+  const h = ctx.hour
+  if (h >= 11 && h < 14 && place.category === 'babzip') {
+    score += 4
+    reasons.push('점심 시간대')
+  }
+  // 저녁 식사 — 없으면 맑은 저녁 추천이 술집 · 명소로만 채워져 밥집이 빠졌다
+  if (h >= 17 && h < 21 && place.category === 'babzip') {
+    score += 4
+    reasons.push('저녁 시간대')
+  }
+  if (h >= 14 && h < 18 && place.category === 'cafe') {
+    score += 4
+    reasons.push('오후 카페 타임')
+  }
+  if (h >= 18 && place.category === 'sulzip') {
+    score += 4
+    reasons.push('저녁 술자리')
+  }
+  if (h >= 9 && h < 17 && place.category === 'spot') {
+    score += 2
+    reasons.push('낮 시간 관광')
+  }
+
+  // 3) 날씨 맥락 — 비/눈이면 실내를, 맑으면 야외를 우대
+  if (ctx.weather === 'rain' || ctx.weather === 'snow') {
+    if (place.category === 'cafe') {
       score += 4
-      reasons.push('점심 시간대')
+      reasons.push(`${WEATHER_LABEL[ctx.weather]} 날 실내`)
     }
-    // 저녁 식사 — 없으면 맑은 저녁 추천이 술집 · 명소로만 채워져 밥집이 빠졌다
-    if (h >= 17 && h < 21 && place.category === 'babzip') {
-      score += 4
-      reasons.push('저녁 시간대')
-    }
-    if (h >= 14 && h < 18 && place.category === 'cafe') {
-      score += 4
-      reasons.push('오후 카페 타임')
-    }
-    if (h >= 18 && place.category === 'sulzip') {
-      score += 4
-      reasons.push('저녁 술자리')
-    }
-    if (h >= 9 && h < 17 && place.category === 'spot') {
-      score += 2
-      reasons.push('낮 시간 관광')
-    }
+    if (place.category === 'spot') score -= 3
+  } else if (ctx.weather === 'clear' && place.category === 'spot') {
+    score += 3
+    reasons.push('맑은 날 야외')
+  }
 
-    // 3) 날씨 맥락 — 비/눈이면 실내를, 맑으면 야외를 우대
-    if (ctx.weather === 'rain' || ctx.weather === 'snow') {
-      if (place.category === 'cafe') {
-        score += 4
-        reasons.push(`${WEATHER_LABEL[ctx.weather]} 날 실내`)
-      }
-      if (place.category === 'spot') score -= 3
-    } else if (ctx.weather === 'clear' && place.category === 'spot') {
-      score += 3
-      reasons.push('맑은 날 야외')
-    }
+  return { score, reasons }
+}
 
-    return { place, score, reasons, tie: Math.random() }
-  })
+/**
+ * 동점 순서 — 씨앗(seed)과 장소 id 로 정해지는 0~1 값(FNV-1a). 같은 씨앗이면 늘 같은 순서라
+ * '더 보기'로 쪽을 넘겨도 순서가 흔들리지 않고, 화면을 다시 열면 씨앗이 바뀌어 섞인다.
+ * 데모 모드용 — 운영은 DB 함수가 md5(seed || id) 로 같은 일을 한다.
+ */
+export function tieHash(seed: string, id: string): number {
+  let h = 0x811c9dc5
+  for (const ch of seed + id) {
+    h ^= ch.charCodeAt(0)
+    h = Math.imul(h, 0x01000193) >>> 0
+  }
+  return h / 2 ** 32
+}
 
-  // 점수가 같으면 무작위로 — 목록이 이름순으로 오므로, 그대로 두면 동점 장소 중
-  // 가나다순 앞쪽만 늘 뽑힌다(리뷰가 거의 없는 지금은 대부분이 동점이다).
-  // 그래서 같은 조건이라도 새로고침할 때마다 다른 곳이 섞여 나온다.
-  return scored.sort((a, b) => b.score - a.score || a.tie - b.tie)
+/**
+ * 후보 전부에 점수를 매겨 높은 순으로. 동점은 tieOf(장소 id) 순 — 없으면 무작위
+ * (리뷰가 거의 없는 지금은 대부분 동점이라, 그대로 두면 가나다순 앞쪽만 뽑힌다).
+ */
+export function rankAll(
+  list: Place[],
+  ctx: TripContext,
+  profile: Profile | null,
+  tieOf?: (id: string) => number,
+): Ranked[] {
+  const tags = profile?.taste_tags ?? []
+  return list
+    .map((place) => ({
+      place,
+      ...scorePlace(place, ctx, tags),
+      tie: tieOf ? tieOf(place.id) : Math.random(),
+    }))
+    .sort((a, b) => b.score - a.score || a.tie - b.tie)
 }
 
 /**

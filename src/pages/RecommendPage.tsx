@@ -1,14 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
-import { places as placesApi, tripItems, trips } from '@/lib/db'
+import { recommendPlaces, tripItems, trips } from '@/lib/db'
 import { useRegions } from '@/hooks/useRegions'
 import {
   contextLabel,
   fetchWeather,
-  rankAll,
-  takePage,
-  type Ranked,
+  scorePlace,
   type Scored,
   type TripContext,
 } from '@/lib/recommend'
@@ -43,44 +41,64 @@ export function RecommendPage({ embedded = false }: { embedded?: boolean } = {})
   const [sigunguCode, setSigunguCode] = useState<number | null>(null)
   const [ctx, setCtx] = useState<TripContext | null>(null)
   const [feed, setFeed] = useState<Scored[]>([])
-  /** 아직 보여 주지 않은 후보 — 점수 순서 그대로. '더 보기'가 여기서 다음 쪽을 꺼낸다 */
-  const [pool, setPool] = useState<Ranked[]>([])
+  /** 이 지역 후보 전체 수 — '추천 더 보기 · 10 / N곳' */
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  /**
+   * 동점 순서 씨앗 — 지역을 고를 때마다 새로 정한다. 같은 씨앗이면 서버가 같은 순서로 고르므로
+   * '더 보기'로 쪽을 넘겨도 순서가 흔들리지 않고, 화면을 다시 열면 섞인다.
+   * 요청 번호도 함께 — 지역을 바꾼 뒤 늦게 온 이전 응답을 버린다.
+   */
+  const seedRef = useRef('')
+  const requestRef = useRef(0)
   const [myTrips, setMyTrips] = useState<Trip[]>([])
   // 로그인하지 않았거나 나의 여행 로딩이 끝나야 '다가오는 여행 목적지' 기본값을 확정할 수 있다
   const [myTripsLoaded, setMyTripsLoaded] = useState(false)
   const [saveTarget, setSaveTarget] = useState<Scored | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
+  /** 서버가 고른 장소에 근거 라벨을 붙인다 — 점수 규칙은 서버와 같은 scorePlace() */
+  const withReasons = useCallback(
+    (list: Awaited<ReturnType<typeof recommendPlaces>>['places'], c: TripContext): Scored[] =>
+      list.map((place) => ({ place, ...scorePlace(place, c, profile?.taste_tags ?? []) })),
+    [profile],
+  )
+
+  /**
+   * 첫 쪽 — 서버(recommend_places)가 이 지역 장소에 점수를 매겨 10곳만 돌려준다. 예전처럼 지역
+   * 장소를 전부(경기 3,357곳) 받아 브라우저에서 매기지 않는다.
+   */
   const load = useCallback(async () => {
+    if (areaCode === null) return
+    const req = ++requestRef.current
+    seedRef.current = Math.random().toString(36).slice(2, 10)
     setLoading(true)
     try {
       // 날씨는 시군구 단위로 갈라 볼 필요가 없어, 선택된 시/도의 중심 좌표를 그대로 쓴다
       const anchor = groups.find((g) => g.tour_area_code === areaCode)
-      const filter =
-        areaCode === null
-          ? {}
-          : sigunguCode === null
-            ? { areaCode }
-            : { areaCode, sigunguCode }
-      const [list, weather] = await Promise.all([
-        placesApi.list(filter),
-        anchor ? fetchWeather(anchor.lat, anchor.lng) : Promise.resolve({ weather: 'clear' as const, temperature: null }),
-      ])
+      const weather = anchor
+        ? await fetchWeather(anchor.lat, anchor.lng)
+        : { weather: 'clear' as const, temperature: null }
       const now = new Date()
-      const nextCtx: TripContext = {
-        hour: now.getHours(),
-        weekday: now.getDay(),
-        ...weather,
-      }
+      const nextCtx: TripContext = { hour: now.getHours(), weekday: now.getDay(), ...weather }
+      const res = await recommendPlaces({
+        areaCode,
+        sigunguCode: sigunguCode ?? undefined,
+        ctx: nextCtx,
+        tasteTags: profile?.taste_tags ?? [],
+        exclude: [],
+        count: PAGE_SIZE,
+        seed: seedRef.current,
+      })
+      if (req !== requestRef.current) return
       setCtx(nextCtx)
-      const { page, rest } = takePage(rankAll(list, nextCtx, profile), PAGE_SIZE)
-      setFeed(page)
-      setPool(rest)
+      setFeed(withReasons(res.places, nextCtx))
+      setTotal(res.total)
     } finally {
-      setLoading(false)
+      if (req === requestRef.current) setLoading(false)
     }
-  }, [areaCode, sigunguCode, groups, profile])
+  }, [areaCode, sigunguCode, groups, profile, withReasons])
 
   // 지역 목록·나의 여행이 모두 준비되면 기본 지역을 정한다 — 오늘 이후로 예정된
   // 여행이 있으면 그중 가장 빠른 여행의 목적지로, 없으면 첫 상위 지역으로 맞춘다
@@ -102,11 +120,27 @@ export function RecommendPage({ embedded = false }: { embedded?: boolean } = {})
     void load()
   }, [load, areaCode, groups.length])
 
-  /** 다음 쪽 — 이미 받아 점수를 매긴 후보에서 꺼내므로 다시 조회하지 않는다 */
-  function showMore() {
-    const { page, rest } = takePage(pool, PAGE_SIZE)
-    setFeed((prev) => [...prev, ...page])
-    setPool(rest)
+  /** 다음 쪽 — 보인 곳을 빼고 같은 씨앗 · 같은 맥락으로 서버에 다음 10곳을 묻는다 */
+  async function showMore() {
+    if (areaCode === null || !ctx) return
+    const req = requestRef.current
+    setLoadingMore(true)
+    try {
+      const res = await recommendPlaces({
+        areaCode,
+        sigunguCode: sigunguCode ?? undefined,
+        ctx,
+        tasteTags: profile?.taste_tags ?? [],
+        exclude: feed.map((f) => f.place.id),
+        count: PAGE_SIZE,
+        seed: seedRef.current,
+      })
+      if (req !== requestRef.current) return
+      setFeed((prev) => [...prev, ...withReasons(res.places, ctx)])
+      setTotal(res.total)
+    } finally {
+      setLoadingMore(false)
+    }
   }
 
   function changeGroup(next: number) {
@@ -281,13 +315,14 @@ export function RecommendPage({ embedded = false }: { embedded?: boolean } = {})
           </ul>
         )}
 
-        {!loading && pool.length > 0 && (
+        {!loading && feed.length < total && (
           <button
             type="button"
-            onClick={showMore}
-            className="mt-3 w-full rounded-xl border border-ink-200 bg-white py-3 text-[13.5px] font-bold text-ink-700 shadow-sm hover:bg-ink-50"
+            onClick={() => void showMore()}
+            disabled={loadingMore}
+            className="mt-3 w-full rounded-xl border border-ink-200 bg-white py-3 text-[13.5px] font-bold text-ink-700 shadow-sm hover:bg-ink-50 disabled:opacity-60"
           >
-            추천 더 보기 · {feed.length} / {feed.length + pool.length}곳
+            {loadingMore ? '불러오는 중…' : `추천 더 보기 · ${feed.length} / ${total}곳`}
           </button>
         )}
       </div>

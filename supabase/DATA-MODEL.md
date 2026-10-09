@@ -118,7 +118,7 @@ delete cascade` 가 두 세계를 잇는 유일한 연결이고, 나머지 개�
 최근 한 표씩 모아 평균을 냅니다. 리뷰가 여행 삭제 · 탈퇴 cascade 로 지워져도
 트리거가 받으므로 어긋나지 않습니다. 리뷰가 없으면 평균은 null, 개수는 0.
 장소 반영(`load.mjs`) upsert 는 이 두 칸을 건드리지 않습니다. 홈 '하루에 다녀올
-만한 곳'(`home_picks()`)과 추천 장소 점수(`recommend.ts` 의 `ratingScore()`, 리뷰가 적을수록
+만한 곳'(`home_picks()`)과 추천 장소 점수(`recommend.ts` 의 `ratingScore()` · DB `recommend_places()`, 리뷰가 적을수록
 3점 쪽으로 당긴 베이지안 평균)가 이 평균을 쓰고, 리뷰 3건 이상이면 장소 카드 · 상세 ·
 지도 시트 · 추천 장소에 ★ 로 보입니다 — 자세한 흐름은
 `플로챠트/홈.md`.
@@ -131,8 +131,8 @@ delete cascade` 가 두 세계를 잇는 유일한 연결이고, 나머지 개�
 **`hidden_at` 이 있으면 숨긴 장소입니다.** TourAPI 에서 표출 중단(showflag 0)된 장소로,
 수집(`collect.mjs`)이 동기화 목록에서 골라 `tour.list_items.hidden_at` 에 적고, 반영(`load.mjs`)이 `update` 로 채웁니다. 행을 지우지 않는 것은
 `trip_items` · `shared_plan_items` 가 cascade 로 참조해서입니다 — 지우면 사용자 타임라인
-항목이 함께 사라집니다. 숨긴 장소는 `places.list()` (지도 · 검색 · 추천) · `home_picks()` ·
-`places_nearest()` 에서만 빠지고, `places.get()` · 타임라인 조인은 그대로 돌려줘 화면이 '관광정보에서 내려간
+항목이 함께 사라집니다. 숨긴 장소는 `places.list()` (지도 · 검색) · `home_picks()` ·
+`places_nearest()` · `recommend_places()` 에서만 빠지고, `places.get()` · 타임라인 조인은 그대로 돌려줘 화면이 '관광정보에서 내려간
 장소' 안내를 붙입니다. 표출이 재개되면 다음 반영의 upsert 가 null 로 되돌립니다.
 
 **목록은 나눠 받습니다.** API 는 한 번에 최대 1,000행(`config.toml` 의 `max_rows`)만
@@ -273,7 +273,7 @@ update 할 권한이 없어서, 호출자 권한으로 돌면 **RLS 에 막혀 �
 | HomePage | trips, places(`home_picks()`), regions(기준점 기본값) |
 | ExplorePage (지도) | places(내 위치 주변은 `places_nearest()`), regions, trips, trip_items |
 | PlaceDetailPage | places |
-| RecommendPage (추천 장소) | places, regions, trips, trip_items — 비회원은 places·regions 만 |
+| RecommendPage (추천 장소) | places(`recommend_places()` 로 10곳씩), regions, trips, trip_items — 비회원은 places·regions 만 |
 | TripCreatePage → TripRulesPage | regions, trips, trip_items |
 | TimelinePage | trips, trip_items |
 | RoutePage | trips, trip_items |
