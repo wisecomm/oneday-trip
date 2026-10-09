@@ -194,30 +194,47 @@ export function formatDuration(minutes: number): string {
   return m === 0 ? `약 ${h}시간` : `약 ${h}시간 ${m}분`
 }
 
+/** 위치를 못 얻은 까닭 — 화면이 안내 문구를 고르는 데 쓴다 */
+export type LocateFailure = 'denied' | 'timeout' | 'unavailable' | 'unsupported'
+
+export type LocateResult = { at: LatLng; reason: null } | { at: null; reason: LocateFailure }
+
 /**
- * 현재 위치. 권한 거부 · 미지원 · timeoutMs 안에 응답이 없으면 null.
+ * 현재 위치와, 못 얻었다면 그 까닭.
  *
  * 브라우저의 timeout 옵션은 권한 창이 떠 있는 동안에는 흐르지 않는다. 그래서
  * 따로 타이머를 걸어 권한 창을 포함해 timeoutMs 가 지나면 끝낸다 — 그 뒤에
- * 허용해도 이번에는 쓰지 않고, 다음 방문부터 바로 쓴다.
+ * 허용하면 다음 호출(화면의 '다시 찾기' 등)부터 쓴다.
+ *
+ * fresh 면 브라우저가 기억해 둔 위치를 쓰지 않고 새로 잰다(사용자가 직접 다시 찾을 때).
+ * 아니면 10분 안에 잰 위치를 그대로 쓴다.
  */
-export function currentPosition(timeoutMs: number): Promise<LatLng | null> {
+export function locate(timeoutMs: number, { fresh = false }: { fresh?: boolean } = {}): Promise<LocateResult> {
   return new Promise((resolve) => {
     if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
-      resolve(null)
+      resolve({ at: null, reason: 'unsupported' })
       return
     }
-    const timer = setTimeout(() => resolve(null), timeoutMs)
+    const timer = setTimeout(() => resolve({ at: null, reason: 'timeout' }), timeoutMs)
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         clearTimeout(timer)
-        resolve({ lat: coords.latitude, lng: coords.longitude })
+        resolve({ at: { lat: coords.latitude, lng: coords.longitude }, reason: null })
       },
-      () => {
+      (err) => {
         clearTimeout(timer)
-        resolve(null)
+        resolve({
+          at: null,
+          reason:
+            err.code === err.PERMISSION_DENIED ? 'denied' : err.code === err.TIMEOUT ? 'timeout' : 'unavailable',
+        })
       },
-      { timeout: timeoutMs, maximumAge: 10 * 60 * 1000 },
+      { timeout: timeoutMs, maximumAge: fresh ? 0 : 10 * 60 * 1000 },
     )
   })
+}
+
+/** 현재 위치. 권한 거부 · 미지원 · timeoutMs 안에 응답이 없으면 null */
+export function currentPosition(timeoutMs: number): Promise<LatLng | null> {
+  return locate(timeoutMs).then((r) => r.at)
 }

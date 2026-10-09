@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { places as placesApi, regions as regionsApi, trips } from '@/lib/db'
-import { currentPosition, dayTripTravel, formatDuration, type LatLng } from '@/lib/geo'
+import { dayTripTravel, formatDuration, locate, type LatLng, type LocateFailure } from '@/lib/geo'
 import { type Place, type Trip } from '@/lib/types'
 import { PlaceCard } from '@/components/PlaceCard'
 import { Loading } from '@/components/ui'
@@ -17,39 +17,69 @@ export function HomePage() {
    * '하루에 다녀올 만한 곳' (README-플로챠트.md).
    *
    * 화면이 열리면 위치를 묻는다. 거부 · 미지원 · 5초 안에 응답이 없으면 서울
-   * 강남구 중심을 기준점으로 같은 흐름을 탄다. 이 섹션은 위치를 기다리느라 늦을
-   * 수 있어 나머지 홈과 따로 불러온다 — 기다리는 동안 다가오는 여행은 먼저 보인다.
+   * 강남구 중심을 기준점으로 같은 흐름을 탄다. 어느 기준인지 섹션 머리에 보이고,
+   * '다시 찾기'로 위치를 새로 재서 다시 고른다 — 권한 창에서 늦게 허용했거나
+   * 거부했다가 설정에서 허용한 경우, 자리를 옮긴 경우를 위해서다. 앱으로 돌아왔을 때
+   * 마지막으로 고른 지 10분이 지났으면 저절로 다시 고른다.
+   *
+   * 이 섹션은 위치를 기다리느라 늦을 수 있어 나머지 홈과 따로 불러온다 — 기다리는
+   * 동안 다가오는 여행은 먼저 보인다. 다시 고르는 동안에는 지금 카드를 그대로 둔다.
    */
   const [picks, setPicks] = useState<Place[]>([])
   const [picksLoading, setPicksLoading] = useState(true)
   const [origin, setOrigin] = useState<LatLng | null>(null)
+  /** 기준점이 내 위치인지 · 아니면 왜 강남인지 */
+  const [basis, setBasis] = useState<{ here: true } | { here: false; reason: LocateFailure } | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
+  const lastPickedAt = useRef(0)
+  /** 늦게 도착한 옛 요청의 결과가 새 결과를 덮지 않게 */
+  const pickRequest = useRef(0)
 
-  useEffect(() => {
-    let alive = true
-    async function loadPicks() {
-      try {
-        let base = await currentPosition(5000)
-        if (!base) {
-          // 강남 좌표는 코드에 적지 않고 지역 표의 (서울 1, 강남구 1) 에서 읽는다
-          const all = await regionsApi.list()
-          const gangnam = all.find((r) => r.tour_area_code === 1 && r.tour_sigungu_code === 1)
-          base = gangnam ? { lat: gangnam.lat, lng: gangnam.lng } : null
-        }
-        const list = await placesApi.homePicks(base, 5)
-        if (!alive) return
-        setOrigin(base)
-        setPicks(list)
-      } catch (err) {
-        console.error('[Home] 하루에 다녀올 만한 곳을 불러오지 못했습니다.', err)
-      } finally {
-        if (alive) setPicksLoading(false)
+  const loadPicks = useCallback(async (fresh: boolean) => {
+    const id = ++pickRequest.current
+    setRefreshing(true)
+    try {
+      // 사용자가 직접 다시 찾을 때는 기억해 둔 위치를 쓰지 않고, 조금 더 기다린다
+      const found = await locate(fresh ? 10000 : 5000, { fresh })
+      let base = found.at
+      if (!base) {
+        // 강남 좌표는 코드에 적지 않고 지역 표의 (서울 1, 강남구 1) 에서 읽는다
+        const all = await regionsApi.list()
+        const gangnam = all.find((r) => r.tour_area_code === 1 && r.tour_sigungu_code === 1)
+        base = gangnam ? { lat: gangnam.lat, lng: gangnam.lng } : null
+      }
+      const list = await placesApi.homePicks(base, 5)
+      if (id !== pickRequest.current) return
+      setOrigin(base)
+      setPicks(list)
+      setBasis(found.at ? { here: true } : { here: false, reason: found.reason })
+      lastPickedAt.current = Date.now()
+    } catch (err) {
+      console.error('[Home] 하루에 다녀올 만한 곳을 불러오지 못했습니다.', err)
+    } finally {
+      if (id === pickRequest.current) {
+        setRefreshing(false)
+        setPicksLoading(false)
       }
     }
-    void loadPicks()
-    return () => {
-      alive = false
-    }
   }, [])
+
+  useEffect(() => {
+    void loadPicks(false)
+    return () => {
+      pickRequest.current++ // 화면을 떠나면 늦게 온 결과를 버린다
+    }
+  }, [loadPicks])
+
+  // 앱(탭)으로 돌아왔을 때 마지막으로 고른 지 10분이 지났으면 다시 고른다
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return
+      if (lastPickedAt.current && Date.now() - lastPickedAt.current > 10 * 60 * 1000) void loadPicks(false)
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [loadPicks])
 
   useEffect(() => {
     let alive = true
@@ -132,12 +162,17 @@ export function HomePage() {
       </section>
 
       <section>
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-1 flex items-center justify-between">
           <h2 className="section-title">하루에 다녀올 만한 곳</h2>
           <Link to="/map" className="text-[13px] font-semibold text-brand-600">
             지도에서 보기
           </Link>
         </div>
+        <PickBasis
+          basis={basis}
+          refreshing={refreshing}
+          onRefresh={() => void loadPicks(true)}
+        />
         {picksLoading ? (
           <p className="hint py-6 text-center">가까운 곳을 찾는 중…</p>
         ) : picks.length === 0 ? (
@@ -177,6 +212,61 @@ function QuickLink({
       <span className="text-[14px] font-bold text-ink-800">{label}</span>
       <span className="text-[11.5px] text-ink-500">{desc}</span>
     </Link>
+  )
+}
+
+/** 위치를 못 얻은 까닭별 안내 — 기준이 강남일 때 이유를 한 마디로 붙인다 */
+const BASIS_REASON: Record<LocateFailure, string> = {
+  denied: '위치 권한이 꺼져 있어요',
+  timeout: '위치를 찾지 못했어요',
+  unavailable: '위치를 찾지 못했어요',
+  unsupported: '이 브라우저는 위치를 쓸 수 없어요',
+}
+
+/**
+ * 섹션 머리 둘째 줄: 무엇을 기준으로 골랐는지 + '다시 찾기'(내 위치를 새로 재서 다시 고른다).
+ * 권한이 꺼져 있으면 다시 찾아도 브라우저가 묻지 않으므로 설정에서 켜는 법을 함께 적는다.
+ */
+function PickBasis({
+  basis,
+  refreshing,
+  onRefresh,
+}: {
+  basis: { here: true } | { here: false; reason: LocateFailure } | null
+  refreshing: boolean
+  onRefresh: () => void
+}) {
+  if (!basis) return <div className="mb-3" />
+  const canRetry = basis.here || basis.reason !== 'unsupported'
+  return (
+    <div className="mb-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="min-w-0 text-[12.5px] text-ink-500">
+          {basis.here ? (
+            <>📍 현재 위치 기준</>
+          ) : (
+            <>
+              서울 강남구 기준 · <span className="text-ink-400">{BASIS_REASON[basis.reason]}</span>
+            </>
+          )}
+        </p>
+        {canRetry && (
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={refreshing}
+            className="shrink-0 rounded-full border border-ink-200 bg-white px-3 py-1 text-[12.5px] font-semibold text-ink-700 hover:bg-ink-50 disabled:opacity-60"
+          >
+            {refreshing ? '찾는 중…' : '↻ 다시 찾기'}
+          </button>
+        )}
+      </div>
+      {!basis.here && basis.reason === 'denied' && (
+        <p className="mt-1 text-[11.5px] leading-relaxed text-ink-400">
+          브라우저 설정 → 사이트 설정 → 위치에서 이 사이트를 허용한 뒤 다시 찾아 주세요.
+        </p>
+      )}
+    </div>
   )
 }
 
