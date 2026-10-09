@@ -2,7 +2,16 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { places as placesApi, regions as regionsApi, trips } from '@/lib/db'
-import { dayTripTravel, formatDuration, locate, type LatLng, type LocateFailure } from '@/lib/geo'
+import {
+  dayTripTravel,
+  formatDuration,
+  locate,
+  LOCATE_FAILURE_TEXT,
+  LOCATE_LABEL,
+  LOCATE_SETTINGS_HINT,
+  type LatLng,
+  type LocateFailure,
+} from '@/lib/geo'
 import { type Place, type Trip } from '@/lib/types'
 import { PlaceCard } from '@/components/PlaceCard'
 import { Loading } from '@/components/ui'
@@ -215,14 +224,6 @@ function QuickLink({
   )
 }
 
-/** 위치를 못 얻은 까닭별 안내 — 기준이 강남일 때 이유를 한 마디로 붙인다 */
-const BASIS_REASON: Record<LocateFailure, string> = {
-  denied: '위치 권한이 꺼져 있어요',
-  timeout: '위치를 찾지 못했어요',
-  unavailable: '위치를 찾지 못했어요',
-  unsupported: '이 브라우저는 위치를 쓸 수 없어요',
-}
-
 /**
  * 섹션 머리 둘째 줄: 무엇을 기준으로 골랐는지 + '다시 찾기'(내 위치를 새로 재서 다시 고른다).
  * 권한이 꺼져 있으면 다시 찾아도 브라우저가 묻지 않으므로 설정에서 켜는 법을 함께 적는다.
@@ -243,10 +244,10 @@ function PickBasis({
       <div className="flex items-center justify-between gap-2">
         <p className="min-w-0 text-[12.5px] text-ink-500">
           {basis.here ? (
-            <>📍 현재 위치 기준</>
+            <>{LOCATE_LABEL.here}</>
           ) : (
             <>
-              서울 강남구 기준 · <span className="text-ink-400">{BASIS_REASON[basis.reason]}</span>
+              서울 강남구 기준 · <span className="text-ink-400">{LOCATE_FAILURE_TEXT[basis.reason]}</span>
             </>
           )}
         </p>
@@ -257,13 +258,13 @@ function PickBasis({
             disabled={refreshing}
             className="shrink-0 rounded-full border border-ink-200 bg-white px-3 py-1 text-[12.5px] font-semibold text-ink-700 hover:bg-ink-50 disabled:opacity-60"
           >
-            {refreshing ? '찾는 중…' : '↻ 다시 찾기'}
+            {refreshing ? LOCATE_LABEL.finding : LOCATE_LABEL.refind}
           </button>
         )}
       </div>
       {!basis.here && basis.reason === 'denied' && (
         <p className="mt-1 text-[11.5px] leading-relaxed text-ink-400">
-          브라우저 설정 → 사이트 설정 → 위치에서 이 사이트를 허용한 뒤 다시 찾아 주세요.
+          {LOCATE_SETTINGS_HINT}
         </p>
       )}
     </div>

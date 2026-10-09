@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { places as placesApi, tripItems, trips } from '@/lib/db'
 import { useRegions } from '@/hooks/useRegions'
-import { distanceKm } from '@/lib/geo'
+import { distanceKm, locate, LOCATE_FAILURE_TEXT, LOCATE_LABEL, LOCATE_SETTINGS_HINT } from '@/lib/geo'
 import {
   CATEGORY_LABEL,
   openHoursOneLine,
@@ -83,6 +83,8 @@ export function ExplorePage() {
   const [pickedCount, setPickedCount] = useState(0)
   const [toast, setToast] = useState<string | null>(null)
   const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null)
+  /** 위치를 찾는 동안 — 버튼을 '찾는 중…'으로 바꾸고 다시 누르지 못하게 한다 */
+  const [locating, setLocating] = useState(false)
 
   /**
    * 이름 검색 (MAP-04-01).
@@ -200,62 +202,59 @@ export function ExplorePage() {
     setActive((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]))
   }
 
-  /** 내 위치 주변 재탐색 — 브라우저 위치를 받아 가까운 순으로 정렬한다 */
-  function researchNearby() {
-    if (!navigator.geolocation) {
-      setToast('이 브라우저에서는 위치 정보를 사용할 수 없습니다.')
+  /**
+   * 내 위치 — 위치를 새로 재서(10초까지) 가까운 순으로 정렬한다. 홈과 같은 이름 · 같은
+   * 함수(locate)를 쓴다: 처음엔 '📍 내 위치', 찾는 중 '찾는 중…', 찾은 뒤 '↻ 다시 찾기'.
+   */
+  async function researchNearby() {
+    if (locating) return
+    setLocating(true)
+    const found = await locate(10000, { fresh: true })
+    setLocating(false)
+    if (!found.at) {
+      setToast(
+        found.reason === 'denied'
+          ? `${LOCATE_FAILURE_TEXT.denied}. ${LOCATE_SETTINGS_HINT}`
+          : found.reason === 'unsupported'
+            ? LOCATE_FAILURE_TEXT.unsupported
+            : `${LOCATE_FAILURE_TEXT[found.reason]}. GPS · 네트워크를 확인하고 다시 찾아 주세요.`,
+      )
       return
     }
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        const me = { lat: coords.latitude, lng: coords.longitude }
+    const me = found.at
 
-        // 지금 필터가 다른 시/도로 좁혀져 있으면 '재탐색'을 눌러도 애초에
-        // 목록에 내 위치 근처 장소가 없다. 가장 가까운 하위 지역(구/시)을 찾아
-        // 그 상위 지역으로 필터를 옮기고, 하위 지역·카테고리는 전체로 되돌려
-        // 놓쳐서 빠지는 곳이 없게 한다.
-        const nearestRegion = regions.reduce<{ region: (typeof regions)[number]; d: number } | null>(
-          (best, r) => {
-            const d = distanceKm(me, r)
-            return !best || d < best.d ? { region: r, d } : best
-          },
-          null,
-        )
-
-        setMyLocation(me)
-        const nearestGroupName = nearestRegion
-          ? (groups.find((g) => g.tour_area_code === nearestRegion.region.tour_area_code)?.name ??
-            '')
-          : ''
-        if (nearestRegion) {
-          setAreaCode(nearestRegion.region.tour_area_code)
-          setSigunguCode(null)
-          setActive([])
-          setParams((p) => {
-            p.set(P_AREA, String(nearestRegion.region.tour_area_code))
-            p.delete(P_SIGUNGU)
-            return p
-          })
-        }
-
-        setToast(
-          nearestGroupName
-            ? `내 위치(${nearestGroupName} 인근)에서 가까운 순으로 정렬했습니다.`
-            : '내 위치에서 가까운 순으로 정렬했습니다.',
-        )
+    // 지금 필터가 다른 시/도로 좁혀져 있으면 '내 위치'를 눌러도 애초에
+    // 목록에 내 위치 근처 장소가 없다. 가장 가까운 하위 지역(구/시)을 찾아
+    // 그 상위 지역으로 필터를 옮기고, 하위 지역·카테고리는 전체로 되돌려
+    // 놓쳐서 빠지는 곳이 없게 한다.
+    const nearestRegion = regions.reduce<{ region: (typeof regions)[number]; d: number } | null>(
+      (best, r) => {
+        const d = distanceKm(me, r)
+        return !best || d < best.d ? { region: r, d } : best
       },
-      (err) => {
-        if (err.code === err.PERMISSION_DENIED) {
-          setToast(
-            '위치 권한이 거부되어 있습니다. 브라우저 설정의 사이트 설정(또는 개인정보 보호)에서 이 사이트의 위치 접근을 허용한 뒤 다시 시도해 주세요.',
-          )
-        } else if (err.code === err.TIMEOUT) {
-          setToast('위치 확인이 시간 초과되었습니다. 잠시 후 다시 시도해 주세요.')
-        } else {
-          setToast('현재 위치를 확인할 수 없습니다. GPS·네트워크 상태를 확인해 주세요.')
-        }
-      },
-      { timeout: 8000 },
+      null,
+    )
+
+    setMyLocation(me)
+    const nearestGroupName = nearestRegion
+      ? (groups.find((g) => g.tour_area_code === nearestRegion.region.tour_area_code)?.name ??
+        '')
+      : ''
+    if (nearestRegion) {
+      setAreaCode(nearestRegion.region.tour_area_code)
+      setSigunguCode(null)
+      setActive([])
+      setParams((p) => {
+        p.set(P_AREA, String(nearestRegion.region.tour_area_code))
+        p.delete(P_SIGUNGU)
+        return p
+      })
+    }
+
+    setToast(
+      nearestGroupName
+        ? `내 위치(${nearestGroupName} 인근)에서 가까운 순으로 정렬했습니다.`
+        : '내 위치에서 가까운 순으로 정렬했습니다.',
     )
   }
 
@@ -375,13 +374,14 @@ export function ExplorePage() {
         </div>
       </div>
 
-      {/* 내 위치 주변 재탐색 */}
+      {/* 내 위치 — 홈과 같은 이름: 처음 '📍 내 위치', 찾는 중 '찾는 중…', 찾은 뒤 '↻ 다시 찾기' */}
       <button
         type="button"
-        onClick={researchNearby}
-        className="absolute right-3 bottom-32 z-10 flex items-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-[13px] font-bold text-ink-700 shadow-lg"
+        onClick={() => void researchNearby()}
+        disabled={locating}
+        className="absolute right-3 bottom-32 z-10 flex items-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-[13px] font-bold text-ink-700 shadow-lg disabled:opacity-70"
       >
-        <span aria-hidden>🎯</span> 내 위치 주변 재탐색
+        {locating ? LOCATE_LABEL.finding : myLocation ? LOCATE_LABEL.refind : LOCATE_LABEL.find}
       </button>
 
       {loading && (

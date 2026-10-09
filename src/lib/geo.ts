@@ -200,6 +200,28 @@ export type LocateFailure = 'denied' | 'timeout' | 'unavailable' | 'unsupported'
 export type LocateResult = { at: LatLng; reason: null } | { at: null; reason: LocateFailure }
 
 /**
+ * 내 위치를 쓰는 화면(홈 · 지도)이 같은 말을 쓰도록 문구를 한곳에 둔다.
+ * 버튼: 처음엔 '📍 내 위치', 찾는 중 '찾는 중…', 찾은 뒤 '↻ 다시 찾기'.
+ */
+export const LOCATE_LABEL = {
+  find: '📍 내 위치',
+  finding: '찾는 중…',
+  refind: '↻ 다시 찾기',
+  here: '📍 현재 위치 기준',
+} as const
+
+/** 못 얻은 까닭 — 짧은 한 마디 */
+export const LOCATE_FAILURE_TEXT: Record<LocateFailure, string> = {
+  denied: '위치 권한이 꺼져 있어요',
+  timeout: '위치를 찾지 못했어요',
+  unavailable: '위치를 찾지 못했어요',
+  unsupported: '이 브라우저는 위치를 쓸 수 없어요',
+}
+
+/** 권한이 꺼져 있으면 다시 눌러도 브라우저가 묻지 않는다 — 켜는 곳을 알려 준다 */
+export const LOCATE_SETTINGS_HINT = '브라우저 설정 → 사이트 설정 → 위치에서 이 사이트를 허용한 뒤 다시 찾아 주세요.'
+
+/**
  * 현재 위치와, 못 얻었다면 그 까닭.
  *
  * 브라우저의 timeout 옵션은 권한 창이 떠 있는 동안에는 흐르지 않는다. 그래서
