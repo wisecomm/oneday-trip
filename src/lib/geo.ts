@@ -201,13 +201,15 @@ export type LocateResult = { at: LatLng; reason: null } | { at: null; reason: Lo
 
 /**
  * 내 위치를 쓰는 화면(홈 · 지도)이 같은 말을 쓰도록 문구를 한곳에 둔다.
- * 버튼: 처음엔 '📍 내 위치', 찾는 중 '찾는 중…', 찾은 뒤 '↻ 다시 찾기'.
+ * 버튼: 홈은 '↻ 다시 찾기'(기준 표시 옆이라 짧게), 지도는 '↻ 내 위치 다시 찾기'
+ * (지도 위에 혼자 떠 있어 무엇을 찾는지 적는다). 찾는 동안은 둘 다 '찾는 중…'.
  */
 export const LOCATE_LABEL = {
-  find: '📍 내 위치',
   finding: '찾는 중…',
   refind: '↻ 다시 찾기',
+  refindMine: '↻ 내 위치 다시 찾기',
   here: '📍 현재 위치 기준',
+  nearMe: '📍 내 위치 주변',
 } as const
 
 /** 못 얻은 까닭 — 짧은 한 마디 */

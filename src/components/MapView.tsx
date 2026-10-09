@@ -17,7 +17,7 @@ interface MapViewProps {
   selectedId?: string | null
   onSelect?: (place: Place) => void
   className?: string
-  /** 지도의 '📍 내 위치' 버튼 등으로 확보한 사용자 위치 — 있으면 파란 점으로 표시하고 뷰에 포함시킨다 */
+  /** 지도의 '↻ 내 위치 다시 찾기' 버튼으로 확보한 사용자 위치 — 있으면 파란 점으로 표시하고 뷰에 포함시킨다 */
   userLocation?: LatLng | null
   /**
    * 이전에 보고 있던 지도 위치(중심·줌)를 복원할 때 쓴다 — 있으면 마운트 시

@@ -23,7 +23,7 @@ Supabase 대신 localStorage 를, 네이버 지도 대신 SVG 폴백 지도를 �
 | TRIP-02-02 | 방문 제약 조건 지정 | `/trips/:id/rules` | [TripRulesPage.tsx](src/pages/TripRulesPage.tsx) |
 | TRIP-03-01 | 일자별 여행 리스트 | `/trips/:id` | [TimelinePage.tsx](src/pages/TimelinePage.tsx) |
 | TRIP-03-02 | 동선 최적화 지도 | `/trips/:id/route` | [RoutePage.tsx](src/pages/RoutePage.tsx) |
-| MAP-04-01 | 실시간 지도 홈 (장소 이름 검색 포함) | `/map` | [ExplorePage.tsx](src/pages/ExplorePage.tsx) |
+| MAP-04-01 | 실시간 지도 홈 (장소 이름 검색 · 내 위치 주변 하루 거리 포함) | `/map` | [ExplorePage.tsx](src/pages/ExplorePage.tsx) |
 | MAP-04-02 | 추천 장소 (맥락 인지 추천 피드) | `/recommend?tab=place` | [RecommendPage.tsx](src/pages/RecommendPage.tsx) |
 | SHARE-06-01 | 추천 코스 목록 (공용 플랜) | `/recommend?tab=course` | [PlanListPage.tsx](src/pages/PlanListPage.tsx) |
 | SHARE-06-02 | 코스 상세 · 내 여행으로 담기 | `/plans/:id` | [PlanDetailPage.tsx](src/pages/PlanDetailPage.tsx) |

@@ -77,6 +77,22 @@ export interface PlaceFilter {
   sigunguCode?: number
   categories?: PlaceCategory[]
   keyword?: string
+  /**
+   * 내 위치 주변 — 이 점에서 직선 km 안의 장소. 주면 areaCode · sigunguCode 는 보지 않는다
+   * (시/도 경계 없이 하루 거리 안을 본다. 지도 '↻ 내 위치 다시 찾기').
+   */
+  near?: { lat: number; lng: number; km: number }
+}
+
+/**
+ * 원 안을 묻기 전에 쓰는 네모(위도 · 경도 범위). 서버는 이 네모로 거르고 원 밖 모서리는
+ * 받은 뒤 distanceKm 로 버린다. 위도 1도는 어디서나 약 111km, 경도 1도는 위도가 높을수록
+ * 짧아진다(cos). 조금 넉넉하게(1.05) 잡아 원 가장자리를 놓치지 않는다.
+ */
+function nearBox(near: { lat: number; lng: number; km: number }) {
+  const dLat = (near.km / 111) * 1.05
+  const dLng = (near.km / (111 * Math.cos((near.lat * Math.PI) / 180))) * 1.05
+  return { minLat: near.lat - dLat, maxLat: near.lat + dLat, minLng: near.lng - dLng, maxLng: near.lng + dLng }
 }
 
 /**
@@ -113,8 +129,13 @@ export const places = {
           .gte('tour_sigungu_code', 0)
           // TourAPI 에서 표출 중단된 장소도 — 이미 담긴 일정에서는 get · 조인으로 그대로 연다
           .is('hidden_at', null)
-        if (filter.areaCode !== undefined) q = q.eq('tour_area_code', filter.areaCode)
-        if (filter.sigunguCode !== undefined) q = q.eq('tour_sigungu_code', filter.sigunguCode)
+        if (filter.near) {
+          const box = nearBox(filter.near)
+          q = q.gte('lat', box.minLat).lte('lat', box.maxLat).gte('lng', box.minLng).lte('lng', box.maxLng)
+        } else {
+          if (filter.areaCode !== undefined) q = q.eq('tour_area_code', filter.areaCode)
+          if (filter.sigunguCode !== undefined) q = q.eq('tour_sigungu_code', filter.sigunguCode)
+        }
         if (filter.categories?.length) q = q.in('category', filter.categories)
         if (filter.keyword) q = q.ilike('name', `%${filter.keyword}%`)
         // 이름순 — 화면이 순서를 다시 매기기 전의 예측 가능한 기본값이다.
@@ -141,16 +162,23 @@ export const places = {
           rows.push(...((page.data ?? []) as unknown as PlaceRow[]))
         }
       }
-      return rows.map(flattenPlace)
+      const near = filter.near
+      const all = rows.map(flattenPlace)
+      // 네모의 모서리(원 밖)를 버린다
+      return near ? all.filter((p) => distanceKm(near, p) <= near.km) : all
     }
 
     const ratings = demoPlaceRatings()
     return demo.places.map((p) => withDemoRating(p, ratings)).filter((p) => {
       if (p.tour_sigungu_code < 0) return false
       if (p.hidden_at) return false
-      if (filter.areaCode !== undefined && p.tour_area_code !== filter.areaCode) return false
-      if (filter.sigunguCode !== undefined && p.tour_sigungu_code !== filter.sigunguCode)
-        return false
+      if (filter.near) {
+        if (distanceKm(filter.near, p) > filter.near.km) return false
+      } else {
+        if (filter.areaCode !== undefined && p.tour_area_code !== filter.areaCode) return false
+        if (filter.sigunguCode !== undefined && p.tour_sigungu_code !== filter.sigunguCode)
+          return false
+      }
       if (filter.categories?.length && !filter.categories.includes(p.category)) return false
       if (filter.keyword && !p.name.includes(filter.keyword)) return false
       return true

@@ -1,9 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
-import { places as placesApi, tripItems, trips } from '@/lib/db'
+import { places as placesApi, tripItems, trips, type PlaceFilter } from '@/lib/db'
 import { useRegions } from '@/hooks/useRegions'
-import { distanceKm, locate, LOCATE_FAILURE_TEXT, LOCATE_LABEL, LOCATE_SETTINGS_HINT } from '@/lib/geo'
+import {
+  DAY_TRIP_RADIUS_KM,
+  distanceKm,
+  locate,
+  LOCATE_FAILURE_TEXT,
+  LOCATE_LABEL,
+  LOCATE_SETTINGS_HINT,
+  type LatLng,
+} from '@/lib/geo'
 import {
   CATEGORY_LABEL,
   openHoursOneLine,
@@ -20,6 +28,9 @@ const CATEGORIES: PlaceCategory[] = ['babzip', 'cafe', 'sulzip', 'spot']
 
 /** 시군구 드롭다운에서 '전체'를 뜻하는 값. 실제 코드가 아니다 */
 const ALL_LEAF = ''
+
+/** 시/도 드롭다운에서 '내 위치 주변'을 뜻하는 값. 실제 코드가 아니다 */
+const NEAR_OPTION = 'near'
 
 /** URL 쿼리 파라미터 — 지역은 코드로 주고받는다 */
 const P_AREA = 'area'
@@ -40,6 +51,8 @@ let savedFilters: {
   areaCode: number | null
   sigunguCode: number | null
   active: PlaceCategory[]
+  /** 내 위치 주변을 보던 중이면 그 위치 — 메모리에만 둔다(URL 에 좌표를 싣지 않는다) */
+  near: LatLng | null
 } | null = null
 let savedViewport: { lat: number; lng: number; zoom: number } | null = null
 
@@ -75,6 +88,7 @@ export function ExplorePage() {
   const [active, setActive] = useState<PlaceCategory[]>(() =>
     tripId || params.get(P_AREA) ? [] : (savedFilters?.active ?? []),
   )
+  const restoredNear = tripId || params.get(P_AREA) ? null : (savedFilters?.near ?? null)
   const [initialViewport] = useState(() => (tripId ? null : savedViewport))
   const [list, setList] = useState<Place[]>([])
   const [loading, setLoading] = useState(true)
@@ -82,7 +96,14 @@ export function ExplorePage() {
   const [trip, setTrip] = useState<Trip | null>(null)
   const [pickedCount, setPickedCount] = useState(0)
   const [toast, setToast] = useState<string | null>(null)
-  const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [myLocation, setMyLocation] = useState<LatLng | null>(restoredNear)
+  /**
+   * 내 위치 주변 — '↻ 내 위치 다시 찾기'로 켜진다. 켜져 있으면 시/도 필터 대신 내 위치에서
+   * 하루 거리(직선 DAY_TRIP_RADIUS_KM) 안을 시/도 경계 없이 본다 — 홈 '하루에 다녀올 만한 곳'과
+   * 같은 거리다. 시/도를 고르거나 ✕ 를 누르면 꺼지고, 그 전에 보던 시/도로 돌아간다
+   * (areaCode · sigunguCode 는 켜져 있는 동안 그대로 남겨 둔다).
+   */
+  const [nearMe, setNearMe] = useState(restoredNear !== null)
   /** 위치를 찾는 동안 — 버튼을 '찾는 중…'으로 바꾸고 다시 누르지 못하게 한다 */
   const [locating, setLocating] = useState(false)
 
@@ -110,9 +131,9 @@ export function ExplorePage() {
 
   // 필터가 바뀔 때마다 세션 기억을 갱신한다
   useEffect(() => {
-    if (areaCode === null) return
-    savedFilters = { areaCode, sigunguCode, active }
-  }, [areaCode, sigunguCode, active])
+    if (areaCode === null && !nearMe) return
+    savedFilters = { areaCode, sigunguCode, active, near: nearMe ? myLocation : null }
+  }, [areaCode, sigunguCode, active, nearMe, myLocation])
 
   const handleViewportChange = useCallback((v: { lat: number; lng: number; zoom: number }) => {
     savedViewport = v
@@ -123,9 +144,11 @@ export function ExplorePage() {
     try {
       const categories = active.length ? active : undefined
       const kw = keyword.trim()
-      const filter = kw
+      const filter: PlaceFilter = kw
         ? { categories, keyword: kw }
-        : areaCode === null
+        : nearMe && myLocation
+          ? { categories, near: { ...myLocation, km: DAY_TRIP_RADIUS_KM } }
+          : areaCode === null
           ? { categories }
           : sigunguCode === null
             ? { areaCode, categories }
@@ -140,7 +163,7 @@ export function ExplorePage() {
     } finally {
       setLoading(false)
     }
-  }, [areaCode, sigunguCode, active, myLocation, keyword])
+  }, [areaCode, sigunguCode, active, myLocation, keyword, nearMe])
 
   // 지역 목록이 비동기로 도착하므로, url 에 지역 쿼리가 없고 여행 목적지로부터
   // 채워질 예정도 아니라면 첫 상위 지역 + 전체보기로 채운다
@@ -151,10 +174,10 @@ export function ExplorePage() {
   }, [groups, areaCode, tripId])
 
   useEffect(() => {
-    // 검색 중에는 지역이 아직 안 정해졌어도 돈다 — 전국에서 찾기 때문이다
-    if (!searching && (areaCode === null || groups.length === 0)) return
+    // 검색 중 · 내 위치 주변에서는 지역이 아직 안 정해졌어도 돈다 — 시/도를 보지 않는다
+    if (!searching && !nearMe && (areaCode === null || groups.length === 0)) return
     void load()
-  }, [load, areaCode, sigunguCode, groups.length, searching])
+  }, [load, areaCode, sigunguCode, groups.length, searching, nearMe])
 
   useEffect(() => {
     if (!tripId) return
@@ -174,11 +197,22 @@ export function ExplorePage() {
   /** 상위 지역을 바꾸면 하위 선택은 '전체'로 되돌린다 — 특정 구 하나로 좁혀 놓은 채 다른 시/도로
    *  넘어가면 그 시/도에 없는 지역명이 남아 있는 꼴이라 혼란스럽다 */
   function changeGroup(next: number) {
+    setNearMe(false)
     setAreaCode(next)
     setSigunguCode(null)
     setParams((p) => {
       p.set(P_AREA, String(next))
       p.delete(P_SIGUNGU)
+      return p
+    })
+  }
+
+  /** 내 위치 주변을 끄고, 켜기 전에 보던 시/도 · 시군구로 돌아간다 */
+  function exitNear() {
+    setNearMe(false)
+    setParams((p) => {
+      if (areaCode !== null) p.set(P_AREA, String(areaCode))
+      if (sigunguCode !== null) p.set(P_SIGUNGU, String(sigunguCode))
       return p
     })
   }
@@ -203,8 +237,10 @@ export function ExplorePage() {
   }
 
   /**
-   * 내 위치 — 위치를 새로 재서(10초까지) 가까운 순으로 정렬한다. 홈과 같은 이름 · 같은
-   * 함수(locate)를 쓴다: 처음엔 '📍 내 위치', 찾는 중 '찾는 중…', 찾은 뒤 '↻ 다시 찾기'.
+   * '↻ 내 위치 다시 찾기' — 위치를 새로 재서(10초까지) 내 위치 주변으로 바꾼다. 홈과 같은
+   * 함수(locate) · 같은 실패 문구를 쓴다. 내 위치에서 하루 거리(직선 120km) 안을 시/도
+   * 경계 없이 가까운 순으로 보여 준다 — 부산에서 찾으면 양산 · 김해도 함께 나온다.
+   * 고른 카테고리는 그대로 둔다. 좌표는 URL 에 싣지 않는다.
    */
   async function researchNearby() {
     if (locating) return
@@ -221,41 +257,14 @@ export function ExplorePage() {
       )
       return
     }
-    const me = found.at
-
-    // 지금 필터가 다른 시/도로 좁혀져 있으면 '내 위치'를 눌러도 애초에
-    // 목록에 내 위치 근처 장소가 없다. 가장 가까운 하위 지역(구/시)을 찾아
-    // 그 상위 지역으로 필터를 옮기고, 하위 지역·카테고리는 전체로 되돌려
-    // 놓쳐서 빠지는 곳이 없게 한다.
-    const nearestRegion = regions.reduce<{ region: (typeof regions)[number]; d: number } | null>(
-      (best, r) => {
-        const d = distanceKm(me, r)
-        return !best || d < best.d ? { region: r, d } : best
-      },
-      null,
-    )
-
-    setMyLocation(me)
-    const nearestGroupName = nearestRegion
-      ? (groups.find((g) => g.tour_area_code === nearestRegion.region.tour_area_code)?.name ??
-        '')
-      : ''
-    if (nearestRegion) {
-      setAreaCode(nearestRegion.region.tour_area_code)
-      setSigunguCode(null)
-      setActive([])
-      setParams((p) => {
-        p.set(P_AREA, String(nearestRegion.region.tour_area_code))
-        p.delete(P_SIGUNGU)
-        return p
-      })
-    }
-
-    setToast(
-      nearestGroupName
-        ? `내 위치(${nearestGroupName} 인근)에서 가까운 순으로 정렬했습니다.`
-        : '내 위치에서 가까운 순으로 정렬했습니다.',
-    )
+    setMyLocation(found.at)
+    setNearMe(true)
+    setParams((p) => {
+      p.delete(P_AREA)
+      p.delete(P_SIGUNGU)
+      return p
+    })
+    setToast(`내 위치에서 하루 거리(${DAY_TRIP_RADIUS_KM}km) 안을 가까운 순으로 보여 줍니다.`)
   }
 
   async function addToTrip(place: Place) {
@@ -278,8 +287,10 @@ export function ExplorePage() {
         initialViewport={initialViewport}
         onViewportChange={handleViewportChange}
         // 시/도 전체(경기 3,357곳 등)는 이름표 없이 점으로 — 이름표 마커 수천 개는 겹쳐
-        // 읽히지도 않고 지도가 무거워진다. 전국 검색도 결과가 많으면 같은 이유로 점.
-        compact={searching ? list.length > COMPACT_SEARCH_MIN : sigunguCode === null}
+        // 읽히지도 않고 지도가 무거워진다. 전국 검색 · 내 위치 주변도 결과가 많으면 같은 이유로 점.
+        compact={
+          searching || nearMe ? list.length > COMPACT_SEARCH_MIN : sigunguCode === null
+        }
       />
 
       {/* 상단 필터 */}
@@ -306,34 +317,54 @@ export function ExplorePage() {
 
         <div className="pointer-events-auto mb-2 flex items-center gap-1.5">
           <select
-            value={areaCode ?? ''}
+            value={nearMe ? NEAR_OPTION : (areaCode ?? '')}
             onChange={(e) => changeGroup(Number(e.target.value))}
             className="min-w-0 rounded-xl border border-ink-200 bg-white px-2.5 py-2 text-[13px] font-bold text-ink-700 shadow-sm"
             aria-label="시/도 선택"
           >
+            {/* 내 위치 주변인 동안만 보이는 자리표시 — 시/도를 고르면 꺼진다 */}
+            {nearMe && (
+              <option value={NEAR_OPTION} disabled>
+                {LOCATE_LABEL.nearMe}
+              </option>
+            )}
             {groups.map((g) => (
               <option key={g.tour_area_code} value={g.tour_area_code}>
                 {g.name}
               </option>
             ))}
           </select>
-          <select
-            value={sigunguCode ?? ALL_LEAF}
-            onChange={(e) =>
-              changeRegion(e.target.value === ALL_LEAF ? null : Number(e.target.value))
-            }
-            className="min-w-0 flex-1 rounded-xl border border-ink-200 bg-white px-2.5 py-2 text-[13px] font-bold text-ink-700 shadow-sm"
-            aria-label="시군구 선택"
-          >
-            <option value={ALL_LEAF}>전체</option>
-            {regions
-              .filter((r) => r.tour_area_code === areaCode)
-              .map((r) => (
-                <option key={r.tour_sigungu_code} value={r.tour_sigungu_code}>
-                  {r.name}
-                </option>
-              ))}
-          </select>
+          {nearMe ? (
+            <button
+              type="button"
+              onClick={exitNear}
+              aria-label="내 위치 주변 해제"
+              className="flex min-w-0 flex-1 items-center justify-between gap-1.5 rounded-xl border border-ink-200 bg-white px-2.5 py-2 text-[13px] font-bold text-ink-700 shadow-sm"
+            >
+              <span className="truncate">
+                하루 거리 {DAY_TRIP_RADIUS_KM}km 안{!loading && !searching && ` · ${list.length}곳`}
+              </span>
+              <span className="shrink-0 text-ink-400">✕</span>
+            </button>
+          ) : (
+            <select
+              value={sigunguCode ?? ALL_LEAF}
+              onChange={(e) =>
+                changeRegion(e.target.value === ALL_LEAF ? null : Number(e.target.value))
+              }
+              className="min-w-0 flex-1 rounded-xl border border-ink-200 bg-white px-2.5 py-2 text-[13px] font-bold text-ink-700 shadow-sm"
+              aria-label="시군구 선택"
+            >
+              <option value={ALL_LEAF}>전체</option>
+              {regions
+                .filter((r) => r.tour_area_code === areaCode)
+                .map((r) => (
+                  <option key={r.tour_sigungu_code} value={r.tour_sigungu_code}>
+                    {r.name}
+                  </option>
+                ))}
+            </select>
+          )}
           {trip && (
             <span className="shrink-0 truncate rounded-xl bg-ink-800 px-2.5 py-2 text-[12px] font-bold text-white shadow-sm">
               담는 중 · {pickedCount}곳
@@ -374,14 +405,14 @@ export function ExplorePage() {
         </div>
       </div>
 
-      {/* 내 위치 — 홈과 같은 이름: 처음 '📍 내 위치', 찾는 중 '찾는 중…', 찾은 뒤 '↻ 다시 찾기' */}
+      {/* 내 위치 — '↻ 내 위치 다시 찾기', 찾는 동안 '찾는 중…'(홈과 같은 문구 묶음) */}
       <button
         type="button"
         onClick={() => void researchNearby()}
         disabled={locating}
         className="absolute right-3 bottom-32 z-10 flex items-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-[13px] font-bold text-ink-700 shadow-lg disabled:opacity-70"
       >
-        {locating ? LOCATE_LABEL.finding : myLocation ? LOCATE_LABEL.refind : LOCATE_LABEL.find}
+        {locating ? LOCATE_LABEL.finding : LOCATE_LABEL.refindMine}
       </button>
 
       {loading && (
