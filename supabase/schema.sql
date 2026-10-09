@@ -786,6 +786,45 @@ revoke all on function public.home_picks(double precision, double precision, int
 grant execute on function public.home_picks(double precision, double precision, integer)
   to anon, authenticated;
 
+-- ── 8. 지도 '내 위치 주변' — 가까운 순 N곳 ─────────────────────────
+--
+-- 내 위치에서 직선 p_max_km(기본 120 = 하루 거리) 안의 장소를 가까운 순으로 p_limit 곳
+-- (기본 100, 최대 500). DB 가 거리를 재서 정렬하고 자른다 — API 는 계산한 거리로 정렬할
+-- 수 없다. 숨긴 장소 · 미판정 장소는 뺀다. 장소 행 그대로(setof places) 돌려줘 앱이
+-- select 로 지역 이름을 붙여 받는다. security invoker — places 의 RLS 를 그대로 탄다.
+-- 위도 · 경도 범위로 먼저 좁혀 거리를 잴 행을 줄인다(위도 1도 ≈ 111km, 경도는 cos(위도)배).
+create or replace function public.places_nearest(
+  p_lat        double precision,
+  p_lng        double precision,
+  p_limit      integer default 100,
+  p_max_km     double precision default 120,          -- 앱 DAY_TRIP_RADIUS_KM
+  p_categories public.place_category[] default null    -- null 이면 전부
+)
+returns setof public.places
+language sql
+stable
+set search_path = public, pg_temp
+as $$
+  select p.*
+    from public.places p
+   cross join lateral (select public.distance_km(p_lat, p_lng, p.lat, p.lng) as km) d
+   where p.tour_sigungu_code >= 0
+     and p.hidden_at is null
+     and (p_categories is null or p.category = any (p_categories))
+     and p.lat between p_lat - least(p_max_km, 500) / 111.0 * 1.05
+                   and p_lat + least(p_max_km, 500) / 111.0 * 1.05
+     and p.lng between p_lng - least(p_max_km, 500) / (111.0 * cos(radians(p_lat))) * 1.05
+                   and p_lng + least(p_max_km, 500) / (111.0 * cos(radians(p_lat))) * 1.05
+     and d.km <= least(p_max_km, 500)
+   order by d.km, p.id
+   -- API 상한(max_rows 1,000)보다 작게 묶는다
+   limit least(greatest(coalesce(p_limit, 100), 1), 500)
+$$;
+
+revoke all on function public.places_nearest(double precision, double precision, integer, double precision, public.place_category[]) from public;
+grant execute on function public.places_nearest(double precision, double precision, integer, double precision, public.place_category[])
+  to anon, authenticated;
+
 -- ── 프로필 생성 시점에 대하여 ────────────────────────────────────────
 -- 가입 시 auth.users 트리거로 profiles 행을 자동 생성하지 않는다.
 --

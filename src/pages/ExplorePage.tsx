@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { places as placesApi, tripItems, trips, type PlaceFilter } from '@/lib/db'
@@ -53,8 +53,19 @@ let savedFilters: {
   active: PlaceCategory[]
   /** 내 위치 주변을 보던 중이면 그 위치 — 메모리에만 둔다(URL 에 좌표를 싣지 않는다) */
   near: LatLng | null
+  /** 그 위치가 속한 지역 이름('경기 부천시') */
+  nearLabel: string | null
 } | null = null
 let savedViewport: { lat: number; lng: number; zoom: number } | null = null
+
+/**
+ * 내 위치 주변에서 보여 줄 곳 수 — 하루 거리(120km) 안을 통째로 보이면 수도권은 7,000곳
+ * 가까이 돼 지도가 점으로 뒤덮인다. 반경을 좁혀 가까운 이만큼만 보인다(places.nearest).
+ */
+const NEAR_LIMIT = 100
+
+/** 3.2km · 15km — 10km 아래만 소수 한 자리 */
+const formatKm = (km: number) => (km < 10 ? `${Math.max(km, 0.1).toFixed(1)}km` : `${Math.round(km)}km`)
 
 /** 검색 결과가 이보다 많으면 지도에 점으로 그린다 */
 const COMPACT_SEARCH_MIN = 300
@@ -99,11 +110,19 @@ export function ExplorePage() {
   const [myLocation, setMyLocation] = useState<LatLng | null>(restoredNear)
   /**
    * 내 위치 주변 — '↻ 내 위치 다시 찾기'로 켜진다. 켜져 있으면 시/도 필터 대신 내 위치에서
-   * 하루 거리(직선 DAY_TRIP_RADIUS_KM) 안을 시/도 경계 없이 본다 — 홈 '하루에 다녀올 만한 곳'과
-   * 같은 거리다. 시/도를 고르거나 ✕ 를 누르면 꺼지고, 그 전에 보던 시/도로 돌아간다
+   * 가까운 NEAR_LIMIT(100)곳을 시/도 경계 없이 본다. 반경은 100곳이 찰 때까지 넓히되 하루 거리
+   * (직선 DAY_TRIP_RADIUS_KM, 홈 '하루에 다녀올 만한 곳'과 같은 거리)를 넘지 않는다. 시/도를 고르거나 ✕ 를 누르면 꺼지고, 그 전에 보던 시/도로 돌아간다
    * (areaCode · sigunguCode 는 켜져 있는 동안 그대로 남겨 둔다).
    */
   const [nearMe, setNearMe] = useState(restoredNear !== null)
+  /** 내 위치가 속한 지역 — '경기 부천시'. 시/도 칸에 '📍 경기 부천시'로 보인다 */
+  const [nearLabel, setNearLabel] = useState<string | null>(() =>
+    restoredNear ? (savedFilters?.nearLabel ?? null) : null,
+  )
+  /** 위치를 새로 찾은 뒤 첫 목록에서 지역 이름을 정한다 — 카테고리를 바꿔도 흔들리지 않게 한 번만 */
+  const labelPending = useRef(false)
+  /** 내 위치 주변에서 보여 주는 가장 먼 곳까지의 거리 — '가까운 100곳 · 3.2km 안' */
+  const [nearKm, setNearKm] = useState<number | null>(null)
   /** 위치를 찾는 동안 — 버튼을 '찾는 중…'으로 바꾸고 다시 누르지 못하게 한다 */
   const [locating, setLocating] = useState(false)
 
@@ -132,38 +151,82 @@ export function ExplorePage() {
   // 필터가 바뀔 때마다 세션 기억을 갱신한다
   useEffect(() => {
     if (areaCode === null && !nearMe) return
-    savedFilters = { areaCode, sigunguCode, active, near: nearMe ? myLocation : null }
-  }, [areaCode, sigunguCode, active, nearMe, myLocation])
+    savedFilters = {
+      areaCode,
+      sigunguCode,
+      active,
+      near: nearMe ? myLocation : null,
+      nearLabel: nearMe ? nearLabel : null,
+    }
+  }, [areaCode, sigunguCode, active, nearMe, myLocation, nearLabel])
 
   const handleViewportChange = useCallback((v: { lat: number; lng: number; zoom: number }) => {
     savedViewport = v
   }, [])
+
+  /**
+   * 이 위치가 속한 지역 이름('경기 부천시').
+   *
+   * 가장 가까운 장소가 3km 안에 있으면 그 장소의 지역을 쓴다 — 장소의 지역은 TourAPI 주소에서
+   * 온 것이라 정확하다. 없으면 가장 가까운 시군구 중심점으로 짐작한다(경계 근처에서는 옆 구가
+   * 될 수 있다).
+   */
+  const regionLabelAt = useCallback(
+    (at: LatLng, nearest: Place[]): string | null => {
+      const first = nearest[0]
+      if (first && distanceKm(at, first) <= 3 && first.group_name) {
+        return `${first.group_name} ${first.region_name}`.trim()
+      }
+      let best: { r: (typeof regions)[number]; d: number } | null = null
+      for (const r of regions) {
+        const d = distanceKm(at, r)
+        if (!best || d < best.d) best = { r, d }
+      }
+      if (!best) return null
+      const g = groups.find((x) => x.tour_area_code === best.r.tour_area_code)
+      return `${g?.name ?? ''} ${best.r.name}`.trim()
+    },
+    [regions, groups],
+  )
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
       const categories = active.length ? active : undefined
       const kw = keyword.trim()
-      const filter: PlaceFilter = kw
-        ? { categories, keyword: kw }
-        : nearMe && myLocation
-          ? { categories, near: { ...myLocation, km: DAY_TRIP_RADIUS_KM } }
+      let result: Place[]
+      if (!kw && nearMe && myLocation) {
+        // 내 위치 주변 — 하루 거리 안에서 가까운 NEAR_LIMIT 곳만(반경을 좁혀서)
+        const near = await placesApi.nearest(myLocation, {
+          limit: NEAR_LIMIT,
+          maxKm: DAY_TRIP_RADIUS_KM,
+          categories,
+        })
+        result = near.places
+        setNearKm(near.km)
+      } else {
+        const filter: PlaceFilter = kw
+          ? { categories, keyword: kw }
           : areaCode === null
-          ? { categories }
-          : sigunguCode === null
-            ? { areaCode, categories }
-            : { areaCode, sigunguCode, categories }
-      const result = await placesApi.list(filter)
+            ? { categories }
+            : sigunguCode === null
+              ? { areaCode, categories }
+              : { areaCode, sigunguCode, categories }
+        result = await placesApi.list(filter)
+      }
       // 내 위치를 확보한 상태라면 기본 정렬(평점순) 대신 거리순을 유지한다
-      setList(
-        myLocation
-          ? [...result].sort((a, b) => distanceKm(myLocation, a) - distanceKm(myLocation, b))
-          : result,
-      )
+      const sorted = myLocation
+        ? [...result].sort((a, b) => distanceKm(myLocation, a) - distanceKm(myLocation, b))
+        : result
+      setList(sorted)
+      if (!kw && nearMe && myLocation && labelPending.current) {
+        labelPending.current = false
+        setNearLabel(regionLabelAt(myLocation, sorted))
+      }
     } finally {
       setLoading(false)
     }
-  }, [areaCode, sigunguCode, active, myLocation, keyword, nearMe])
+  }, [areaCode, sigunguCode, active, myLocation, keyword, nearMe, regionLabelAt])
 
   // 지역 목록이 비동기로 도착하므로, url 에 지역 쿼리가 없고 여행 목적지로부터
   // 채워질 예정도 아니라면 첫 상위 지역 + 전체보기로 채운다
@@ -238,8 +301,8 @@ export function ExplorePage() {
 
   /**
    * '↻ 내 위치 다시 찾기' — 위치를 새로 재서(10초까지) 내 위치 주변으로 바꾼다. 홈과 같은
-   * 함수(locate) · 같은 실패 문구를 쓴다. 내 위치에서 하루 거리(직선 120km) 안을 시/도
-   * 경계 없이 가까운 순으로 보여 준다 — 부산에서 찾으면 양산 · 김해도 함께 나온다.
+   * 함수(locate) · 같은 실패 문구를 쓴다. 내 위치에서 가까운 100곳을 시/도 경계 없이
+   * 보여 준다 — 시 경계 근처라면 옆 시 · 도의 장소도 섞인다. 지도는 그 100곳과 내 위치에 맞춘다.
    * 고른 카테고리는 그대로 둔다. 좌표는 URL 에 싣지 않는다.
    */
   async function researchNearby() {
@@ -257,6 +320,11 @@ export function ExplorePage() {
       )
       return
     }
+    labelPending.current = true
+    setNearLabel(null)
+    // 보던 목록(다른 시/도)과 새 위치를 한 화면에 맞추느라 지도가 잠깐 멀리 빠지지 않게 비운다 —
+    // 빈 목록이면 지도가 내 위치로 먼저 옮겨 가고, 가까운 곳이 오면 거기에 맞춘다
+    setList([])
     setMyLocation(found.at)
     setNearMe(true)
     setParams((p) => {
@@ -264,7 +332,7 @@ export function ExplorePage() {
       p.delete(P_SIGUNGU)
       return p
     })
-    setToast(`내 위치에서 하루 거리(${DAY_TRIP_RADIUS_KM}km) 안을 가까운 순으로 보여 줍니다.`)
+    setToast(`내 위치에서 가까운 ${NEAR_LIMIT}곳을 보여 줍니다.`)
   }
 
   async function addToTrip(place: Place) {
@@ -325,7 +393,7 @@ export function ExplorePage() {
             {/* 내 위치 주변인 동안만 보이는 자리표시 — 시/도를 고르면 꺼진다 */}
             {nearMe && (
               <option value={NEAR_OPTION} disabled>
-                {LOCATE_LABEL.nearMe}
+                {nearLabel ? `📍 ${nearLabel}` : LOCATE_LABEL.nearMe}
               </option>
             )}
             {groups.map((g) => (
@@ -342,7 +410,11 @@ export function ExplorePage() {
               className="flex min-w-0 flex-1 items-center justify-between gap-1.5 rounded-xl border border-ink-200 bg-white px-2.5 py-2 text-[13px] font-bold text-ink-700 shadow-sm"
             >
               <span className="truncate">
-                하루 거리 {DAY_TRIP_RADIUS_KM}km 안{!loading && !searching && ` · ${list.length}곳`}
+                {loading || searching || nearKm === null
+                  ? '내 위치 주변'
+                  : list.length < NEAR_LIMIT
+                    ? `하루 거리 ${DAY_TRIP_RADIUS_KM}km 안 · ${list.length}곳`
+                    : `가까운 ${list.length}곳 · ${formatKm(nearKm)} 안`}
               </span>
               <span className="shrink-0 text-ink-400">✕</span>
             </button>
