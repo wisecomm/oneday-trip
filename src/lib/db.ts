@@ -219,42 +219,50 @@ export const places = {
   },
 
   /**
-   * 홈 '하루에 다녀올 만한 곳' (README-플로챠트.md).
+   * 홈 '하루에 다녀올 만한 곳' (플로챠트/홈.md) — 처음 10곳, '더 보기'는 보인 곳(exclude)을 빼고 다음 10곳.
    *
-   * 명소 3 · 밥집 1 · 카페 1. 종류마다 하루 거리 안의 리뷰 있는 장소를 별점
-   * 순으로 먼저, 나머지는 가까운 순으로 고른다. 고르는 일은 DB 함수 home_picks 가 하고 다섯 곳의 id 와 순서만
-   * 돌려준다 — 예전처럼 장소 전체를 받아 브라우저에서 고르면 API 상한(1,000행)에
-   * 잘려 이름순 앞쪽만 후보가 됐다. 이름 · 지역 이름은 평소 조회로 붙인다.
-   *
-   * base 가 null 이면 DB 함수가 서울 강남구 중심을 쓴다.
+   * 종류 비율 없이 한 줄 순서: 하루 거리 안의 리뷰 있는 곳(평균 → 개수 → 거리), 그다음 가까운 순.
+   * 술집 · 숨긴 장소 · 미판정 제외. 고르는 일은 DB 함수 home_picks 가 하고 id 와 순서만 돌려준다 —
+   * 장소 전체를 받아 브라우저에서 고르면 API 상한(1,000행)에 잘린다. 이름 · 지역 이름은 평소
+   * 조회로 붙인다. base 가 null 이면 DB 함수가 서울 강남구 중심을 쓴다.
    */
-  async homePicks(base: LatLng | null, count = 5): Promise<Place[]> {
+  async homePicks(base: LatLng | null, count = 10, exclude: string[] = []): Promise<Place[]> {
     if (isSupabaseConfigured) {
       const { data, error } = await sb().rpc('home_picks', {
         p_lat: base?.lat ?? null,
         p_lng: base?.lng ?? null,
         p_count: count,
+        p_exclude: exclude,
       })
       if (error) throw error
-      const picks = ((data ?? []) as { place_id: string; pick_order: number }[]).sort(
-        (a, b) => a.pick_order - b.pick_order,
-      )
-      if (picks.length === 0) return []
-      const { data: rows, error: rowsError } = await sb()
-        .from('places')
-        .select(PLACE_SELECT)
-        .in(
-          'id',
-          picks.map((x) => x.place_id),
-        )
-      if (rowsError) throw rowsError
-      const byId = new Map(
-        ((rows ?? []) as unknown as PlaceRow[]).map(flattenPlace).map((pl) => [pl.id, pl]),
-      )
-      return picks.map((x) => byId.get(x.place_id)).filter((pl): pl is Place => pl !== undefined)
+      return placesInPickOrder(data)
     }
-    return demoHomePicks(base, count)
+    const skip = new Set(exclude)
+    return demoHomeOrder(base)
+      .filter((c) => !skip.has(c.place.id))
+      .slice(0, count)
+      .map((c) => c.place)
   },
+}
+
+/** 홈 DB 함수가 돌려준 id · 순서에 장소 행(지역 이름 포함)을 붙여 그 순서대로 */
+async function placesInPickOrder(data: unknown): Promise<Place[]> {
+  const picks = ((data ?? []) as { place_id: string; pick_order: number }[]).sort(
+    (a, b) => a.pick_order - b.pick_order,
+  )
+  if (picks.length === 0) return []
+  const { data: rows, error } = await sb()
+    .from('places')
+    .select(PLACE_SELECT)
+    .in(
+      'id',
+      picks.map((x) => x.place_id),
+    )
+  if (error) throw error
+  const byId = new Map(
+    ((rows ?? []) as unknown as PlaceRow[]).map(flattenPlace).map((pl) => [pl.id, pl]),
+  )
+  return picks.map((x) => byId.get(x.place_id)).filter((pl): pl is Place => pl !== undefined)
 }
 
 /* ── 데모 모드의 홈 선택 — DB 함수 home_picks 와 같은 규칙 ── */
@@ -301,14 +309,16 @@ function withDemoRating(
   return { ...p, ...(ratings.get(p.id) ?? { rating_avg: null, rating_count: 0 }) }
 }
 
-function demoHomePicks(base: LatLng | null, count: number): Place[] {
-  const n = Math.min(Math.max(count, 3), 20)
-  const quota: Partial<Record<PlaceCategory, number>> = { spot: n - 2, babzip: 1, cafe: 1 }
+/** 홈 후보 종류 — 술집은 넣지 않는다 */
+const HOME_CATEGORIES: PlaceCategory[] = ['spot', 'babzip', 'cafe']
+
+/** 데모 홈 후보 전체를 DB 함수 home_picks 와 같은 순서로 */
+function demoHomeOrder(base: LatLng | null) {
   const ratings = demoPlaceRatings()
   const gangnam = demo.regions.find((r) => r.tour_area_code === 1 && r.tour_sigungu_code === 1)
   const origin = base ?? (gangnam ? { lat: gangnam.lat, lng: gangnam.lng } : null)
   const cand = demo.places
-    .filter((p) => p.tour_sigungu_code >= 0 && quota[p.category] !== undefined)
+    .filter((p) => p.tour_sigungu_code >= 0 && !p.hidden_at && HOME_CATEGORIES.includes(p.category))
     .map((p) => {
       const place = withDemoRating(p, ratings)
       const km = origin ? distanceKm(origin, p) : 0
@@ -325,15 +335,7 @@ function demoHomePicks(base: LatLng | null, count: number): Place[] {
     }
     return a.km - b.km || (a.place.id < b.place.id ? -1 : a.place.id > b.place.id ? 1 : 0)
   }
-  cand.sort(order)
-  const taken = new Map<PlaceCategory, number>()
-  const picked = cand.filter((c) => {
-    const k = taken.get(c.place.category) ?? 0
-    if (k >= (quota[c.place.category] ?? 0)) return false
-    taken.set(c.place.category, k + 1)
-    return true
-  })
-  return picked.map((c) => c.place)
+  return cand.sort(order)
 }
 
 /* ─────────────────────── Profiles (SYS-01-02) ─────────────────────── */
@@ -716,24 +718,39 @@ function ensureDemoPlans(): void {
 }
 
 export const sharedPlans = {
-  async list(filter: PlanFilter = {}): Promise<SharedPlan[]> {
+  /**
+   * 추천 코스 목록 — 한 쪽씩(offset 부터 limit 개). total 은 조건에 맞는 전체 개수.
+   * 화면이 처음 10개, '코스 더 보기'마다 10개씩 더 받는다. 쪽을 나눠 받을 때 순서가 흔들리면
+   * 쪽 사이에서 코스가 빠지거나 두 번 오므로 정렬 끝에 id 를 둔다.
+   */
+  async list(
+    filter: PlanFilter = {},
+    page: { offset: number; limit: number } = { offset: 0, limit: 10 },
+  ): Promise<{ plans: SharedPlan[]; total: number }> {
     if (isSupabaseConfigured) {
-      let query = sb().from('shared_plans').select(PLAN_SELECT).eq('is_hidden', false)
+      let query = sb()
+        .from('shared_plans')
+        .select(PLAN_SELECT, { count: 'exact' })
+        .eq('is_hidden', false)
       if (filter.areaCode !== undefined) query = query.eq('tour_area_code', filter.areaCode)
       if (filter.sigunguCode !== undefined)
         query = query.eq('tour_sigungu_code', filter.sigunguCode)
       if (filter.transport) query = query.eq('transport', filter.transport)
       if (filter.companions?.length) query = query.overlaps('companions', filter.companions)
-      const { data, error } =
+      const sorted =
         filter.sort === 'recent'
-          ? await query.order('created_at', { ascending: false })
-          : await query.order('clone_count', { ascending: false })
+          ? query.order('created_at', { ascending: false })
+          : query.order('clone_count', { ascending: false })
+      const { data, error, count } = await sorted
+        .order('id')
+        .range(page.offset, page.offset + page.limit - 1)
       if (error) throw error
-      return ((data ?? []) as unknown as PlanRow[]).map(flattenPlan)
+      const plans = ((data ?? []) as unknown as PlanRow[]).map(flattenPlan)
+      return { plans, total: count ?? page.offset + plans.length }
     }
 
     ensureDemoPlans()
-    return readDb()
+    const all = readDb()
       .shared_plans.filter((p) => {
         if (p.is_hidden) return false
         if (filter.areaCode !== undefined && p.tour_area_code !== filter.areaCode) return false
@@ -744,12 +761,16 @@ export const sharedPlans = {
           return false
         return true
       })
-      .sort((a, b) =>
-        filter.sort === 'recent'
-          ? b.created_at.localeCompare(a.created_at)
-          : b.clone_count - a.clone_count,
+      .sort(
+        (a, b) =>
+          (filter.sort === 'recent'
+            ? b.created_at.localeCompare(a.created_at)
+            : b.clone_count - a.clone_count) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
       )
-      .map(demoPlanNames)
+    return {
+      plans: all.slice(page.offset, page.offset + page.limit).map(demoPlanNames),
+      total: all.length,
+    }
   },
 
   /** 상세 — 항목과 장소까지 채워 준다 */

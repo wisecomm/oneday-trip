@@ -3,11 +3,22 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { places as placesApi, tripItems, trips } from '@/lib/db'
 import { useRegions } from '@/hooks/useRegions'
-import { contextLabel, fetchWeather, recommend, type Scored, type TripContext } from '@/lib/recommend'
+import {
+  contextLabel,
+  fetchWeather,
+  rankAll,
+  takePage,
+  type Ranked,
+  type Scored,
+  type TripContext,
+} from '@/lib/recommend'
 import { knownTasteTags, regionLabel, shownRating, type Trip } from '@/lib/types'
 import { CategoryDot, PlaceThumb, RatingStar } from '@/components/PlaceCard'
 import { BottomSheet, EmptyState, Loading, PageHeader } from '@/components/ui'
 import { formatTripDate } from '@/lib/trip-date'
+
+/** 추천 장소를 한 번에 보여 주는 곳 수 — 처음 이만큼, '더 보기'마다 이만큼 더 */
+const PAGE_SIZE = 10
 
 /** 하위 지역(구/시) 선택 대신 상위 지역 전체를 보고 싶을 때 쓰는 표식값 — 실제 지역명이 아니다 */
 /** 시군구 드롭다운에서 '전체'를 뜻하는 값 */
@@ -32,6 +43,8 @@ export function RecommendPage({ embedded = false }: { embedded?: boolean } = {})
   const [sigunguCode, setSigunguCode] = useState<number | null>(null)
   const [ctx, setCtx] = useState<TripContext | null>(null)
   const [feed, setFeed] = useState<Scored[]>([])
+  /** 아직 보여 주지 않은 후보 — 점수 순서 그대로. '더 보기'가 여기서 다음 쪽을 꺼낸다 */
+  const [pool, setPool] = useState<Ranked[]>([])
   const [loading, setLoading] = useState(true)
   const [myTrips, setMyTrips] = useState<Trip[]>([])
   // 로그인하지 않았거나 나의 여행 로딩이 끝나야 '다가오는 여행 목적지' 기본값을 확정할 수 있다
@@ -61,7 +74,9 @@ export function RecommendPage({ embedded = false }: { embedded?: boolean } = {})
         ...weather,
       }
       setCtx(nextCtx)
-      setFeed(recommend(list, nextCtx, profile))
+      const { page, rest } = takePage(rankAll(list, nextCtx, profile), PAGE_SIZE)
+      setFeed(page)
+      setPool(rest)
     } finally {
       setLoading(false)
     }
@@ -86,6 +101,13 @@ export function RecommendPage({ embedded = false }: { embedded?: boolean } = {})
     if (areaCode === null || groups.length === 0) return
     void load()
   }, [load, areaCode, groups.length])
+
+  /** 다음 쪽 — 이미 받아 점수를 매긴 후보에서 꺼내므로 다시 조회하지 않는다 */
+  function showMore() {
+    const { page, rest } = takePage(pool, PAGE_SIZE)
+    setFeed((prev) => [...prev, ...page])
+    setPool(rest)
+  }
 
   function changeGroup(next: number) {
     setAreaCode(next)
@@ -264,6 +286,16 @@ export function RecommendPage({ embedded = false }: { embedded?: boolean } = {})
               </li>
             ))}
           </ul>
+        )}
+
+        {!loading && pool.length > 0 && (
+          <button
+            type="button"
+            onClick={showMore}
+            className="mt-3 w-full rounded-xl border border-ink-200 bg-white py-3 text-[13.5px] font-bold text-ink-700 shadow-sm hover:bg-ink-50"
+          >
+            추천 더 보기 · {feed.length} / {feed.length + pool.length}곳
+          </button>
         )}
       </div>
 

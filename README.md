@@ -23,9 +23,9 @@ Supabase 대신 localStorage 를, 네이버 지도 대신 SVG 폴백 지도를 �
 | TRIP-02-02 | 방문 제약 조건 지정 | `/trips/:id/rules` | [TripRulesPage.tsx](src/pages/TripRulesPage.tsx) |
 | TRIP-03-01 | 일자별 여행 리스트 | `/trips/:id` | [TimelinePage.tsx](src/pages/TimelinePage.tsx) |
 | TRIP-03-02 | 동선 최적화 지도 | `/trips/:id/route` | [RoutePage.tsx](src/pages/RoutePage.tsx) |
-| MAP-04-01 | 실시간 지도 홈 (장소 이름 검색 · 내 위치 주변 하루 거리 포함) | `/map` | [ExplorePage.tsx](src/pages/ExplorePage.tsx) |
-| MAP-04-02 | 추천 장소 (맥락 인지 추천 피드) | `/recommend?tab=place` | [RecommendPage.tsx](src/pages/RecommendPage.tsx) |
-| SHARE-06-01 | 추천 코스 목록 (공용 플랜) | `/recommend?tab=course` | [PlanListPage.tsx](src/pages/PlanListPage.tsx) |
+| MAP-04-01 | 실시간 지도 홈 (장소 이름 검색 · 내 위치 주변 포함 — 흐름은 [플로챠트/지도.md](플로챠트/지도.md)) | `/map` | [ExplorePage.tsx](src/pages/ExplorePage.tsx) |
+| MAP-04-02 | 추천 장소 (맥락 인지 추천 피드 · 10곳씩 더 보기 — 흐름은 [플로챠트/추천.md](플로챠트/추천.md)) | `/recommend?tab=place` | [RecommendPage.tsx](src/pages/RecommendPage.tsx) |
+| SHARE-06-01 | 추천 코스 목록 (공용 플랜 · 10개씩 더 보기) | `/recommend?tab=course` | [PlanListPage.tsx](src/pages/PlanListPage.tsx) |
 | SHARE-06-02 | 코스 상세 · 내 여행으로 담기 | `/plans/:id` | [PlanDetailPage.tsx](src/pages/PlanDetailPage.tsx) |
 | SHARE-06-03 | 내 여행을 추천 코스로 공유 | `/trips/:id/share` | [PlanPublishPage.tsx](src/pages/PlanPublishPage.tsx) |
 | SHARE-06-04 | 내가 올린 코스 | `/me/plans` | [MyPlansPage.tsx](src/pages/MyPlansPage.tsx) |
@@ -38,7 +38,7 @@ Supabase 대신 localStorage 를, 네이버 지도 대신 SVG 폴백 지도를 �
 부르고, 테이블·파일 이름(`shared_plans`, `PlanListPage`)은 그대로 둡니다. 예전 목록 주소
 `/plans` 는 `/recommend?tab=course` 로 넘어갑니다.
 
-기능 코드가 붙지 않은 화면도 있습니다 — 홈([HomePage.tsx](src/pages/HomePage.tsx) · '하루에 다녀올 만한 곳' 로직은 [README-플로챠트.md](README-플로챠트.md)),
+기능 코드가 붙지 않은 화면도 있습니다 — 홈([HomePage.tsx](src/pages/HomePage.tsx) · '하루에 다녀올 만한 곳' 10곳 · 더 보기 로직은 [플로챠트/홈.md](플로챠트/홈.md)),
 내 여행 목록([TripListPage.tsx](src/pages/TripListPage.tsx)),
 장소 상세([PlaceDetailPage.tsx](src/pages/PlaceDetailPage.tsx)),
 마이페이지([MyPage.tsx](src/pages/MyPage.tsx)),

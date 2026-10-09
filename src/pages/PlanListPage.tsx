@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { sharedPlans, type PlanFilter } from '@/lib/db'
 import { useRegions } from '@/hooks/useRegions'
@@ -15,6 +15,9 @@ import { EmptyState, Loading, PageHeader } from '@/components/ui'
 /** 시군구 드롭다운에서 '전체'를 뜻하는 값 */
 const ALL_LEAF = ''
 
+/** 추천 코스를 한 번에 받는 개수 — 처음 이만큼, '코스 더 보기'마다 이만큼 더(추천 장소와 같다) */
+const PAGE_SIZE = 10
+
 /**
  * SHARE-06-01 공용 플랜 리스트 — 화면에서는 '추천 코스'라 부른다(Q22).
  *
@@ -29,23 +32,52 @@ export function PlanListPage({ embedded = false }: { embedded?: boolean } = {}) 
   const [companions, setCompanions] = useState<Companion[]>([])
   const [sort, setSort] = useState<PlanFilter['sort']>('popular')
   const [list, setList] = useState<SharedPlan[]>([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  /** 조건이 바뀌면 늘어난다 — 늦게 도착한 이전 조건의 응답(특히 '더 보기')을 버린다 */
+  const requestRef = useRef(0)
+
+  const filter: PlanFilter = {
+    areaCode: areaCode ?? undefined,
+    sigunguCode: sigunguCode ?? undefined,
+    companions: companions.length ? companions : undefined,
+    sort,
+  }
+  const filterKey = JSON.stringify(filter)
 
   const load = useCallback(async () => {
+    const req = ++requestRef.current
     setLoading(true)
     try {
-      setList(
-        await sharedPlans.list({
-          areaCode: areaCode ?? undefined,
-          sigunguCode: sigunguCode ?? undefined,
-          companions: companions.length ? companions : undefined,
-          sort,
-        }),
-      )
+      const { plans, total } = await sharedPlans.list(JSON.parse(filterKey) as PlanFilter, {
+        offset: 0,
+        limit: PAGE_SIZE,
+      })
+      if (req !== requestRef.current) return
+      setList(plans)
+      setTotal(total)
     } finally {
-      setLoading(false)
+      if (req === requestRef.current) setLoading(false)
     }
-  }, [areaCode, sigunguCode, companions, sort])
+  }, [filterKey])
+
+  /** 다음 쪽 — 이미 받은 개수부터 PAGE_SIZE 개. 그사이 새 코스가 끼어 겹치면 한 번만 둔다 */
+  async function showMore() {
+    const req = requestRef.current
+    setLoadingMore(true)
+    try {
+      const { plans, total } = await sharedPlans.list(filter, { offset: list.length, limit: PAGE_SIZE })
+      if (req !== requestRef.current) return
+      setList((prev) => {
+        const seen = new Set(prev.map((p) => p.id))
+        return [...prev, ...plans.filter((p) => !seen.has(p.id))]
+      })
+      setTotal(total)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   useEffect(() => {
     void load()
@@ -148,6 +180,17 @@ export function PlanListPage({ embedded = false }: { embedded?: boolean } = {}) 
               </li>
             ))}
           </ul>
+        )}
+
+        {!loading && list.length < total && (
+          <button
+            type="button"
+            onClick={() => void showMore()}
+            disabled={loadingMore}
+            className="mt-3 w-full rounded-xl border border-ink-200 bg-white py-3 text-[13.5px] font-bold text-ink-700 shadow-sm hover:bg-ink-50 disabled:opacity-60"
+          >
+            {loadingMore ? '불러오는 중…' : `코스 더 보기 · ${list.length} / ${total}개`}
+          </button>
         )}
       </div>
     </>

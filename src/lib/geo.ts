@@ -140,7 +140,7 @@ export function projectToViewport(
 }
 
 /**
- * 하루 거리 (README-플로챠트.md ❷) — 편도 2시간을 직선 약 120km 로 본다.
+ * 하루 거리 (플로챠트/홈.md ❷) — 편도 2시간을 직선 약 120km 로 본다.
  * DB 함수 home_picks 도 같은 값을 쓴다. 바꾸면 두 곳을 함께 바꾼다.
  */
 export const DAY_TRIP_RADIUS_KM = 120

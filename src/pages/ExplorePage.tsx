@@ -20,7 +20,7 @@ import {
   type PlaceCategory,
   type Trip,
 } from '@/lib/types'
-import { MapView } from '@/components/MapView'
+import { MapView, type MapViewport } from '@/components/MapView'
 import { CategoryDot, PlaceThumb, RatingStar } from '@/components/PlaceCard'
 import { BottomSheet, Loading } from '@/components/ui'
 
@@ -56,7 +56,7 @@ let savedFilters: {
   /** 그 위치가 속한 지역 이름('경기 부천시') */
   nearLabel: string | null
 } | null = null
-let savedViewport: { lat: number; lng: number; zoom: number } | null = null
+let savedViewport: MapViewport | null = null
 
 /**
  * 내 위치 주변에서 보여 줄 곳 수 — 하루 거리(120km) 안을 통째로 보이면 수도권은 7,000곳
@@ -72,6 +72,7 @@ const COMPACT_SEARCH_MIN = 300
 
 /**
  * MAP-04-01 · 04. 로컬 장소 탐색 > 4.1 맛집/명소 지도 > 실시간 지도 홈
+ * 찾기 흐름(시/도 · 이름 검색 · 내 위치 주변 · 점 ↔ 이름표)은 플로챠트/지도.md.
  * 필터 클릭 시 마커 배열을 갱신·재렌더링하고, 마커 클릭 시 하단 미니 상세 카드를 띄운다.
  * 비로그인(Guest) 상태에서도 열람 가능하다.
  */
@@ -160,7 +161,7 @@ export function ExplorePage() {
     }
   }, [areaCode, sigunguCode, active, nearMe, myLocation, nearLabel])
 
-  const handleViewportChange = useCallback((v: { lat: number; lng: number; zoom: number }) => {
+  const handleViewportChange = useCallback((v: MapViewport) => {
     savedViewport = v
   }, [])
 
@@ -352,6 +353,8 @@ export function ExplorePage() {
         className="h-full w-full bg-ink-100"
         safeInsets={{ top: 100, bottom: 120 }}
         userLocation={myLocation}
+        // 내 위치까지 화면에 넣는 것은 '내 위치 주변'일 때만 — 강동구를 고르면 강동구에만 맞춘다
+        fitUserLocation={nearMe && !searching}
         initialViewport={initialViewport}
         onViewportChange={handleViewportChange}
         // 시/도 전체(경기 3,357곳 등)는 이름표 없이 점으로 — 이름표 마커 수천 개는 겹쳐

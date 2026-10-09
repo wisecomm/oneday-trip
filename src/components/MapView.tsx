@@ -6,7 +6,16 @@ import {
   onNaverAuthFailure,
 } from '@/lib/naver'
 import { projectToViewport, type LatLng } from '@/lib/geo'
+import { groupRepresentatives } from '@/lib/map-group'
 import { CATEGORY_COLOR, CATEGORY_ICON, type Place } from '@/lib/types'
+
+/** 지도 위치 — baseZoom 은 점 마커 모드에서 '전체를 맞춘 줌'(복원할 때 이름표 기준으로 쓴다) */
+export interface MapViewport {
+  lat: number
+  lng: number
+  zoom: number
+  baseZoom?: number | null
+}
 
 interface MapViewProps {
   places: Place[]
@@ -23,14 +32,23 @@ interface MapViewProps {
    * 이전에 보고 있던 지도 위치(중심·줌)를 복원할 때 쓴다 — 있으면 마운트 시
    * 자동 fitBounds/setCenter 대신 이 위치로 초기화한다 (네이버 SDK 지도만 지원).
    */
-  initialViewport?: { lat: number; lng: number; zoom: number } | null
+  initialViewport?: MapViewport | null
   /** 사용자가 지도를 움직일 때마다(드래그·줌) 현재 중심/줌을 알려준다 (네이버 SDK 지도만 지원) */
-  onViewportChange?: (v: { lat: number; lng: number; zoom: number }) => void
+  onViewportChange?: (v: MapViewport) => void
   /**
    * 점 마커로 그린다 — 이름표 없이 카테고리색 작은 점. 시/도 전체처럼 수천 곳을 한 번에
    * 그릴 때 쓴다. 고른 장소와 방문 순번 마커는 이 모드에서도 이름표 마커로 그린다.
+   *
+   * 네이버 지도에서는 '전체를 맞춘 줌'보다 확대하면 화면 안의 점을 이름표 마커로 바꾸고,
+   * 그 줌 이하로 줄이면 다시 점으로 돌린다(지도를 움직일 때마다 화면 안만 다시 본다).
    */
   compact?: boolean
+  /**
+   * 지도를 맞출 때 내 위치도 화면에 넣을지(기본 true). 지도 탭은 '내 위치 주변'일 때만 켠다 —
+   * 부천에 있으면서 강동구를 고르면 부천까지 넣느라 강동구가 작게 보였다. 끄면 고른 지역의
+   * 장소에만 맞추고, 내 위치 점은 그 화면 안에 있을 때 그대로 보인다.
+   */
+  fitUserLocation?: boolean
 }
 
 /**
@@ -49,6 +67,7 @@ export function MapView({
   initialViewport,
   onViewportChange,
   compact,
+  fitUserLocation,
 }: MapViewProps) {
   // 다른 화면에서 이미 인증 실패가 확인됐다면 처음부터 폴백으로 간다
   const [naverFailed, setNaverFailed] = useState(hasNaverAuthFailed)
@@ -69,6 +88,7 @@ export function MapView({
         initialViewport={initialViewport}
         onViewportChange={onViewportChange}
         compact={compact}
+        fitUserLocation={fitUserLocation}
         onFail={() => setNaverFailed(true)}
       />
     )
@@ -84,6 +104,7 @@ export function MapView({
       safeInsets={safeInsets}
       userLocation={userLocation}
       compact={compact}
+      fitUserLocation={fitUserLocation}
     />
   )
 }
@@ -100,6 +121,7 @@ function NaverMap({
   initialViewport,
   onViewportChange,
   compact,
+  fitUserLocation = true,
   onFail,
 }: MapViewProps & { onFail: () => void }) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -118,6 +140,81 @@ function NaverMap({
   const appliedInitialViewport = useRef(false)
   const [ready, setReady] = useState(false)
 
+  // 점 마커 모드의 '전체를 맞춘 줌'. 이보다 확대하면 화면 안의 점을 이름표로, 이 줌 이하로
+  // 줄이면 다시 점으로. 자동 맞춤 직후의 줌을 잡는다 — 맞춤이 애니메이션이면 끝난 뒤(idle)에.
+  const baseZoomRef = useRef<number | null>(initialViewport?.baseZoom ?? null)
+  // 맞춘 직후 이 시각까지 오는 idle 만 '맞춤이 끝난 것'으로 본다 — 맞춤으로 화면이 안 바뀌어
+  // idle 이 오지 않으면, 뒤에 사용자가 확대한 줌을 전체 줌으로 잘못 잡지 않게
+  const captureBaseUntilRef = useRef(0)
+  /** 점 마커 모드에서 마커마다 지금 그려 둔 모양 — 없으면 점 */
+  const looksRef = useRef(new Map<string, MarkerLook>())
+  const orderIndexRef = useRef(new Map<string, number>())
+  const compactRef = useRef(!!compact)
+  compactRef.current = !!compact
+
+  /** 이 마커를 지금 어떤 모양으로 그릴지 — 고른 장소는 늘 이름표 */
+  const iconFor = (id: string, place: Place, selected: boolean) => {
+    const look = looksRef.current.get(id) ?? 'dot'
+    const dot = compactRef.current && look === 'dot'
+    return markerIcon(window.naver, place, orderIndexRef.current.get(id), selected, dot, typeof look === 'number' ? look - 1 : 0)
+  }
+
+  /**
+   * 점 마커 모드에서 줌 · 화면에 맞춰 모양을 바꾼다. 바뀌는 마커만 다시 그린다.
+   *   전체 줌 이하            → 모두 점
+   *   확대 · 화면 안 ≤ 1,000곳 → 화면 안은 이름표, 밖은 점
+   *   확대 · 화면 안 > 1,000곳 → 화면을 칸으로 나눠 칸마다 대표 1곳만 이름표(+N), 나머지는 숨김
+   */
+  const refreshTags = useRef(() => {})
+  refreshTags.current = () => {
+    const naver = window.naver
+    const map = mapRef.current
+    if (!naver?.maps || !map) return
+    const base = baseZoomRef.current
+    const zoomedIn = compactRef.current && base !== null && map.getZoom() > base
+    const next = new Map<string, MarkerLook>()
+    if (zoomedIn) {
+      const view = map.getBounds?.()
+      const inView: Place[] = []
+      for (const { place } of markerByIdRef.current.values()) {
+        if (
+          typeof view?.hasLatLng !== 'function' ||
+          view.hasLatLng(new naver.maps.LatLng(place.lat, place.lng))
+        ) {
+          inView.push(place)
+        }
+      }
+      if (inView.length <= TAG_MAX) {
+        for (const p of inView) next.set(p.id, 'tag')
+      } else {
+        const reps = groupRepresentatives(inView, TAG_MAX)
+        for (const p of inView) {
+          const n = reps.get(p.id)
+          next.set(p.id, n === undefined ? 'hidden' : n > 1 ? n : 'tag')
+        }
+      }
+    }
+    // 고른 장소는 숨기지 않는다
+    const sel = selectedIdRef.current
+    if (sel && next.get(sel) === 'hidden') next.set(sel, 'tag')
+
+    const prev = looksRef.current
+    looksRef.current = next
+    for (const id of new Set([...prev.keys(), ...next.keys()])) {
+      const a = prev.get(id) ?? 'dot'
+      const b = next.get(id) ?? 'dot'
+      if (a === b) continue
+      const hit = markerByIdRef.current.get(id)
+      if (!hit) continue
+      if (b === 'hidden') {
+        hit.marker.setVisible(false)
+        continue
+      }
+      if (a === 'hidden') hit.marker.setVisible(true)
+      hit.marker.setIcon(iconFor(id, hit.place, id === sel))
+    }
+  }
+
   useEffect(() => {
     let cancelled = false
     loadNaverMaps()
@@ -132,10 +229,17 @@ function NaverMap({
           ),
           zoom: initialViewport?.zoom ?? 11,
         })
-        // 사용자가 지도를 움직일 때마다(드래그·줌 종료 시) 현재 위치를 상위로 올려 보낸다
+        // 사용자가 지도를 움직일 때마다(드래그·줌 종료 시) 이름표 ↔ 점을 다시 보고,
+        // 현재 위치를 상위로 올려 보낸다
         naver.maps.Event.addListener(mapRef.current, 'idle', () => {
-          const c = mapRef.current.getCenter()
-          onViewportChange?.({ lat: c.lat(), lng: c.lng(), zoom: mapRef.current.getZoom() })
+          const m = mapRef.current
+          if (Date.now() < captureBaseUntilRef.current) {
+            baseZoomRef.current = m.getZoom()
+            captureBaseUntilRef.current = 0
+          }
+          refreshTags.current()
+          const c = m.getCenter()
+          onViewportChange?.({ lat: c.lat(), lng: c.lng(), zoom: m.getZoom(), baseZoom: baseZoomRef.current })
         })
         setReady(true)
       })
@@ -163,16 +267,18 @@ function NaverMap({
     })
     markersRef.current = []
     markerByIdRef.current = new Map()
+    looksRef.current = new Map()
     userMarkerRef.current?.setMap(null)
     userMarkerRef.current = null
     polylineRef.current?.setMap(null)
 
     const orderIndex = new Map(route?.map((p, i) => [p.id, i + 1]) ?? [])
+    orderIndexRef.current = orderIndex
     const bounds = new naver.maps.LatLngBounds()
 
     if (userLocation) {
       const pos = new naver.maps.LatLng(userLocation.lat, userLocation.lng)
-      bounds.extend(pos)
+      if (fitUserLocation) bounds.extend(pos)
       userMarkerRef.current = new naver.maps.Marker({
         position: pos,
         map,
@@ -216,7 +322,9 @@ function NaverMap({
       })
     }
 
+    let fitted = true
     if (initialViewport && !appliedInitialViewport.current) {
+      fitted = false
       // 복원할 위치가 있으면 자동 맞춤을 건너뛰고 그 자리를 그대로 둔다.
       // places 가 아직 비어 있으면(비동기 로딩 중) 이번 렌더는 판단을 유보하고
       // 플래그를 세우지 않는다 — 그렇지 않으면 빈 배열로 열린 첫 렌더에서 플래그가
@@ -224,7 +332,7 @@ function NaverMap({
       if (places.length > 0) {
         appliedInitialViewport.current = true
       }
-    } else if (userLocation) {
+    } else if (userLocation && fitUserLocation) {
       // 내 위치를 확보했을 때는 그 지점을 기준으로 뷰를 옮긴다 — 장소가 없거나
       // 하나뿐이면 내 위치에 바로 확대, 여러 곳이면 내 위치를 포함해 전부 보이게 맞춘다
       if (places.length === 0) {
@@ -238,10 +346,18 @@ function NaverMap({
       map.setZoom(15)
     } else if (places.length > 1) {
       map.fitBounds(bounds, { top: 56, right: 48, bottom: 56, left: 48 })
+    } else {
+      fitted = false
     }
+    // 방금 자동으로 맞췄다면 그 줌이 '전체' — 맞춤이 끝난 뒤(idle) 다시 한 번 잡는다
+    if (fitted) {
+      baseZoomRef.current = map.getZoom()
+      captureBaseUntilRef.current = Date.now() + 1000
+    }
+    refreshTags.current()
     // 고른 장소는 아래 효과가 따로 바꾼다 — 고를 때마다 지도를 다시 맞추지 않는다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [places, route, compact, onSelect, userLocation, initialViewport, ready])
+  }, [places, route, compact, onSelect, userLocation, initialViewport, ready, fitUserLocation])
 
   // 고른 장소가 바뀌면 이전 것과 새 것, 두 마커의 모양만 바꾼다
   useEffect(() => {
@@ -249,13 +365,14 @@ function NaverMap({
     if (!naver?.maps || !ready) return
     const prev = drawnSelectedRef.current
     if (prev === selectedId) return
-    const orderIndex = new Map(route?.map((p, i) => [p.id, i + 1]) ?? [])
     for (const id of [prev, selectedId]) {
       if (!id) continue
       const hit = markerByIdRef.current.get(id)
       if (!hit) continue
       const selected = id === selectedId
-      hit.marker.setIcon(markerIcon(naver, hit.place, orderIndex.get(id), selected, !!compact))
+      if (selected) hit.marker.setVisible(true)
+      if (!selected && looksRef.current.get(id) === 'hidden') hit.marker.setVisible(false)
+      hit.marker.setIcon(iconFor(id, hit.place, selected))
       hit.marker.setZIndex(selected ? 10 : 1)
     }
     drawnSelectedRef.current = selectedId
@@ -263,6 +380,12 @@ function NaverMap({
 
   return <div ref={containerRef} className={className} />
 }
+
+/** 확대했을 때 화면 안에 이름표로 그리는 최대 곳 수 — 넘으면 칸마다 대표 1곳만 */
+export const TAG_MAX = 1000
+
+/** 점 마커 모드의 마커 모양: 점 · 이름표 · 숨김 · 대표(숫자 = 칸 안의 곳 수) */
+type MarkerLook = 'dot' | 'tag' | 'hidden' | number
 
 /** 마커 콘텐츠 래퍼의 가로 너비(px) — 이름표가 원보다 넓어도 항상 이 축을 기준으로 가운데 정렬한다 */
 const MARKER_WIDTH = 92
@@ -274,7 +397,14 @@ const DOT_SIZE = 12
  * 네이버 마커 아이콘. 점 모드라도 고른 장소와 방문 순번이 있는 장소는 이름표 마커다 —
  * 점을 눌렀을 때 무엇을 골랐는지 지도 위에서 보이게.
  */
-function markerIcon(naver: any, place: Place, order: number | undefined, selected: boolean, compact: boolean) {
+function markerIcon(
+  naver: any,
+  place: Place,
+  order: number | undefined,
+  selected: boolean,
+  compact: boolean,
+  more = 0,
+) {
   if (compact && !selected && order === undefined) {
     return {
       content: dotHtml(place),
@@ -283,7 +413,7 @@ function markerIcon(naver: any, place: Place, order: number | undefined, selecte
   }
   const size = selected ? 38 : 30
   return {
-    content: markerHtml(place, order, selected),
+    content: markerHtml(place, order, selected, more),
     // 콘텐츠는 이름표까지 포함한 MARKER_WIDTH 너비의 래퍼다. 원의 중앙 하단이
     // 좌표에 오도록, 래퍼 가로 중앙(원도 이름표도 이 축에 맞춰 가운데 정렬된다)
     // · 원의 세로 하단(래퍼 맨 위에서 size 만큼)을 앵커로 잡는다.
@@ -310,7 +440,7 @@ function escapeHtml(s: string): string {
  * 래퍼 너비를 MARKER_WIDTH 로 고정해 두면, 이름 길이와 무관하게 원과 이름표가
  * 항상 같은 가로축을 기준으로 가운데 정렬되므로 anchor 계산이 흔들리지 않는다.
  */
-function markerHtml(place: Place, order: number | undefined, selected: boolean): string {
+function markerHtml(place: Place, order: number | undefined, selected: boolean, more = 0): string {
   const color = CATEGORY_COLOR[place.category]
   const size = selected ? 38 : 30
   // 방문 순번이 있으면(동선 지도) 숫자를, 없으면(일반 탐색) 카테고리 아이콘을 보여준다
@@ -321,7 +451,13 @@ function markerHtml(place: Place, order: number | undefined, selected: boolean):
     <div style="width:${size}px;height:${size}px;box-sizing:border-box;border-radius:999px;
       background:${color};color:#fff;display:flex;align-items:center;justify-content:center;
       font-weight:800;font-size:${fontSize}px;font-family:inherit;line-height:1;cursor:pointer;
-      box-shadow:0 4px 12px rgba(0,0,0,.28);border:2.5px solid #fff">${label}</div>
+      box-shadow:0 4px 12px rgba(0,0,0,.28);border:2.5px solid #fff;position:relative">${label}${
+        more > 0
+          ? `<span style="position:absolute;top:-8px;left:${size - 10}px;min-width:18px;height:18px;padding:0 4px;
+              box-sizing:border-box;border-radius:999px;background:#21262e;color:#fff;border:1.5px solid #fff;
+              font-size:10px;font-weight:800;line-height:15px;text-align:center;white-space:nowrap">+${more > 999 ? '999' : more}</span>`
+          : ''
+      }</div>
     <span style="margin-top:3px;max-width:84px;font-size:11px;font-weight:700;color:#21262e;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:inherit;
       text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff,0 0 4px #fff">${name}</span>
@@ -352,6 +488,7 @@ function FallbackMap({
   safeInsets,
   userLocation,
   compact,
+  fitUserLocation = true,
 }: MapViewProps) {
   const boxRef = useRef<HTMLDivElement>(null)
   // 뷰박스를 컨테이너 픽셀 크기와 1:1로 맞춰야 마커가 왜곡되거나 잘리지 않는다
@@ -368,9 +505,18 @@ function FallbackMap({
     return () => observer.disconnect()
   }, [])
 
-  // 내 위치도 좌표 범위 계산에 포함시켜야 뷰가 실제로 그쪽으로 옮겨간다
+  // 내 위치도 좌표 범위 계산에 포함시켜야 뷰가 실제로 그쪽으로 옮겨간다. 맞추지 않을 때
+  // (fitUserLocation false)는 장소들의 범위 안에 있을 때만 점을 그린다 — 범위를 넓히지 않는다
   const allLatLng = places.map((p) => ({ lat: p.lat, lng: p.lng }))
-  if (userLocation) allLatLng.push(userLocation)
+  const drawUser =
+    !!userLocation &&
+    (fitUserLocation ||
+      (places.length > 1 &&
+        userLocation.lat >= Math.min(...places.map((p) => p.lat)) &&
+        userLocation.lat <= Math.max(...places.map((p) => p.lat)) &&
+        userLocation.lng >= Math.min(...places.map((p) => p.lng)) &&
+        userLocation.lng <= Math.max(...places.map((p) => p.lng))))
+  if (userLocation && drawUser) allLatLng.push(userLocation)
 
   const allPoints = projectToViewport(allLatLng, W, H, {
     // 상단 필터·하단 내비게이션 UI 와 겹치지 않도록 여백을 확보한다
@@ -380,7 +526,7 @@ function FallbackMap({
     left: 44,
   })
   const points = allPoints.slice(0, places.length)
-  const userPoint = userLocation ? allPoints[allPoints.length - 1] : null
+  const userPoint = userLocation && drawUser ? allPoints[allPoints.length - 1] : null
   const byId = new Map(places.map((p, i) => [p.id, points[i]]))
   const selectedIndex = places.findIndex((p) => p.id === selectedId)
   const drawOrder = places.map((_, i) => i).filter((i) => i !== selectedIndex)

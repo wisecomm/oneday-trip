@@ -179,7 +179,7 @@ create table public.places (
   -- (컬럼 순서는 위 profiles.role 과 같은 이유로 created_at 뒤다)
   source             place_source_kind not null default 'tour',
   created_by         uuid references auth.users on delete set null,
-  -- 사용자 리뷰 별점의 평균과 개수 (README-플로챠트.md). 리뷰가 바뀔 때 trip_items 트리거가 그 장소만 다시 계산하고, 평가가
+  -- 사용자 리뷰 별점의 평균과 개수 (플로챠트/홈.md). 리뷰가 바뀔 때 trip_items 트리거가 그 장소만 다시 계산하고, 평가가
   -- 없으면 rating_avg 는 0 이 아니라 null 이다. 장소 적재 upsert 는 두 칸을
   -- 건드리지 않는다. (컬럼 순서는 마이그레이션이 alter 로 붙인 그대로다)
   rating_avg         numeric(2,1) check (rating_avg between 1 and 5),
@@ -567,7 +567,7 @@ grant execute on function public.admin_create_place(
   text, place_category, text, double precision, double precision, integer, integer, text
 ) to authenticated;
 
--- ── 장소 별점 · 홈 '하루에 다녀올 만한 곳' (README-플로챠트.md) ───────────
+-- ── 장소 별점 · 홈 '하루에 다녀올 만한 곳' (플로챠트/홈.md) ──────────────
 -- 마이그레이션 20261008010000 의 함수·트리거를 옮긴 것이다. 기존 리뷰를
 -- 채워 넣는 백필은 데이터라 이 스냅샷에는 없다.
 
@@ -708,39 +708,34 @@ grant execute on function public.distance_km(double precision, double precision,
 
 -- ── 7. 홈 '하루에 다녀올 만한 곳' ─────────────────────────────────
 --
--- 기준점(현재 위치, 없으면 서울 강남구 중심)에서 가까운 장소를 종류별로 고른다.
+-- 기준점(현재 위치, 없으면 서울 강남구 중심)에서 p_count 곳(앱은 10곳). 종류 비율 없이
+-- 한 줄 순서로 고른다:
+--   1) 하루 거리(직선 120km, 편도 2시간) 안에서 리뷰가 있는 곳 — 평균 높은 순,
+--      같으면 리뷰 많은 순, 그다음 가까운 순.
+--   2) 나머지 — 기준점에서 가까운 순(거리 제한 없음).
+-- 후보는 미판정 · 숨긴 장소 · 술집을 뺀 곳. '더 보기'는 이미 보인 곳(p_exclude)을 빼고
+-- 다음 p_count 곳 — 순서가 기준점 · 리뷰에 따라 바뀌므로 쪽 번호 대신 제외 목록으로 잇는다.
 --
---   종류별 개수  명소 = 개수 − 2(기본 3), 밥집 1, 카페 1. 술집은 뺀다.
---   종류 안 순서 1) 하루 거리(직선 120km, 편도 2시간) 안에서 리뷰가 있는 곳 —
---                   평균 높은 순, 같으면 리뷰 많은 순, 그다음 가까운 순.
---                2) 나머지 — 기준점에서 가까운 순. 반경 안이 모자라면 다음으로
---                   가까운 곳이 저절로 이어서 들어오므로 반경을 넓히는 단계는 없다.
---   카드 순서    고른 곳을 같은 규칙(리뷰 묶음 먼저, 그다음 가까운 순)으로.
---
--- 다섯 곳의 id 와 순서만 돌려준다. 이름·지역 이름은 화면이 평소 쓰는 장소
--- 조회로 붙인다 — 여기서 그 조인을 다시 쓰면 장소 조회가 두 군데가 된다.
---
--- 기준점이 비어 오면 regions 의 (서울 1, 강남구 1) 중심을 쓴다. 강남 좌표를
--- 코드에 적지 않는 것은, 수집 때 장소들의 평균 위치로 계산된 값이라 데이터를
--- 따라가야 하기 때문이다.
---
--- security invoker 다. places 는 누구나 읽을 수 있고, 평균 칸만 읽으며 개별
--- 리뷰(trip_items)는 건드리지 않는다.
-create or replace function public.home_picks(
-  p_lat   double precision,
-  p_lng   double precision,
-  p_count integer default 5
+-- id 와 순서만 돌려준다. 이름·지역 이름은 화면이 평소 쓰는 장소 조회로 붙인다.
+-- 기준점이 비어 오면 regions 의 (서울 1, 강남구 1) 중심을 쓴다 — 강남 좌표를 코드에 적지
+-- 않는 것은, 수집 때 장소들의 평균 위치로 계산된 값이라 데이터를 따라가야 하기 때문이다.
+-- security invoker — places 는 누구나 읽을 수 있고, 평균 칸만 읽으며 개별 리뷰(trip_items)는
+-- 건드리지 않는다.
+create function public.home_picks(
+  p_lat     double precision,
+  p_lng     double precision,
+  p_count   integer default 10,
+  p_exclude text[] default '{}'
 )
 returns table (place_id text, pick_order integer)
 language plpgsql
-volatile
+stable
 set search_path = public, pg_temp
 as $$
 declare
   v_lat    double precision := p_lat;
   v_lng    double precision := p_lng;
-  -- 밥집 1 · 카페 1 에 명소가 최소 1곳은 들어가야 하므로 3 이상
-  v_count  integer := least(greatest(coalesce(p_count, 5), 3), 20);
+  v_count  integer := least(greatest(coalesce(p_count, 10), 1), 50);
   v_radius constant double precision := 120;  -- 편도 2시간 · 앱 DAY_TRIP_RADIUS_KM
 begin
   if v_lat is null or v_lng is null then
@@ -751,39 +746,33 @@ begin
 
   return query
   with cand as (
-    select p.id, p.category, p.rating_avg, p.rating_count, d.km,
-           (p.rating_count > 0 and d.km <= v_radius) as reviewed
+    select p.id, d.km,
+           (p.rating_count > 0 and d.km <= v_radius) as reviewed,
+           p.rating_avg, p.rating_count
       from public.places p
      cross join lateral (select public.distance_km(v_lat, v_lng, p.lat, p.lng) as km) d
      where p.tour_sigungu_code >= 0
        and p.category in ('spot', 'babzip', 'cafe')
        and p.hidden_at is null
+       and not (p.id = any (coalesce(p_exclude, '{}')))
   ),
   ranked as (
-    -- 평균·개수는 리뷰 묶음 안에서만 순서를 정한다. 나머지는 null 로 두어 거리만 본다.
-    select c.id, c.category, c.reviewed, c.km,
-           case when c.reviewed then c.rating_avg end as avg_key,
-           case when c.reviewed then c.rating_count end as cnt_key
+    select c.id,
+           (row_number() over (order by c.reviewed desc,
+                                        case when c.reviewed then c.rating_avg end desc nulls last,
+                                        case when c.reviewed then c.rating_count end desc nulls last,
+                                        c.km, c.id))::integer as n
       from cand c
-  ),
-  per_cat as (
-    select r.*,
-           row_number() over (partition by r.category
-                              order by r.reviewed desc, r.avg_key desc nulls last,
-                                       r.cnt_key desc nulls last, r.km, r.id) as rn
-      from ranked r
   )
-  select x.id,
-         (row_number() over (order by x.reviewed desc, x.avg_key desc nulls last,
-                                      x.cnt_key desc nulls last, x.km, x.id))::integer
-    from per_cat x
-   where x.rn <= case x.category when 'spot' then v_count - 2 else 1 end
-   order by 2;
+  select x.id, x.n
+    from ranked x
+   where x.n <= v_count
+   order by x.n;
 end;
 $$;
 
-revoke all on function public.home_picks(double precision, double precision, integer) from public;
-grant execute on function public.home_picks(double precision, double precision, integer)
+revoke all on function public.home_picks(double precision, double precision, integer, text[]) from public;
+grant execute on function public.home_picks(double precision, double precision, integer, text[])
   to anon, authenticated;
 
 -- ── 8. 지도 '내 위치 주변' — 가까운 순 N곳 ─────────────────────────

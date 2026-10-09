@@ -71,7 +71,7 @@ export async function fetchWeather(lat: number, lng: number): Promise<Pick<TripC
 }
 
 /**
- * 방문자 별점을 점수로 바꿀 때의 기준 (README-플로챠트.md ❶ 의 rating_avg).
+ * 방문자 별점을 점수로 바꿀 때의 기준 (플로챠트/홈.md ❶ 의 rating_avg).
  *
  * 리뷰가 적은 장소는 평균을 PRIOR_MEAN 쪽으로 당긴다(베이지안 평균) — 한 사람이
  * 준 5점 하나로 순위 맨 위에 서지 못하게. PRIOR_WEIGHT 는 "가상의 보통 리뷰
@@ -101,12 +101,13 @@ export interface Scored {
   reasons: string[]
 }
 
-export function recommend(
-  list: Place[],
-  ctx: TripContext,
-  profile: Profile | null,
-  limit = 8,
-): Scored[] {
+/** 점수를 매기고 순서를 정한 후보 — 동점 순서(tie)를 지녀 쪽을 나눠 꺼내도 순서가 흔들리지 않는다 */
+export interface Ranked extends Scored {
+  tie: number
+}
+
+/** 후보 전부에 점수를 매겨 높은 순으로 — 동점은 무작위(새로고침마다 다른 곳이 섞인다) */
+export function rankAll(list: Place[], ctx: TripContext, profile: Profile | null): Ranked[] {
   const scored = list.map((place) => {
     // 0) 방문자 별점. 리뷰 1~2건도 점수에는 들어가지만(작게), 근거 라벨은
     //    화면의 ★ 와 같은 기준(3건 이상)일 때만 단다 — 한 사람의 별점이 드러나지 않게.
@@ -164,33 +165,52 @@ export function recommend(
   // 점수가 같으면 무작위로 — 목록이 이름순으로 오므로, 그대로 두면 동점 장소 중
   // 가나다순 앞쪽만 늘 뽑힌다(리뷰가 거의 없는 지금은 대부분이 동점이다).
   // 그래서 같은 조건이라도 새로고침할 때마다 다른 곳이 섞여 나온다.
-  const ranked = scored.sort((a, b) => b.score - a.score || a.tie - b.tie)
+  return scored.sort((a, b) => b.score - a.score || a.tie - b.tie)
+}
 
-  // 한 종류가 목록을 다 채우지 않게 — 시간대 · 날씨 가산이 종류 단위라, 맑은 저녁에는
-  // 명소 8곳처럼 한 종류로 쏠린다. 종류마다 limit 의 절반(8 이면 4곳)까지만 먼저
-  // 넣고, 다른 종류가 모자라 자리가 남으면 점수순으로 마저 채운다.
+/**
+ * 순서를 정한 후보(rankAll)에서 한 쪽(limit 곳)을 꺼낸다 — rest 는 남은 후보(순서 그대로),
+ * '더 보기'가 다음 쪽을 여기서 꺼낸다.
+ *
+ * 한 종류가 쪽을 다 채우지 않게 — 시간대 · 날씨 가산이 종류 단위라, 맑은 저녁에는
+ * 명소로만 쏠린다. 종류마다 limit 의 절반(10 이면 5곳)까지만 먼저 넣고, 다른 종류가
+ * 모자라 자리가 남으면 점수순으로 마저 채운다. 쪽마다 같은 규칙.
+ */
+export function takePage(ranked: Ranked[], limit: number): { page: Ranked[]; rest: Ranked[] } {
   const cap = Math.ceil(limit / 2)
   const perCategory = new Map<PlaceCategory, number>()
-  const picked: typeof ranked = []
-  const skipped: typeof ranked = []
+  const picked = new Set<Ranked>()
+  const skipped: Ranked[] = []
   for (const s of ranked) {
-    if (picked.length >= limit) break
+    if (picked.size >= limit) break
     const n = perCategory.get(s.place.category) ?? 0
     if (n < cap) {
-      picked.push(s)
+      picked.add(s)
       perCategory.set(s.place.category, n + 1)
     } else {
       skipped.push(s)
     }
   }
   for (const s of skipped) {
-    if (picked.length >= limit) break
-    picked.push(s)
+    if (picked.size >= limit) break
+    picked.add(s)
   }
+  const page = [...picked].sort((a, b) => b.score - a.score || a.tie - b.tie)
+  return { page, rest: ranked.filter((s) => !picked.has(s)) }
+}
 
-  return picked
-    .sort((a, b) => b.score - a.score || a.tie - b.tie)
-    .map(({ place, score, reasons }) => ({ place, score, reasons }))
+/** 점수 높은 limit 곳(종류 쏠림 제한 포함) — 추천 장소 첫 쪽 · 여행 자동 담기(recommendMix) */
+export function recommend(
+  list: Place[],
+  ctx: TripContext,
+  profile: Profile | null,
+  limit = 8,
+): Scored[] {
+  return takePage(rankAll(list, ctx, profile), limit).page.map(({ place, score, reasons }) => ({
+    place,
+    score,
+    reasons,
+  }))
 }
 
 export interface CategoryQuota {

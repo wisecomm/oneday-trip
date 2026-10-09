@@ -17,13 +17,16 @@ import { PlaceCard } from '@/components/PlaceCard'
 import { Loading } from '@/components/ui'
 import { formatTripDate } from '@/lib/trip-date'
 
+/** 홈 '하루에 다녀올 만한 곳' — 처음 이만큼, '더 보기'마다 이만큼 더(추천 장소 · 코스와 같은 10) */
+const PAGE_SIZE = 10
+
 export function HomePage() {
   const { user, profile, isGuest } = useAuth()
   const [myTrips, setMyTrips] = useState<Trip[]>([])
   const [loading, setLoading] = useState(true)
 
   /**
-   * '하루에 다녀올 만한 곳' (README-플로챠트.md).
+   * '하루에 다녀올 만한 곳' (플로챠트/홈.md).
    *
    * 화면이 열리면 위치를 묻는다. 거부 · 미지원 · 5초 안에 응답이 없으면 서울
    * 강남구 중심을 기준점으로 같은 흐름을 탄다. 어느 기준인지 섹션 머리에 보이고,
@@ -36,6 +39,9 @@ export function HomePage() {
    */
   const [picks, setPicks] = useState<Place[]>([])
   const [picksLoading, setPicksLoading] = useState(true)
+  /** '더 보기' — 받는 중 · 더 받을 곳이 남았는지(마지막으로 받은 쪽이 꽉 찼으면 남은 것으로 본다) */
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
   const [origin, setOrigin] = useState<LatLng | null>(null)
   /** 기준점이 내 위치인지 · 아니면 왜 강남인지 */
   const [basis, setBasis] = useState<{ here: true } | { here: false; reason: LocateFailure } | null>(null)
@@ -57,10 +63,11 @@ export function HomePage() {
         const gangnam = all.find((r) => r.tour_area_code === 1 && r.tour_sigungu_code === 1)
         base = gangnam ? { lat: gangnam.lat, lng: gangnam.lng } : null
       }
-      const list = await placesApi.homePicks(base, 5)
+      const list = await placesApi.homePicks(base, PAGE_SIZE)
       if (id !== pickRequest.current) return
       setOrigin(base)
       setPicks(list)
+      setHasMore(list.length === PAGE_SIZE)
       setBasis(found.at ? { here: true } : { here: false, reason: found.reason })
       lastPickedAt.current = Date.now()
     } catch (err) {
@@ -72,6 +79,29 @@ export function HomePage() {
       }
     }
   }, [])
+
+  /**
+   * 더 보기 — 이미 보인 곳을 빼고 다음 PAGE_SIZE 곳(같은 순서). 기준점은 처음 고른 그 자리(origin).
+   * 그사이 다시 골랐으면 버린다.
+   */
+  async function showMorePicks() {
+    const id = pickRequest.current
+    setLoadingMore(true)
+    try {
+      const more = await placesApi.homePicks(
+        origin,
+        PAGE_SIZE,
+        picks.map((p) => p.id),
+      )
+      if (id !== pickRequest.current) return
+      setPicks((prev) => [...prev, ...more])
+      setHasMore(more.length === PAGE_SIZE)
+    } catch (err) {
+      console.error('[Home] 더 보기를 불러오지 못했습니다.', err)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   useEffect(() => {
     void loadPicks(false)
@@ -196,6 +226,16 @@ export function HomePage() {
               </li>
             ))}
           </ul>
+        )}
+        {!picksLoading && picks.length > 0 && hasMore && (
+          <button
+            type="button"
+            onClick={() => void showMorePicks()}
+            disabled={loadingMore || refreshing}
+            className="mt-2.5 w-full rounded-xl border border-ink-200 bg-white py-3 text-[13.5px] font-bold text-ink-700 shadow-sm hover:bg-ink-50 disabled:opacity-60"
+          >
+            {loadingMore ? '불러오는 중…' : `더 보기 · 지금 ${picks.length}곳`}
+          </button>
         )}
       </section>
     </div>

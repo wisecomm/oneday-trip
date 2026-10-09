@@ -108,7 +108,7 @@ delete cascade` 가 두 세계를 잇는 유일한 연결이고, 나머지 개�
 
 **쓰는 화면** `ExplorePage`(지도 · 이름 검색) · `PlaceDetailPage` ·
 `RecommendPage` · `AdminPlacesPage`(수동 등록 목록) · `MapView` ·
-`HomePage`(`home_picks()` 로 고른 5곳) · 지도 '내 위치 주변'(`places_nearest()` — 내 위치에서 가까운 순 100곳, 하루 거리 120km 안).
+`HomePage`(`home_picks()` — 10곳씩, 더 보기는 보인 곳을 빼고 다음 10곳) · 지도 '내 위치 주변'(`places_nearest()` — 내 위치에서 가까운 순 100곳, 하루 거리 120km 안).
 
 **RLS** 누구나 읽기. insert·update·delete 는 `is_admin()`. 수집 작업(`tour_collector`)은
 `source = 'tour'` 행만 넣고 고칩니다(배치가 채우는 칸만 · 지우기 없음).
@@ -121,7 +121,7 @@ delete cascade` 가 두 세계를 잇는 유일한 연결이고, 나머지 개�
 만한 곳'(`home_picks()`)과 추천 장소 점수(`recommend.ts` 의 `ratingScore()`, 리뷰가 적을수록
 3점 쪽으로 당긴 베이지안 평균)가 이 평균을 쓰고, 리뷰 3건 이상이면 장소 카드 · 상세 ·
 지도 시트 · 추천 장소에 ★ 로 보입니다 — 자세한 흐름은
-`README-플로챠트.md`.
+`플로챠트/홈.md`.
 
 **`content_type` 은 TourAPI 원래 타입 번호입니다.** 앱 분류는 `category` 가 정합니다 —
 39 음식점은 밥집 · 카페 · 술집, 12 관광지 · 14 문화시설 · 28 레포츠 · 38 쇼핑 · 32 숙박은 모두
@@ -190,7 +190,9 @@ current_database();` 를 먼저 보세요.
 
 **쓰는 화면** `PlanListPage` · `PlanDetailPage` · `PlanPublishPage` ·
 `MyPlansPage` · `AdminPlansPage`. 운영자 플랜도 `PlanPublishPage` 로 만듭니다 —
-관리자가 올리면 `origin='admin'` 이 됩니다 (Q20).
+관리자가 올리면 `origin='admin'` 이 됩니다 (Q20). 추천 코스 목록은 서버에서 10개씩
+나눠 받습니다(`sharedPlans.list()` — 전체 개수를 함께 받고, 정렬 끝에 `id` 를 둬 쪽 사이에서
+빠지거나 겹치지 않게).
 
 **RLS** `is_hidden = false` 면 누구나 읽기(비로그인 포함). 쓰기는
 `origin='user'` 면 작성자, `origin='admin'` 이면 관리자.
