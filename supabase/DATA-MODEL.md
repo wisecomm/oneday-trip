@@ -234,6 +234,31 @@ update 할 권한이 없어서, 호출자 권한으로 돌면 **RLS 에 막혀 �
 
 ---
 
+### `tour.*` — 수집 원본 (앱이 쓰지 않음)
+
+**담는 것** TourAPI 에서 받은 원본과 수집 상태. 예전 수집 폴더의 `raw/` 파일을 옮겨 올
+자리입니다(검토: `intent/2026-10-09-서버-수집-검토/검토.md`). 2026-10-09 지금은 테이블만
+있고, 수집 · 변환은 아직 파일을 씁니다.
+
+| 테이블 | 한 행 | 예전 파일 |
+| --- | --- | --- |
+| `code_tables` | 코드표 하나 | `area-codes.json` · `sigungu-N.json` |
+| `list_fetches` | 받은 목록 단위(시/도 · 시군구 · 타입) | `places-*.json` 이 있다는 사실 |
+| `list_items` | 장소 하나의 목록 원본 · 수정일 · 표출 중단(`hidden_at`) | `places-*.json` 항목 · `hidden.json` |
+| `details` | 장소 하나의 상세 원본 · `mt` | `detail-*.json` 항목 |
+| `sync_state` | 상태 값 하나 | `sync-state.json` |
+| `runs` | 실행 한 번 | `logs/` · `summary.txt` |
+| `place_out` | 지난번 `places` 에 반영한 결과의 지문 | (새로) |
+
+**RLS · 권한** `tour` 는 앱 API 노출 스키마(`config.toml`)에 없고 `anon` · `authenticated`
+에는 스키마 사용 권한도 없습니다. 수집 작업만 `tour_collector` 역할로 읽고 씁니다. 이
+역할은 마이그레이션이 **로그인 없이** 만들고, 비밀번호는 사람이 SQL 편집기에서
+`alter role tour_collector with login password '…';` 로 정합니다 — 비밀번호를 git 에
+남기지 않기 위해서입니다. `places` 에 쓰는 권한은 아직 없습니다(바로 반영 단계에서 줍니다).
+
+**주의** `details` 는 `list_items` 를 `on delete cascade` 로 참조합니다. 표출 중단된
+장소는 행을 지우지 않고 `hidden_at` 만 채우므로 상세도 남습니다.
+
 ## 3. 화면 → 테이블
 
 | 화면 | 읽고 쓰는 것 |
