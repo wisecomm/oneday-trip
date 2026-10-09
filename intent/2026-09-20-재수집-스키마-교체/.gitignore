@@ -5,3 +5,8 @@
 raw/
 # 리포트는 결정의 근거이므로 남긴다.
 !raw/report.json
+
+# 운영 DB 접속 주소(비밀번호 포함) — 절대 커밋하지 않는다. db.mjs 가 읽는다.
+.db-url
+# Supabase CA 인증서(선택). 있으면 db.mjs 가 서버 인증서까지 검증한다.
+.db-ca.crt
