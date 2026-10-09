@@ -126,11 +126,11 @@ delete cascade` 가 두 세계를 잇는 유일한 연결이고, 나머지 개�
 `content_type` 을 봅니다. 수동 등록 행은 null 이고, 허용 값 제약은 일부러 두지 않았습니다.
 
 **`hidden_at` 이 있으면 숨긴 장소입니다.** TourAPI 에서 표출 중단(showflag 0)된 장소로,
-수집 배치가 동기화 목록에서 골라 시드 끝의 `update` 로 채웁니다. 행을 지우지 않는 것은
+수집(`collect.mjs`)이 동기화 목록에서 골라 `tour.list_items.hidden_at` 에 적고, 반영(`load.mjs`)이 `update` 로 채웁니다. 행을 지우지 않는 것은
 `trip_items` · `shared_plan_items` 가 cascade 로 참조해서입니다 — 지우면 사용자 타임라인
 항목이 함께 사라집니다. 숨긴 장소는 `places.list()` (지도 · 검색 · 추천)와 `home_picks()`
 에서만 빠지고, `places.get()` · 타임라인 조인은 그대로 돌려줘 화면이 '관광정보에서 내려간
-장소' 안내를 붙입니다. 표출이 재개되면 다음 시드 upsert 가 null 로 되돌립니다.
+장소' 안내를 붙입니다. 표출이 재개되면 다음 반영의 upsert 가 null 로 되돌립니다.
 
 **목록은 나눠 받습니다.** API 는 한 번에 최대 1,000행(`config.toml` 의 `max_rows`)만
 돌려주고 넘쳐도 오류 없이 자릅니다. '시/도 전체'가 이를 넘는 곳이 7곳(경기 3,357곳이

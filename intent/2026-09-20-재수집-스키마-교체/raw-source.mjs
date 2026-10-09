@@ -3,7 +3,8 @@
  *
  * 테이블 행을 예전 raw/ 파일 단위로 다시 묶어 돌려준다: 이름 목록(names)과 이름으로
  * 읽기(read). 파일로 쌓던 시절의 판정 · 변환 코드(load.mjs)를 건드리지 않고 읽는 곳만
- * 바꾸기 위해서다 (intent/2026-10-09-서버-수집-검토/검토.md).
+ * 바꾸기 위해서다 (intent/2026-10-09-서버-수집-검토/검토.md). 아래 이름은 **메모리 안의
+ * 묶음 이름**일 뿐 — 디스크에 파일을 만들거나 읽지 않는다.
  *
  *   area-codes.json · sigungu-N.json   ← tour.code_tables
  *   places-시도-시군구-타입.json        ← tour.list_fetches + 숨기지 않은 tour.list_items
