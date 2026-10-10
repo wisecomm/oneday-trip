@@ -48,7 +48,7 @@ const KEY = 'oneday-trip:db'
  */
 const SHAPE = {
   profiles: {
-    id: true, nickname: true, taste_tags: true, role: true, created_at: true,
+    id: true, nickname: true, taste_tags: true, role: true, created_at: true, language: true,
   } satisfies Record<keyof Profile, true>,
 
   trips: {

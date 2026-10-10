@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/lib/auth'
 import { AppLayout } from '@/components/AppLayout'
 import { ScrollMemory } from '@/components/ScrollMemory'
+import { I18nProvider } from '@/i18n'
 import { Loading } from '@/components/ui'
 import { HomePage } from '@/pages/HomePage'
 import { LoginPage } from '@/pages/LoginPage'
@@ -72,6 +73,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <AuthProvider>
+      <I18nProvider>
       <ScrollMemory />
       {/* 화면 청크를 받아 오는 동안 보여 줄 것. 화면 안의 데이터 로딩과 같은
           스피너라 사용자에게는 한 가지 기다림으로 보인다 */}
@@ -196,6 +198,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
+      </I18nProvider>
     </AuthProvider>
   )
 }

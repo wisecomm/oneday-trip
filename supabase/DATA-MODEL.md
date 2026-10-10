@@ -150,7 +150,7 @@ current_database();` 를 먼저 보세요.
 
 ### `profiles` — 사용자 프로필
 
-**담는 것** 닉네임, 취향 태그, **역할**.
+**담는 것** 닉네임, 취향 태그, **역할**, 화면 언어(`language` — `'ko'` · `'en'`, 기본 `'ko'`. 비회원은 브라우저에만).
 
 **쓰는 화면** `ProfileSetupPage`(온보딩) · `MyPage`. 역할은 `RequireAdmin`
 가드와 모든 `is_admin()` 판정이 읽습니다.
@@ -159,7 +159,7 @@ current_database();` 를 먼저 보세요.
 창은 없습니다 — 플랜 작성자는 '운영자' 아니면 '회원' 으로만 표시합니다.
 
 **주의** `role` 은 API 로 바꿀 수 없습니다. 테이블 단위 update·insert 권한을
-회수하고 `nickname`·`taste_tags` 만 다시 주었으며, 트리거가 한 겹 더 막습니다.
+회수하고 `nickname`·`taste_tags`·`language` 만 다시 주었으며, 트리거가 한 겹 더 막습니다.
 **관리자 임명은 SQL 로만** 합니다 — 임명 화면 자체가 가장 위험한 공격면입니다.
 
 ### `trips` · `trip_items` — 개인 하루 여행

@@ -62,12 +62,16 @@ export function regionLabel(groupName: string, regionName: string | null): strin
 /** 관리자 임명은 화면이 아니라 SQL 로 한다 — 임명 화면 자체가 공격면이다 */
 export type UserRole = 'user' | 'admin'
 
+/** 화면 언어 — 지금은 한국어 · 영어(intent/2026-10-10-다국어/계획.md). profiles.language 와 같은 값 */
+export type AppLanguage = 'ko' | 'en'
+
 export interface Profile {
   id: string
   nickname: string
   taste_tags: string[]
   role: UserRole
   created_at: string
+  language: AppLanguage
 }
 
 export interface Trip {

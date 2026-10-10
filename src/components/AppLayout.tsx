@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { isSupabaseConfigured } from '@/lib/supabase'
+import { useI18n } from '@/i18n'
 
 /**
  * 탭은 다섯 개다. 375px(iPhone SE) 화면에서 칸당 75px 이다.
@@ -11,11 +12,11 @@ import { isSupabaseConfigured } from '@/lib/supabase'
  * 빠듯하니 세 글자 안에서 고른다.
  */
 const NAV = [
-  { to: '/', label: '홈', icon: 'home' },
-  { to: '/map', label: '지도', icon: 'map' },
-  { to: '/recommend', label: '추천', icon: 'sparkle' },
-  { to: '/trips', label: '내 여행', icon: 'route' },
-  { to: '/me', label: 'MY', icon: 'user' },
+  { to: '/', label: 'nav.home', icon: 'home' },
+  { to: '/map', label: 'nav.map', icon: 'map' },
+  { to: '/recommend', label: 'nav.recommend', icon: 'sparkle' },
+  { to: '/trips', label: 'nav.trips', icon: 'route' },
+  { to: '/me', label: 'nav.me', icon: 'user' },
 ] as const
 
 /**
@@ -29,6 +30,7 @@ function isTabActive(to: string, pathname: string, matched: boolean): boolean {
 
 export function AppLayout() {
   const { pathname } = useLocation()
+  const { t } = useI18n()
 
   // 지도 화면은 전체 높이를 쓰므로 본문 패딩을 제거한다
   const isMapScreen = pathname === '/map'
@@ -58,7 +60,7 @@ export function AppLayout() {
                   {({ isActive }) => (
                     <>
                       <NavIcon name={item.icon} active={isTabActive(item.to, pathname, isActive)} />
-                      {item.label}
+                      {t(item.label)}
                     </>
                   )}
                 </NavLink>
@@ -72,11 +74,10 @@ export function AppLayout() {
 }
 
 function DemoBanner() {
+  const { t } = useI18n()
   return (
     <div className="bg-brand-900 px-4 py-1.5 text-center text-[11.5px] font-medium text-brand-100">
-      데모 모드 — Supabase 환경변수(VITE_SUPABASE_URL 등)가 빌드에 없습니다. 로컬은{' '}
-      <code className="font-mono">.env</code>, 배포 환경은 호스팅 서비스의 환경변수 설정을
-      확인해 주세요
+      {t('app.demoBanner')}
     </div>
   )
 }

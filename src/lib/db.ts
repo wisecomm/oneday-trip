@@ -397,8 +397,10 @@ export const profiles = {
    * 역할(`role`)은 여기서 넘기지 않는다. 화면에서 보낼 수 있게 두면 온보딩
    * 요청에 `role: 'admin'` 을 실어 보내는 길이 열린다. 관리자 임명은 SQL 로만 한다.
    */
-  async upsert(input: Omit<Profile, 'created_at' | 'role'>): Promise<Profile> {
-    const row: Profile = { ...input, role: 'user', created_at: nowIso() }
+  async upsert(
+    input: Omit<Profile, 'created_at' | 'role' | 'language'> & { language?: Profile['language'] },
+  ): Promise<Profile> {
+    const row: Profile = { language: 'ko', ...input, role: 'user', created_at: nowIso() }
 
     if (isSupabaseConfigured) {
       const { data, error } = await sb()
@@ -407,6 +409,8 @@ export const profiles = {
           id: input.id,
           nickname: input.nickname,
           taste_tags: input.taste_tags,
+          // 언어는 넘겼을 때만 — 프로필을 고칠 때 화면 언어가 기본값으로 되돌아가지 않게
+          ...(input.language ? { language: input.language } : {}),
         })
         .select()
         .single()
@@ -432,6 +436,19 @@ export const profiles = {
       }
     })
     return saved
+  },
+
+  /** 화면 언어만 바꾼다(MY · 언어). 프로필이 아직 없으면(온보딩 전) 아무것도 하지 않는다 */
+  async setLanguage(userId: string, language: Profile['language']): Promise<void> {
+    if (isSupabaseConfigured) {
+      const { error } = await sb().from('profiles').update({ language }).eq('id', userId)
+      if (error) throw error
+      return
+    }
+    mutateDb((d) => {
+      const i = d.profiles.findIndex((p) => p.id === userId)
+      if (i >= 0) d.profiles[i] = { ...d.profiles[i], language }
+    })
   },
 }
 

@@ -45,7 +45,9 @@ create table public.profiles (
   -- 공격면이고, 관리자 수가 한 자릿수인 단계에서는 SQL 한 줄이 맞다.
   -- (컬럼 순서가 created_at 뒤인 것은 마이그레이션이 alter table 로 붙였기
   --  때문이다. 이 파일은 적용 결과의 스냅샷이라 그 순서를 그대로 따른다)
-  role                user_role not null default 'user'
+  role                user_role not null default 'user',
+  -- 화면 언어(20261018000000). 비회원은 브라우저에만 기억한다
+  language            text not null default 'ko' check (language in ('ko', 'en'))
 );
 
 -- RLS 정책 안에서 profiles 를 다시 select 하면 profiles 자신의 RLS 가 또
@@ -76,8 +78,8 @@ grant execute on function public.is_admin() to anon, authenticated;
 -- 쓸 컬럼만 다시 준다. 컬럼 단위 revoke 만으로는 소용이 없다.
 revoke update on public.profiles from anon, authenticated;
 revoke insert on public.profiles from anon, authenticated;
-grant update (nickname, taste_tags) on public.profiles to authenticated;
-grant insert (id, nickname, taste_tags) on public.profiles to authenticated;
+grant update (nickname, taste_tags, language) on public.profiles to authenticated;
+grant insert (id, nickname, taste_tags, language) on public.profiles to authenticated;
 
 -- 권한이 누군가의 `grant all on all tables` 한 줄에 다시 열릴 수 있으므로
 -- 실제 보증은 트리거다.
