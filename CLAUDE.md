@@ -20,7 +20,7 @@
 ## 코드 변경 검증
 
 - 타입 체크: `npx tsc --noEmit`
-- 규칙 테스트: `npm test` (vitest — `src/rules/*.test.ts`)
+- 규칙 테스트: `npm test` (vitest — `src/**/*.test.ts`)
 - 빌드: `npm run build`
 - UI가 걸린 변경은 로컬 dev 서버(`npm run dev`, Browser 프리뷰 도구)에서 실제로
   띄워 확인하세요. 모바일 전용 동작(예: 파일 입력의 `capture` 속성으로 카메라

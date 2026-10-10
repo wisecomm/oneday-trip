@@ -11,8 +11,10 @@ import type { Companion, Place, TripDraft } from '@/lib/types'
  * 이 파일 · trip-create.test.ts 를 같은 커밋에서 고친다.
  */
 
-/** [TC-DATE] 기본 여행 날짜 — 한국 날짜로 오늘에서 이만큼 뒤 */
-export const DEFAULT_DAY_OFFSET = 7
+/**
+ * [TC-DATE] 기본 여행 날짜 — 한국 날짜로 오늘에서 이만큼 뒤. 0 = 만드는 날(10/10 — 예전엔 일주일 뒤 +7).
+ */
+export const DEFAULT_DAY_OFFSET = 0
 
 /** [TC-DATE] 기본 여행 날짜 'YYYY-MM-DD' (한국 날짜) */
 export const defaultTripDate = (now?: Date) => kstDate(DEFAULT_DAY_OFFSET, now)

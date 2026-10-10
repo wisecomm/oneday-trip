@@ -32,7 +32,7 @@ export function PlanDetailPage() {
   const [plan, setPlan] = useState<SharedPlan | null>(null)
   const [loading, setLoading] = useState(true)
   const [cloneOpen, setCloneOpen] = useState(false)
-  const [tripDate, setTripDate] = useState(() => kstDate(7))
+  const [tripDate, setTripDate] = useState(() => kstDate()) // 담는 날(오늘, 한국 날짜) — 10/10 에 일주일 뒤에서 바꿈
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

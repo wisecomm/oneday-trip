@@ -16,16 +16,15 @@ import {
  * 플로챠트/여행-만들기.md 규칙 표를 그대로 옮긴 검사. 테스트 이름 앞의 [TC-…] 가 문서 ID 칸과 같다.
  */
 
-describe('[TC-DATE] 기본 날짜 — 한국 날짜로 오늘 + 7일', () => {
+describe('[TC-DATE] 기본 날짜 — 만드는 날(한국 날짜)', () => {
   it('한국 시각 낮', () => {
-    expect(defaultTripDate(new Date('2026-10-10T03:00:00Z'))).toBe('2026-10-17') // KST 10/10 12:00
+    expect(defaultTripDate(new Date('2026-10-10T03:00:00Z'))).toBe('2026-10-10') // KST 10/10 12:00
   })
   it('한국 시각 새벽 1시 — UTC 로는 전날이어도 한국 날짜로 센다', () => {
-    expect(defaultTripDate(new Date('2026-10-10T16:00:00Z'))).toBe('2026-10-18') // KST 10/11 01:00
+    expect(defaultTripDate(new Date('2026-10-10T16:00:00Z'))).toBe('2026-10-11') // KST 10/11 01:00
   })
-  it('월말 · 연말을 넘긴다', () => {
-    expect(defaultTripDate(new Date('2026-10-28T03:00:00Z'))).toBe('2026-11-04')
-    expect(defaultTripDate(new Date('2026-12-30T03:00:00Z'))).toBe('2027-01-06')
+  it('한국 시각 자정 직전은 그날', () => {
+    expect(defaultTripDate(new Date('2026-10-10T14:59:00Z'))).toBe('2026-10-10') // KST 10/10 23:59
   })
 })
 
