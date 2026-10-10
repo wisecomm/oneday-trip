@@ -12,7 +12,7 @@ import { isSupabaseConfigured } from '@/lib/supabase'
  */
 const NAV = [
   { to: '/', label: '홈', icon: 'home' },
-  { to: '/map', label: '지도 1', icon: 'map' },
+  { to: '/map', label: '지도', icon: 'map' },
   { to: '/recommend', label: '추천', icon: 'sparkle' },
   { to: '/trips', label: '내 여행', icon: 'route' },
   { to: '/me', label: 'MY', icon: 'user' },
