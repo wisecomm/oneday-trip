@@ -170,6 +170,12 @@ export function ExplorePage() {
    * 사람에게 "그 가게는 다른 구에 있습니다"는 도움이 안 된다. 검색한 뒤 시/도 · 시군구를
    * 고르면 검색을 지우고 그 지역을 본다(clearSearch).
    */
+  /**
+   * 이름 찾기 줄이 열려 있는지 — 지역 줄 오른쪽 🔍 를 누르면 지역 줄 자리에 검색창이 뜨고,
+   * '취소'(또는 Esc)를 누르면 검색을 지우고 지역 줄로 돌아간다. 늘 떠 있는 검색 줄을 없애
+   * 지도를 가리는 상단 UI 를 한 줄 줄였다.
+   */
+  const [searchOpen, setSearchOpen] = useState(false)
   const [keywordInput, setKeywordInput] = useState('')
   const [keyword, setKeyword] = useState('')
   const searching = keyword.trim().length > 0
@@ -299,6 +305,12 @@ export function ExplorePage() {
     setKeyword('')
   }
 
+  /** 이름 찾기 취소 — 검색을 지우고 지역 줄로 */
+  function closeSearch() {
+    clearSearch()
+    setSearchOpen(false)
+  }
+
   function changeGroup(next: number) {
     clearSearch()
     setNearMe(false)
@@ -416,93 +428,100 @@ export function ExplorePage() {
 
       {/* 상단 필터 — 높이를 재서 지도가 마커를 이 아래로만 맞추게 한다 */}
       <div ref={topRef} className="pointer-events-none absolute inset-x-0 top-0 p-3">
-        <div className="pointer-events-auto mb-2 flex items-center gap-1.5">
-          <input
-            value={keywordInput}
-            onChange={(e) => setKeywordInput(e.target.value)}
-            placeholder="가게·명소 이름으로 찾기"
-            aria-label="장소 이름 검색"
-            className="min-w-0 flex-1 rounded-xl border border-ink-200 bg-white px-3 py-2 text-[13px] text-ink-700 shadow-sm placeholder:text-ink-400"
-          />
-          {keywordInput && (
+        {searchOpen ? (
+          // 이름 찾기 — 지역 줄 자리를 대신한다. 취소하면 검색을 지우고 지역 줄로 돌아간다
+          <div className="pointer-events-auto mb-2 flex items-center gap-1.5">
+            <input
+              autoFocus
+              value={keywordInput}
+              onChange={(e) => setKeywordInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Escape' && closeSearch()}
+              placeholder="가게·명소 이름으로 찾기"
+              aria-label="장소 이름 검색"
+              enterKeyHint="search"
+              className="min-w-0 flex-1 rounded-xl border border-ink-200 bg-white px-3 py-2 text-[13px] text-ink-700 shadow-sm placeholder:text-ink-400"
+            />
             <button
               type="button"
-              onClick={() => setKeywordInput('')}
-              aria-label="검색어 지우기"
-              className="shrink-0 rounded-xl border border-ink-200 bg-white px-3 py-2 text-[13px] font-bold text-ink-500 shadow-sm"
+              onClick={closeSearch}
+              aria-label="이름 찾기 취소"
+              className="shrink-0 rounded-xl border border-ink-200 bg-white px-3 py-2 text-[13px] font-bold text-ink-600 shadow-sm"
             >
-              ✕
+              취소
             </button>
-          )}
-        </div>
-
-        <div className="pointer-events-auto mb-2 flex items-center gap-1.5">
-          <select
-            value={nearMe ? NEAR_OPTION : (areaCode ?? '')}
-            onChange={(e) => changeGroup(Number(e.target.value))}
-            className="min-w-0 rounded-xl border border-ink-200 bg-white px-2.5 py-2 text-[13px] font-bold text-ink-700 shadow-sm"
-            aria-label="시/도 선택"
-          >
-            {/* 내 위치 주변인 동안만 보이는 자리표시 — 시/도를 고르면 꺼진다 */}
-            {nearMe && (
-              <option value={NEAR_OPTION} disabled>
-                {nearLabel ? `📍 ${nearLabel}` : LOCATE_LABEL.nearMe}
-              </option>
-            )}
-            {groups.map((g) => (
-              <option key={g.tour_area_code} value={g.tour_area_code}>
-                {g.name}
-              </option>
-            ))}
-          </select>
-          {nearMe ? (
-            <button
-              type="button"
-              onClick={exitNear}
-              aria-label="내 위치 주변 해제"
-              className="flex min-w-0 flex-1 items-center justify-between gap-1.5 rounded-xl border border-ink-200 bg-white px-2.5 py-2 text-[13px] font-bold text-ink-700 shadow-sm"
-            >
-              <span className="truncate">
-                {loading || searching || nearKm === null
-                  ? '내 위치 주변'
-                  : list.length < NEAR_LIMIT
-                    ? `하루 거리 ${DAY_TRIP_RADIUS_KM}km 안 · ${list.length}곳`
-                    : `가까운 ${list.length}곳 · ${formatKm(nearKm)} 안`}
-              </span>
-              <span className="shrink-0 text-ink-400">✕</span>
-            </button>
-          ) : (
+          </div>
+        ) : (
+          <div className="pointer-events-auto mb-2 flex items-center gap-1.5">
             <select
-              value={sigunguCode ?? ALL_LEAF}
-              onChange={(e) =>
-                changeRegion(e.target.value === ALL_LEAF ? null : Number(e.target.value))
-              }
-              className="min-w-0 flex-1 rounded-xl border border-ink-200 bg-white px-2.5 py-2 text-[13px] font-bold text-ink-700 shadow-sm"
-              aria-label="시군구 선택"
+              value={nearMe ? NEAR_OPTION : (areaCode ?? '')}
+              onChange={(e) => changeGroup(Number(e.target.value))}
+              className="min-w-0 rounded-xl border border-ink-200 bg-white px-2.5 py-2 text-[13px] font-bold text-ink-700 shadow-sm"
+              aria-label="시/도 선택"
             >
-              <option value={ALL_LEAF}>전체</option>
-              {regions
-                .filter((r) => r.tour_area_code === areaCode)
-                .map((r) => (
-                  <option key={r.tour_sigungu_code} value={r.tour_sigungu_code}>
-                    {r.name}
-                  </option>
-                ))}
+              {/* 내 위치 주변인 동안만 보이는 자리표시 — 시/도를 고르면 꺼진다 */}
+              {nearMe && (
+                <option value={NEAR_OPTION} disabled>
+                  {nearLabel ? `📍 ${nearLabel}` : LOCATE_LABEL.nearMe}
+                </option>
+              )}
+              {groups.map((g) => (
+                <option key={g.tour_area_code} value={g.tour_area_code}>
+                  {g.name}
+                </option>
+              ))}
             </select>
-          )}
-          {trip && (
-            <span className="shrink-0 truncate rounded-xl bg-ink-800 px-2.5 py-2 text-[12px] font-bold text-white shadow-sm">
-              담는 중 · {pickedCount}곳
-            </span>
-          )}
-        </div>
-
-        {searching && (
-          <p className="pointer-events-auto mb-2 rounded-xl bg-ink-800/90 px-3 py-2 text-[12.5px] font-semibold text-white shadow-sm">
-            "{keyword}" — 전국에서 {list.length}곳 찾았습니다
-            {list.length === 0 && ' · 이름의 일부만 넣어 보세요'}
-          </p>
+            {nearMe ? (
+              <button
+                type="button"
+                onClick={exitNear}
+                aria-label="내 위치 주변 해제"
+                className="flex min-w-0 flex-1 items-center justify-between gap-1.5 rounded-xl border border-ink-200 bg-white px-2.5 py-2 text-[13px] font-bold text-ink-700 shadow-sm"
+              >
+                <span className="truncate">
+                  {loading || searching || nearKm === null
+                    ? '내 위치 주변'
+                    : list.length < NEAR_LIMIT
+                      ? `하루 거리 ${DAY_TRIP_RADIUS_KM}km 안 · ${list.length}곳`
+                      : `가까운 ${list.length}곳 · ${formatKm(nearKm)} 안`}
+                </span>
+                <span className="shrink-0 text-ink-400">✕</span>
+              </button>
+            ) : (
+              <select
+                value={sigunguCode ?? ALL_LEAF}
+                onChange={(e) =>
+                  changeRegion(e.target.value === ALL_LEAF ? null : Number(e.target.value))
+                }
+                className="min-w-0 flex-1 rounded-xl border border-ink-200 bg-white px-2.5 py-2 text-[13px] font-bold text-ink-700 shadow-sm"
+                aria-label="시군구 선택"
+              >
+                <option value={ALL_LEAF}>전체</option>
+                {regions
+                  .filter((r) => r.tour_area_code === areaCode)
+                  .map((r) => (
+                    <option key={r.tour_sigungu_code} value={r.tour_sigungu_code}>
+                      {r.name}
+                    </option>
+                  ))}
+              </select>
+            )}
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              aria-label="이름으로 찾기"
+              title="이름으로 찾기"
+              className="shrink-0 rounded-xl border border-ink-200 bg-white px-3 py-2 text-[13px] font-bold text-ink-700 shadow-sm"
+            >
+              🔍
+            </button>
+            {trip && (
+              <span className="shrink-0 truncate rounded-xl bg-ink-800 px-2.5 py-2 text-[12px] font-bold text-white shadow-sm">
+                담는 중 · {pickedCount}곳
+              </span>
+            )}
+          </div>
         )}
+
 
         <div className="pointer-events-auto flex gap-1.5 overflow-x-auto pb-1">
           <button
