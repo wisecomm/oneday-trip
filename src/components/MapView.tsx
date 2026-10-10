@@ -60,13 +60,19 @@ interface MapViewProps {
   fitUserLocation?: boolean
   /**
    * 이름표 마커가 화면에서 겹치면 '+N' 대표 하나로 묶는다(줌에 맞춘 고정 격자, 확대하면 갈라짐).
-   * 지도 탭은 늘 켠다(이름 검색 · 시군구 · 내 위치 주변 · 시/도 전체) — '용산'으로 찾으면 전국 결과에
-   * 맞추느라 용산역 쪽 마커가 겹쳐 가려졌고, 강남구처럼 장소가 많은 시군구도 이름표가 겹쳤다.
+   * 지도 탭은 이름 검색에 켠다 — '용산'으로 찾으면 전국 결과에 맞추느라 용산역 쪽 마커가 겹쳐
+   * 가려졌다. 시/도 · 시군구 · 내 위치 주변은 개수로 묶는다(groupMax).
    * 점 마커 모드(compact)에서는 확대했을 때 화면 안 장소를 100곳 제한과 겹침 중 더 굵은 칸으로 묶는다.
    */
   groupOverlaps?: boolean
   /** groupOverlaps 의 대표 고르기 — 이 검색어에 더 맞는 이름(같음 → 앞이 같음 → 포함)이 대표 */
   groupKeyword?: string
+  /**
+   * 개수로 묶기 — 화면 안 장소가 이보다 많으면 주변끼리 칸으로 묶어 대표를 이 개수 이하로
+   * (`groupRepresentatives()`, 보통 70~100개). 이하면 모두 이름표. 화면 밖은 숨긴다.
+   * 지도 탭의 시/도 · 시군구 · 내 위치 주변(10/10). groupOverlaps 보다 우선.
+   */
+  groupMax?: number
 }
 
 /**
@@ -89,6 +95,7 @@ export function MapView({
   fitUserLocation,
   groupOverlaps,
   groupKeyword,
+  groupMax,
 }: MapViewProps) {
   // 다른 화면에서 이미 인증 실패가 확인됐다면 처음부터 폴백으로 간다
   const [naverFailed, setNaverFailed] = useState(hasNaverAuthFailed)
@@ -114,6 +121,7 @@ export function MapView({
         safeInsets={safeInsets}
         groupOverlaps={groupOverlaps}
         groupKeyword={groupKeyword}
+        groupMax={groupMax}
         onFail={() => setNaverFailed(true)}
       />
     )
@@ -151,6 +159,7 @@ function NaverMap({
   safeInsets,
   groupOverlaps,
   groupKeyword,
+  groupMax,
   onFail,
 }: MapViewProps & { onFail: () => void }) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -194,6 +203,8 @@ function NaverMap({
   compactRef.current = !!compact
   const overlapRef = useRef<{ on: boolean; keyword: string }>({ on: false, keyword: '' })
   overlapRef.current = { on: !!groupOverlaps, keyword: groupKeyword ?? '' }
+  const groupMaxRef = useRef(0)
+  groupMaxRef.current = groupMax ?? 0
 
   /** 이 마커를 지금 어떤 모양으로 그릴지 — 고른 장소는 늘 이름표 */
   const iconFor = (id: string, place: Place, selected: boolean) => {
@@ -217,7 +228,8 @@ function NaverMap({
     const zoomedIn = compactRef.current && base !== null && map.getZoom() > base
     const next = new Map<string, MarkerLook>()
     const groups = new Map<string, Place[]>()
-    if (zoomedIn) {
+    /** 지금 화면 안의 장소 */
+    const placesInView = () => {
       const view = map.getBounds?.()
       const inView: Place[] = []
       for (const { place } of markerByIdRef.current.values()) {
@@ -228,6 +240,10 @@ function NaverMap({
           inView.push(place)
         }
       }
+      return inView
+    }
+    if (zoomedIn) {
+      const inView = placesInView()
       if (inView.length <= TAG_MAX && !overlapRef.current.on) {
         for (const p of inView) next.set(p.id, 'tag')
       } else {
@@ -242,6 +258,26 @@ function NaverMap({
           const members = reps.get(p.id)
           next.set(p.id, members === undefined ? 'hidden' : members.length > 1 ? members.length : 'tag')
           if (members && members.length > 1) groups.set(p.id, members)
+        }
+      }
+    } else if (!compactRef.current && groupMaxRef.current > 0) {
+      // 개수로 묶기 — 화면 안이 max 곳을 넘으면 고정 격자에서 대표가 max 이하가 되는 가장 잘은
+      // 칸으로. 화면 밖은 숨김(움직이면 idle 에서 다시 본다)
+      const max = groupMaxRef.current
+      const inView = placesInView()
+      const inIds = new Set(inView.map((p) => p.id))
+      for (const { place } of markerByIdRef.current.values()) {
+        if (!inIds.has(place.id)) next.set(place.id, 'hidden')
+      }
+      if (inView.length > max) {
+        const reps = groupRepresentatives(inView, max)
+        for (const p of inView) {
+          const members = reps.get(p.id)
+          if (members === undefined) next.set(p.id, 'hidden')
+          else if (members.length > 1) {
+            next.set(p.id, members.length)
+            groups.set(p.id, members)
+          }
         }
       }
     } else if (!compactRef.current && overlapRef.current.on) {
@@ -430,7 +466,7 @@ function NaverMap({
     refreshTags.current()
     // 고른 장소는 아래 효과가 따로 바꾼다 — 고를 때마다 지도를 다시 맞추지 않는다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [places, route, compact, onSelect, userLocation, initialViewport, ready, fitUserLocation, groupOverlaps, groupKeyword, safeInsets?.top, safeInsets?.bottom])
+  }, [places, route, compact, onSelect, userLocation, initialViewport, ready, fitUserLocation, groupOverlaps, groupKeyword, groupMax, safeInsets?.top, safeInsets?.bottom])
 
   // 고른 장소가 바뀌면 이전 것과 새 것, 두 마커의 모양만 바꾼다
   useEffect(() => {

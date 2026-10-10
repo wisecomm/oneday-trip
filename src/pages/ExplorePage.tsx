@@ -20,7 +20,7 @@ import {
   type PlaceCategory,
   type Trip,
 } from '@/lib/types'
-import { MapView, type MapViewport } from '@/components/MapView'
+import { MapView, TAG_MAX, type MapViewport } from '@/components/MapView'
 import { CategoryDot, PlaceThumb, RatingStar } from '@/components/PlaceCard'
 import { BottomSheet, Loading } from '@/components/ui'
 
@@ -399,9 +399,10 @@ export function ExplorePage() {
         userLocation={myLocation}
         // 내 위치까지 화면에 넣는 것은 '내 위치 주변'일 때만 — 강동구를 고르면 강동구에만 맞춘다
         fitUserLocation={nearMe && !searching}
-        // 겹친 마커는 늘 '+N' 으로 묶는다 — 시/도 전체 · 시군구 · 내 위치 주변 · 이름 검색 모두.
-        // 이름 검색이면 검색어에 더 맞는 이름을 대표로
-        groupOverlaps
+        // '+N' 묶기 — 시/도 · 시군구 · 내 위치 주변은 화면 안 100곳 넘으면 대표 100개 이하로(개수),
+        // 이름 검색은 겹치는 것끼리(대표는 검색어에 더 맞는 이름)
+        groupMax={searching ? undefined : TAG_MAX}
+        groupOverlaps={searching}
         groupKeyword={searching ? keyword.trim() : undefined}
         initialViewport={initialViewport}
         onViewportChange={handleViewportChange}
