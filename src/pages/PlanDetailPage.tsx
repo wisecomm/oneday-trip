@@ -14,12 +14,7 @@ import {
   type SharedPlan,
 } from '@/lib/types'
 import { BottomSheet, EmptyState, Loading, PageHeader } from '@/components/ui'
-
-function todayIso(offsetDays = 0): string {
-  const d = new Date()
-  d.setDate(d.getDate() + offsetDays)
-  return d.toISOString().slice(0, 10)
-}
+import { kstDate } from '@/lib/trip-date'
 
 /**
  * SHARE-06-02 공용 플랜 상세.
@@ -37,7 +32,7 @@ export function PlanDetailPage() {
   const [plan, setPlan] = useState<SharedPlan | null>(null)
   const [loading, setLoading] = useState(true)
   const [cloneOpen, setCloneOpen] = useState(false)
-  const [tripDate, setTripDate] = useState(todayIso(7))
+  const [tripDate, setTripDate] = useState(() => kstDate(7))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

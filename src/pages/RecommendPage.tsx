@@ -6,7 +6,7 @@ import { useRegions } from '@/hooks/useRegions'
 import { regionLabel, shownRating, type Place, type Trip } from '@/lib/types'
 import { CategoryDot, PlaceThumb, RatingStar } from '@/components/PlaceCard'
 import { BottomSheet, EmptyState, Loading, PageHeader } from '@/components/ui'
-import { formatTripDate } from '@/lib/trip-date'
+import { formatTripDate, upcomingTrip } from '@/lib/trip-date'
 
 /** 추천 장소를 한 번에 보여 주는 곳 수 — 처음 이만큼, '더 보기'마다 이만큼 더 */
 const PAGE_SIZE = 10
@@ -107,10 +107,7 @@ export function RecommendPage({ embedded = false }: { embedded?: boolean } = {})
   useEffect(() => {
     if (areaCode !== null || groups.length === 0 || regions.length === 0 || !myTripsLoaded) return
 
-    const today = new Date().toISOString().slice(0, 10)
-    const upcoming = myTrips
-      .filter((t) => t.trip_date >= today)
-      .sort((a, b) => a.trip_date.localeCompare(b.trip_date))[0]
+    const upcoming = upcomingTrip(myTrips)
 
     // 다가오는 여행이 있으면 그 목적지로 맞춘다. 코드라 이름 매칭이 필요 없다.
     setAreaCode(upcoming ? upcoming.tour_area_code : groups[0].tour_area_code)

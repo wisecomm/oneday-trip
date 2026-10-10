@@ -15,7 +15,7 @@ import {
 import { type Place, type Trip } from '@/lib/types'
 import { PlaceCard } from '@/components/PlaceCard'
 import { Loading } from '@/components/ui'
-import { formatTripDate } from '@/lib/trip-date'
+import { formatTripDate, upcomingTrip } from '@/lib/trip-date'
 
 /** 홈 '하루에 다녀올 만한 곳' — 처음 이만큼, '더 보기'마다 이만큼 더(추천 장소 · 코스와 같은 10) */
 const PAGE_SIZE = 10
@@ -174,7 +174,9 @@ export function HomePage() {
 
   if (loading) return <Loading />
 
-  const nextTrip = myTrips[0]
+  // 오늘(한국 날짜) 이후 가장 빠른 여행. 예전엔 날짜가 가장 늦은 여행(myTrips[0])이라, 지난 여행이 '다가오는
+  // 여행'으로 뜨거나 여행이 여럿이면 가장 먼 여행이 떴다(10/10 고침). 없으면 '새 여행' 카드
+  const nextTrip = upcomingTrip(myTrips)
 
   return (
     <div className="px-4 pt-5">
@@ -217,7 +219,9 @@ export function HomePage() {
               🧳
             </span>
             <div className="flex-1">
-              <p className="text-[14.5px] font-bold text-ink-800">첫 여행 일정을 만들어 보세요</p>
+              <p className="text-[14.5px] font-bold text-ink-800">
+                {myTrips.length === 0 ? '첫 여행 일정을 만들어 보세요' : '다음 여행 일정을 만들어 보세요'}
+              </p>
               <p className="hint">날짜와 목적지만 정하면 타임라인이 자동 생성됩니다.</p>
             </div>
           </Link>
