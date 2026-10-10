@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useNavigationType, useParams } from 'react-router-dom'
 import {
   DndContext,
   KeyboardSensor,
@@ -38,8 +38,21 @@ import { CategoryDot } from '@/components/PlaceCard'
  * 저장하기' 를 눌러야 반영된다 — 최적화 결과를 보고 되돌릴 수 있어야 하는
  * 화면이기 때문이다.
  */
+/**
+ * 저장하지 않은 순서 — 정거장을 눌러 장소 상세에 갔다가 뒤로 오면 화면이 새로 그려져, 끌거나
+ * 최적화해 둔 순서가 사라졌다. 앱을 켜 둔 동안 들고 있다가 뒤로 가기로 돌아왔을 때만 되살린다
+ * (타임라인에서 새로 들어오면 버린다 — 저장 안 하고 나간 것이므로).
+ */
+let unsavedOrder: {
+  tripId: string
+  itemIds: string[]
+  saved: { before: number; after: number } | null
+} | null = null
+
 export function RoutePage() {
   const { tripId = '' } = useParams()
+  const navigate = useNavigate()
+  const navType = useNavigationType()
 
   const [trip, setTrip] = useState<Trip | null>(null)
   const [items, setItems] = useState<TripItem[]>([])
@@ -62,7 +75,22 @@ export function RoutePage() {
       .then(([t, list]) => {
         if (!alive) return
         setTrip(t)
-        setItems([...list].sort((a, b) => a.sort_order - b.sort_order))
+        const sorted = [...list].sort((a, b) => a.sort_order - b.sort_order)
+        // 뒤로 가기로 돌아왔고 장소 구성이 그대로면 저장 안 한 순서를 되살린다
+        const draft = unsavedOrder
+        const sameSet =
+          draft?.tripId === tripId &&
+          draft.itemIds.length === sorted.length &&
+          sorted.every((it) => draft.itemIds.includes(it.id))
+        if (navType === 'POP' && draft && sameSet) {
+          const byId = new Map(sorted.map((it) => [it.id, it]))
+          setItems(draft.itemIds.map((id, i) => ({ ...byId.get(id)!, sort_order: i })))
+          setSaved(draft.saved)
+          setDirty(true)
+        } else {
+          unsavedOrder = null
+          setItems(sorted)
+        }
       })
       .catch(() => {
         if (alive) setLoadFailed(true)
@@ -75,7 +103,15 @@ export function RoutePage() {
     return () => {
       alive = false
     }
+    // navType 은 처음 들어온 방식만 본다 — 바뀌어도 다시 불러오지 않는다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tripId])
+
+  // 저장 안 한 순서를 들고 있는다(장소 상세에 다녀와도 남게). 저장하면 버린다
+  useEffect(() => {
+    if (loading) return
+    unsavedOrder = dirty ? { tripId, itemIds: items.map((it) => it.id), saved } : null
+  }, [loading, dirty, items, saved, tripId])
 
   useEffect(() => {
     if (!toast) return
@@ -248,7 +284,7 @@ export function RoutePage() {
                             : `${TRANSPORT_LABEL[trip.transport]} 약 ${legMin}분`
                         }
                         selected={selectedId === place.id}
-                        onSelect={() => setSelectedId(place.id)}
+                        onOpen={() => navigate(`/places/${place.id}`)}
                       />
                     )
                   })}
@@ -273,21 +309,22 @@ export function RoutePage() {
 /**
  * 경로의 한 정거장. 끌어서 순서를 바꾼다.
  *
- * 핸들은 카드 전체가 아니라 점 여섯 개 아이콘에만 붙인다 — 카드 본문은 지도의
- * 핀을 고르는 버튼이라, 카드를 통째로 끌 수 있게 하면 고르려다 끌려 버린다.
+ * 핸들은 카드 전체가 아니라 점 여섯 개 아이콘에만 붙인다 — 카드 본문은 누르면 장소 상세로
+ * 가는 버튼이라(타임라인과 같다, 10/10), 카드를 통째로 끌 수 있게 하면 누르려다 끌려 버린다.
+ * 지도 핀을 누르면 그 카드가 테두리로 표시된다(selected).
  */
 function SortableStop({
   place,
   index,
   legLabel,
   selected,
-  onSelect,
+  onOpen,
 }: {
   place: Place
   index: number
   legLabel: string | null
   selected: boolean
-  onSelect: () => void
+  onOpen: () => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: place.id,
@@ -312,7 +349,7 @@ function SortableStop({
       >
         <button
           type="button"
-          onClick={onSelect}
+          onClick={onOpen}
           className="flex min-w-0 flex-1 items-center gap-3 text-left"
         >
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-500 text-[13px] font-extrabold text-white">
