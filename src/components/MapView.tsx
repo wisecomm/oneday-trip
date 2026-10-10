@@ -6,7 +6,7 @@ import {
   onNaverAuthFailure,
 } from '@/lib/naver'
 import { projectToViewport, type LatLng } from '@/lib/geo'
-import { groupOverlapping, groupRepresentatives, keywordPreference } from '@/lib/map-group'
+import { groupInView, groupOverlapping, groupRepresentatives, keywordPreference } from '@/lib/map-group'
 import { CATEGORY_COLOR, CATEGORY_ICON, type Place } from '@/lib/types'
 
 /** 지도 위치 — baseZoom 은 점 마커 모드에서 '전체를 맞춘 줌'(복원할 때 이름표 기준으로 쓴다) */
@@ -60,8 +60,9 @@ interface MapViewProps {
   fitUserLocation?: boolean
   /**
    * 이름표 마커가 화면에서 겹치면 '+N' 대표 하나로 묶는다(줌에 맞춘 고정 격자, 확대하면 갈라짐).
-   * 지도 탭은 이름 검색 결과에 켠다 — '용산'으로 찾으면 전국 결과에 맞추느라 용산역 쪽 마커가
-   * 겹쳐 가려졌다. 점 마커 모드(compact)에는 쓰지 않는다(그쪽은 확대 시 개수로 묶는다).
+   * 지도 탭은 늘 켠다(이름 검색 · 시군구 · 내 위치 주변 · 시/도 전체) — '용산'으로 찾으면 전국 결과에
+   * 맞추느라 용산역 쪽 마커가 겹쳐 가려졌고, 강남구처럼 장소가 많은 시군구도 이름표가 겹쳤다.
+   * 점 마커 모드(compact)에서는 확대했을 때 화면 안 장소를 100곳 제한과 겹침 중 더 굵은 칸으로 묶는다.
    */
   groupOverlaps?: boolean
   /** groupOverlaps 의 대표 고르기 — 이 검색어에 더 맞는 이름(같음 → 앞이 같음 → 포함)이 대표 */
@@ -227,12 +228,16 @@ function NaverMap({
           inView.push(place)
         }
       }
-      if (inView.length <= TAG_MAX) {
+      if (inView.length <= TAG_MAX && !overlapRef.current.on) {
         for (const p of inView) next.set(p.id, 'tag')
       } else {
-        // 검색 결과면 대표는 검색어에 더 맞는 이름
+        // 검색 결과면 대표는 검색어에 더 맞는 이름. 겹침 묶기가 켜져 있으면 100곳 이하여도
+        // 겹치는 이름표끼리 '+N' 으로 묶는다(100 제한과 겹침 중 더 굵은 칸)
         const kw = overlapRef.current.keyword
-        const reps = groupRepresentatives(inView, TAG_MAX, kw ? keywordPreference(kw) : undefined)
+        const prefer = kw ? keywordPreference(kw) : undefined
+        const reps = overlapRef.current.on
+          ? groupInView(inView, TAG_MAX, map.getZoom(), prefer)
+          : groupRepresentatives(inView, TAG_MAX, prefer)
         for (const p of inView) {
           const members = reps.get(p.id)
           next.set(p.id, members === undefined ? 'hidden' : members.length > 1 ? members.length : 'tag')

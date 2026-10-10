@@ -65,7 +65,7 @@ export function groupRepresentatives(
 }
 
 function pickLevel(places: Place[], max: number, prefer: Better) {
-  if (places.length <= max) return { cells: groupAt(places, MAX_LEVEL, prefer), prefer }
+  if (places.length <= max) return { cells: groupAt(places, MAX_LEVEL, prefer), prefer, level: MAX_LEVEL }
   let lo = 0
   let hi = MAX_LEVEL
   let best = groupAt(places, 0, prefer)
@@ -77,7 +77,7 @@ function pickLevel(places: Place[], max: number, prefer: Better) {
       best = cells
     } else hi = mid - 1
   }
-  return { cells: best, prefer }
+  return { cells: best, prefer, level: lo }
 }
 
 function toResult({
@@ -123,4 +123,21 @@ export function keywordPreference(keyword: string): Better {
  */
 export function groupOverlapping(places: Place[], zoom: number, prefer: Better = better): Map<string, Place[]> {
   return toResult({ cells: groupAt(places, levelForZoom(zoom), prefer), prefer })
+}
+
+/**
+ * 점 마커 모드에서 확대했을 때 화면 안 장소 묶기 — 두 조건 중 더 굵은 칸을 쓴다.
+ *   ① 대표가 max(100) 이하가 되는 단계(groupRepresentatives)
+ *   ② 화면에서 마커끼리 겹치지 않는 단계(levelForZoom, groupOverlapping)
+ * 같은 고정 격자의 단계라 어느 쪽을 골라도 확대하면 갈라지기만 한다. 예전엔 화면 안이 100곳
+ * 이하면 묶지 않아, 시/도 전체에서 확대한 뒤 한곳에 몰린 이름표가 겹쳐 가려졌다.
+ */
+export function groupInView(
+  places: Place[],
+  max: number,
+  zoom: number,
+  prefer: Better = better,
+): Map<string, Place[]> {
+  const level = Math.min(pickLevel(places, max, prefer).level, levelForZoom(zoom))
+  return toResult({ cells: groupAt(places, level, prefer), prefer })
 }

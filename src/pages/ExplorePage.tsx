@@ -409,8 +409,9 @@ export function ExplorePage() {
         userLocation={myLocation}
         // 내 위치까지 화면에 넣는 것은 '내 위치 주변'일 때만 — 강동구를 고르면 강동구에만 맞춘다
         fitUserLocation={nearMe && !searching}
-        // 이름 검색 결과는 겹친 마커를 '+N' 으로 묶고, 검색어에 더 맞는 이름을 대표로
-        groupOverlaps={searching}
+        // 겹친 마커는 늘 '+N' 으로 묶는다 — 시/도 전체 · 시군구 · 내 위치 주변 · 이름 검색 모두.
+        // 이름 검색이면 검색어에 더 맞는 이름을 대표로
+        groupOverlaps
         groupKeyword={searching ? keyword.trim() : undefined}
         initialViewport={initialViewport}
         onViewportChange={handleViewportChange}
