@@ -70,16 +70,6 @@ const formatKm = (km: number) => (km < 10 ? `${Math.max(km, 0.1).toFixed(1)}km` 
 /** '+N' 묶음 목록에 한 번에 보여 주는 곳 수 — 묶음이 수천 곳일 수 있어 자른다 */
 const GROUP_LIST_MAX = 50
 
-/** 내 위치 주변 결과가 이보다 많으면 지도에 점으로 그린다 */
-const COMPACT_SEARCH_MIN = 300
-
-/**
- * 이름 검색 결과가 이보다 많을 때만 점으로 그린다. 그 아래는 이름표 + 겹침 묶기('+N', 대표는
- * 검색어에 더 맞는 이름) — 겹침 묶기가 화면에 보이는 마커 수를 칸 수만큼으로 줄여 준다.
- * 예전엔 300 이었는데, '용산'처럼 결과가 300을 넘으면 점이 돼 이름이 안 보였다.
- */
-const COMPACT_KEYWORD_MIN = 2000
-
 /**
  * MAP-04-01 · 04. 로컬 장소 탐색 > 4.1 맛집/명소 지도 > 실시간 지도 홈
  * 찾기 흐름(시/도 · 이름 검색 · 내 위치 주변 · 점 ↔ 이름표)은 플로챠트/지도.md.
@@ -415,16 +405,9 @@ export function ExplorePage() {
         groupKeyword={searching ? keyword.trim() : undefined}
         initialViewport={initialViewport}
         onViewportChange={handleViewportChange}
-        // 시/도 전체(경기 3,357곳 등)는 이름표 없이 점으로 — 이름표 마커 수천 개는 겹쳐
-        // 읽히지도 않고 지도가 무거워진다. 내 위치 주변도 결과가 많으면 같은 이유로 점.
-        // 이름 검색은 2,000곳 넘을 때만 점 — 그 아래는 이름표 + 겹침 묶기
-        compact={
-          searching
-            ? list.length > COMPACT_KEYWORD_MIN
-            : nearMe
-              ? list.length > COMPACT_SEARCH_MIN
-              : sigunguCode === null
-        }
+        // 점 마커(compact)는 쓰지 않는다 — 시/도 전체(경기 3,357곳 등)도 이름표 + 겹침 묶기.
+        // 겹침 묶기가 화면에 보이는 마커를 칸 수(마커 하나 크기 칸)만큼으로 줄여 준다(10/10).
+        // 예전엔 시/도 전체 · 2,000곳 넘는 검색 · 300곳 넘는 내 위치 주변을 점으로 그렸다
       />
 
       {/* 상단 필터 — 높이를 재서 지도가 마커를 이 아래로만 맞추게 한다 */}
