@@ -11,6 +11,23 @@ import { formatTripDate } from '@/lib/trip-date'
 /** 추천 장소를 한 번에 보여 주는 곳 수 — 처음 이만큼, '더 보기'마다 이만큼 더 */
 const PAGE_SIZE = 10
 
+/**
+ * 마지막으로 본 지역 · 목록 · 동점 씨앗 — 장소 상세에 갔다가 뒤로 오면 화면이 새로 그려져 지역이
+ * 기본값으로, 목록이 처음 10곳으로, 순서까지 새 씨앗으로 바뀌었다(스크롤도 제자리로 못 감).
+ * 앱을 켜 둔 동안 들고 있다가 10분 안이면 그대로 다시 쓴다(홈과 같은 10분).
+ */
+let savedFeed: {
+  areaCode: number
+  sigunguCode: number | null
+  seed: string
+  feed: Place[]
+  total: number
+  at: number
+} | null = null
+const KEEP_MS = 10 * 60 * 1000
+const freshSaved = () => (savedFeed && Date.now() - savedFeed.at < KEEP_MS ? savedFeed : null)
+const regionKey = (area: number | null, sigungu: number | null) => `${area}:${sigungu}`
+
 /** 하위 지역(구/시) 선택 대신 상위 지역 전체를 보고 싶을 때 쓰는 표식값 — 실제 지역명이 아니다 */
 /** 시군구 드롭다운에서 '전체'를 뜻하는 값 */
 const ALL_LEAF = ''
@@ -29,19 +46,22 @@ export function RecommendPage({ embedded = false }: { embedded?: boolean } = {})
   const navigate = useNavigate()
 
   const { groups, regions } = useRegions()
-  const [areaCode, setAreaCode] = useState<number | null>(null)
-  const [sigunguCode, setSigunguCode] = useState<number | null>(null)
-  const [feed, setFeed] = useState<Place[]>([])
+  const [saved] = useState(freshSaved)
+  const [areaCode, setAreaCode] = useState<number | null>(saved?.areaCode ?? null)
+  const [sigunguCode, setSigunguCode] = useState<number | null>(saved?.sigunguCode ?? null)
+  const [feed, setFeed] = useState<Place[]>(saved?.feed ?? [])
+  /** 기억해 둔 목록을 그대로 쓴 지역 — 이 지역이면 처음 불러오기를 건너뛴다(바꾸면 지움) */
+  const restoredKeyRef = useRef<string | null>(saved ? regionKey(saved.areaCode, saved.sigunguCode) : null)
   /** 이 지역 후보 전체 수 — '추천 더 보기 · 10 / N곳' */
-  const [total, setTotal] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const [total, setTotal] = useState(saved?.total ?? 0)
+  const [loading, setLoading] = useState(!saved)
   const [loadingMore, setLoadingMore] = useState(false)
   /**
    * 동점 순서 씨앗 — 지역을 고를 때마다 새로 정한다. 같은 씨앗이면 서버가 같은 순서로 고르므로
    * '더 보기'로 쪽을 넘겨도 순서가 흔들리지 않고, 화면을 다시 열면 섞인다.
    * 요청 번호도 함께 — 지역을 바꾼 뒤 늦게 온 이전 응답을 버린다.
    */
-  const seedRef = useRef('')
+  const seedRef = useRef(saved?.seed ?? '')
   const requestRef = useRef(0)
   const [myTrips, setMyTrips] = useState<Trip[]>([])
   // 로그인하지 않았거나 나의 여행 로딩이 끝나야 '다가오는 여행 목적지' 기본값을 확정할 수 있다
@@ -69,6 +89,14 @@ export function RecommendPage({ embedded = false }: { embedded?: boolean } = {})
       if (req !== requestRef.current) return
       setFeed(res.places)
       setTotal(res.total)
+      savedFeed = {
+        areaCode,
+        sigunguCode,
+        seed: seedRef.current,
+        feed: res.places,
+        total: res.total,
+        at: Date.now(),
+      }
     } finally {
       if (req === requestRef.current) setLoading(false)
     }
@@ -91,8 +119,11 @@ export function RecommendPage({ embedded = false }: { embedded?: boolean } = {})
 
   useEffect(() => {
     if (areaCode === null || groups.length === 0) return
+    // 상세에 갔다 돌아와 기억해 둔 목록을 쓰는 중이면 다시 받지 않는다(씨앗 · 순서 그대로)
+    if (restoredKeyRef.current === regionKey(areaCode, sigunguCode)) return
+    restoredKeyRef.current = null
     void load()
-  }, [load, areaCode, groups.length])
+  }, [load, areaCode, sigunguCode, groups.length])
 
   /** 다음 쪽 — 보인 곳을 빼고 같은 씨앗으로 서버에 다음 10곳을 묻는다 */
   async function showMore() {
@@ -108,8 +139,13 @@ export function RecommendPage({ embedded = false }: { embedded?: boolean } = {})
         seed: seedRef.current,
       })
       if (req !== requestRef.current) return
-      setFeed((prev) => [...prev, ...res.places])
+      const next = [...feed, ...res.places]
+      setFeed(next)
       setTotal(res.total)
+      // 받은 시각(at)은 그대로 — 같은 목록을 늘린 것이라 10분 계산을 새로 시작하지 않는다
+      if (savedFeed && regionKey(savedFeed.areaCode, savedFeed.sigunguCode) === regionKey(areaCode, sigunguCode)) {
+        savedFeed = { ...savedFeed, feed: next, total: res.total }
+      }
     } finally {
       setLoadingMore(false)
     }

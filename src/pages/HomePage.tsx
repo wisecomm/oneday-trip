@@ -20,6 +20,24 @@ import { formatTripDate } from '@/lib/trip-date'
 /** 홈 '하루에 다녀올 만한 곳' — 처음 이만큼, '더 보기'마다 이만큼 더(추천 장소 · 코스와 같은 10) */
 const PAGE_SIZE = 10
 
+/** 다시 고르는 간격 — 이보다 오래된 목록은 돌아와도 다시 고른다(앱으로 돌아왔을 때와 같은 10분) */
+const REPICK_AFTER_MS = 10 * 60 * 1000
+
+/**
+ * '하루에 다녀올 만한 곳' 기억 — 장소 상세에 갔다가 뒤로 오면 화면이 새로 그려져 처음 10곳으로
+ * 줄고 위치도 다시 쟀다. 그러면 '더 보기'로 늘린 아래쪽으로 스크롤이 돌아가지 못한다(ScrollMemory).
+ * 앱을 켜 둔 동안 마지막 결과를 들고 있다가, 10분 안이면 그대로 다시 쓴다.
+ */
+let savedPicks: {
+  picks: Place[]
+  origin: LatLng | null
+  basis: { here: true } | { here: false; reason: LocateFailure }
+  hasMore: boolean
+  at: number
+} | null = null
+
+const freshSaved = () => (savedPicks && Date.now() - savedPicks.at < REPICK_AFTER_MS ? savedPicks : null)
+
 export function HomePage() {
   const { user, profile, isGuest } = useAuth()
   const [myTrips, setMyTrips] = useState<Trip[]>([])
@@ -37,16 +55,19 @@ export function HomePage() {
    * 이 섹션은 위치를 기다리느라 늦을 수 있어 나머지 홈과 따로 불러온다 — 기다리는
    * 동안 다가오는 여행은 먼저 보인다. 다시 고르는 동안에는 지금 카드를 그대로 둔다.
    */
-  const [picks, setPicks] = useState<Place[]>([])
-  const [picksLoading, setPicksLoading] = useState(true)
+  const [saved] = useState(freshSaved)
+  const [picks, setPicks] = useState<Place[]>(saved?.picks ?? [])
+  const [picksLoading, setPicksLoading] = useState(!saved)
   /** '더 보기' — 받는 중 · 더 받을 곳이 남았는지(마지막으로 받은 쪽이 꽉 찼으면 남은 것으로 본다) */
   const [loadingMore, setLoadingMore] = useState(false)
-  const [hasMore, setHasMore] = useState(true)
-  const [origin, setOrigin] = useState<LatLng | null>(null)
+  const [hasMore, setHasMore] = useState(saved?.hasMore ?? true)
+  const [origin, setOrigin] = useState<LatLng | null>(saved?.origin ?? null)
   /** 기준점이 내 위치인지 · 아니면 왜 강남인지 */
-  const [basis, setBasis] = useState<{ here: true } | { here: false; reason: LocateFailure } | null>(null)
+  const [basis, setBasis] = useState<{ here: true } | { here: false; reason: LocateFailure } | null>(
+    saved?.basis ?? null,
+  )
   const [refreshing, setRefreshing] = useState(false)
-  const lastPickedAt = useRef(0)
+  const lastPickedAt = useRef(saved?.at ?? 0)
   /** 늦게 도착한 옛 요청의 결과가 새 결과를 덮지 않게 */
   const pickRequest = useRef(0)
 
@@ -68,8 +89,10 @@ export function HomePage() {
       setOrigin(base)
       setPicks(list)
       setHasMore(list.length === PAGE_SIZE)
-      setBasis(found.at ? { here: true } : { here: false, reason: found.reason })
+      const nextBasis = found.at ? { here: true as const } : { here: false as const, reason: found.reason }
+      setBasis(nextBasis)
       lastPickedAt.current = Date.now()
+      savedPicks = { picks: list, origin: base, basis: nextBasis, hasMore: list.length === PAGE_SIZE, at: lastPickedAt.current }
     } catch (err) {
       console.error('[Home] 하루에 다녀올 만한 곳을 불러오지 못했습니다.', err)
     } finally {
@@ -96,6 +119,14 @@ export function HomePage() {
       if (id !== pickRequest.current) return
       setPicks((prev) => [...prev, ...more])
       setHasMore(more.length === PAGE_SIZE)
+      // 고른 시각(at)은 그대로 — 더 보기는 같은 결과를 늘린 것이라 10분 계산을 새로 시작하지 않는다
+      if (savedPicks) {
+        savedPicks = {
+          ...savedPicks,
+          picks: [...savedPicks.picks, ...more],
+          hasMore: more.length === PAGE_SIZE,
+        }
+      }
     } catch (err) {
       console.error('[Home] 더 보기를 불러오지 못했습니다.', err)
     } finally {
@@ -104,7 +135,8 @@ export function HomePage() {
   }
 
   useEffect(() => {
-    void loadPicks(false)
+    // 10분 안에 고른 목록이 있으면(상세에 갔다 돌아옴 등) 그대로 — 위치도 다시 재지 않는다
+    if (!freshSaved()) void loadPicks(false)
     return () => {
       pickRequest.current++ // 화면을 떠나면 늦게 온 결과를 버린다
     }
@@ -114,7 +146,7 @@ export function HomePage() {
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState !== 'visible') return
-      if (lastPickedAt.current && Date.now() - lastPickedAt.current > 10 * 60 * 1000) void loadPicks(false)
+      if (lastPickedAt.current && Date.now() - lastPickedAt.current > REPICK_AFTER_MS) void loadPicks(false)
     }
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)

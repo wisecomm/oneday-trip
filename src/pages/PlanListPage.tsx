@@ -19,6 +19,15 @@ const ALL_LEAF = ''
 const PAGE_SIZE = 10
 
 /**
+ * 마지막으로 본 조건 · 목록 — 코스 상세에 갔다가 뒤로 오면 화면이 새로 그려져 조건이 처음 값으로,
+ * 목록이 처음 10개로 돌아갔다(스크롤도 제자리로 못 감). 앱을 켜 둔 동안 들고 있다가 10분 안이면
+ * 그대로 다시 쓴다(홈 '하루에 다녀올 만한 곳'과 같은 10분).
+ */
+let savedCourses: { filterKey: string; list: SharedPlan[]; total: number; at: number } | null = null
+const KEEP_MS = 10 * 60 * 1000
+const freshSaved = () => (savedCourses && Date.now() - savedCourses.at < KEEP_MS ? savedCourses : null)
+
+/**
  * SHARE-06-01 공용 플랜 리스트 — 화면에서는 '추천 코스'라 부른다(Q22).
  *
  * 비로그인도 볼 수 있다. 공유 링크를 받은 사람이 로그인 벽을 먼저 만나면
@@ -27,13 +36,17 @@ const PAGE_SIZE = 10
  */
 export function PlanListPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { groups, regions, loading: regionsLoading } = useRegions()
-  const [areaCode, setAreaCode] = useState<number | null>(null)
-  const [sigunguCode, setSigunguCode] = useState<number | null>(null)
-  const [companions, setCompanions] = useState<Companion[]>([])
-  const [sort, setSort] = useState<PlanFilter['sort']>('popular')
-  const [list, setList] = useState<SharedPlan[]>([])
-  const [total, setTotal] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const [saved] = useState(freshSaved)
+  const savedFilter = saved ? (JSON.parse(saved.filterKey) as PlanFilter) : null
+  const [areaCode, setAreaCode] = useState<number | null>(savedFilter?.areaCode ?? null)
+  const [sigunguCode, setSigunguCode] = useState<number | null>(savedFilter?.sigunguCode ?? null)
+  const [companions, setCompanions] = useState<Companion[]>((savedFilter?.companions as Companion[] | undefined) ?? [])
+  const [sort, setSort] = useState<PlanFilter['sort']>(savedFilter?.sort ?? 'popular')
+  const [list, setList] = useState<SharedPlan[]>(saved?.list ?? [])
+  const [total, setTotal] = useState(saved?.total ?? 0)
+  const [loading, setLoading] = useState(!saved)
+  /** 기억해 둔 목록을 그대로 쓴 조건 — 이 조건이면 처음 불러오기를 건너뛴다(바꾸면 지움) */
+  const restoredKeyRef = useRef<string | null>(saved?.filterKey ?? null)
   const [loadingMore, setLoadingMore] = useState(false)
   /** 조건이 바뀌면 늘어난다 — 늦게 도착한 이전 조건의 응답(특히 '더 보기')을 버린다 */
   const requestRef = useRef(0)
@@ -57,6 +70,7 @@ export function PlanListPage({ embedded = false }: { embedded?: boolean } = {}) 
       if (req !== requestRef.current) return
       setList(plans)
       setTotal(total)
+      savedCourses = { filterKey, list: plans, total, at: Date.now() }
     } finally {
       if (req === requestRef.current) setLoading(false)
     }
@@ -69,19 +83,23 @@ export function PlanListPage({ embedded = false }: { embedded?: boolean } = {}) 
     try {
       const { plans, total } = await sharedPlans.list(filter, { offset: list.length, limit: PAGE_SIZE })
       if (req !== requestRef.current) return
-      setList((prev) => {
-        const seen = new Set(prev.map((p) => p.id))
-        return [...prev, ...plans.filter((p) => !seen.has(p.id))]
-      })
+      const seen = new Set(list.map((p) => p.id))
+      const next = [...list, ...plans.filter((p) => !seen.has(p.id))]
+      setList(next)
       setTotal(total)
+      // 받은 시각(at)은 그대로 — 같은 목록을 늘린 것이라 10분 계산을 새로 시작하지 않는다
+      if (savedCourses?.filterKey === filterKey) savedCourses = { ...savedCourses, list: next, total }
     } finally {
       setLoadingMore(false)
     }
   }
 
   useEffect(() => {
+    // 상세에 갔다 돌아와 기억해 둔 목록을 쓰는 중이면 다시 받지 않는다
+    if (restoredKeyRef.current === filterKey) return
+    restoredKeyRef.current = null
     void load()
-  }, [load])
+  }, [load, filterKey])
 
   const leafOptions = regions.filter((r) => r.tour_area_code === areaCode)
 
