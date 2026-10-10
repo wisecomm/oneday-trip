@@ -18,7 +18,8 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { tripItems, trips } from '@/lib/db'
-import { optimizeOrder, routeDistanceKm, routeMinutes } from '@/lib/geo'
+import { routeDistanceKm, routeMinutes } from '@/lib/geo'
+import { MIN_GAIN_KM, MIN_STOPS_TO_OPTIMIZE, canRestoreUnsaved, optimizeStops } from '@/rules/route'
 import { TRANSPORT_LABEL, regionLabel, type Place, type Trip, type TripItem } from '@/lib/types'
 import { MapView } from '@/components/MapView'
 import { EmptyState, Loading, PageHeader } from '@/components/ui'
@@ -77,12 +78,10 @@ export function RoutePage() {
         setTrip(t)
         const sorted = [...list].sort((a, b) => a.sort_order - b.sort_order)
         // 뒤로 가기로 돌아왔고 장소 구성이 그대로면 저장 안 한 순서를 되살린다
+        // [RT-UNSAVED] — 규칙은 src/rules/route.ts
         const draft = unsavedOrder
-        const sameSet =
-          draft?.tripId === tripId &&
-          draft.itemIds.length === sorted.length &&
-          sorted.every((it) => draft.itemIds.includes(it.id))
-        if (navType === 'POP' && draft && sameSet) {
+        const ids = sorted.map((it) => it.id)
+        if (draft && canRestoreUnsaved(draft, tripId, ids, navType === 'POP')) {
           const byId = new Map(sorted.map((it) => [it.id, it]))
           setItems(draft.itemIds.map((id, i) => ({ ...byId.get(id)!, sort_order: i })))
           setSaved(draft.saved)
@@ -147,24 +146,20 @@ export function RoutePage() {
     setDirty(true)
   }
 
-  /** 최단 거리 기준으로 화면상 순서만 재정렬한다 — 저장은 '저장' 버튼을 눌러야 이뤄진다 */
+  /**
+   * 최단 거리 기준으로 화면상 순서만 재정렬한다 — 저장은 '저장' 버튼을 눌러야 이뤄진다.
+   * [RT-OPT] · [RT-OPT-MIN] · [RT-OPT-GAIN] 규칙은 src/rules/route.ts 의 optimizeStops.
+   */
   function optimize() {
-    if (!trip || items.length < 3) return
+    if (!trip) return
+    const result = optimizeStops(items.map((it) => ({ lat: it.place!.lat, lng: it.place!.lng })))
+    if (!result) return
     setOptimizing(true)
     try {
-      const before = routeDistanceKm(points)
-      const order = optimizeOrder(points)
-      const reordered = order.map((i) => items[i])
-      const after = routeDistanceKm(
-        reordered.map((it) => ({ lat: it.place!.lat, lng: it.place!.lng })),
-      )
-
-      setItems(reordered.map((it, i) => ({ ...it, sort_order: i })))
-      setSaved({ before, after })
+      setItems(result.order.map((i, n) => ({ ...items[i], sort_order: n })))
+      setSaved({ before: result.beforeKm, after: result.afterKm })
       // 이미 최단 동선이면(개선폭이 미미하면) 저장할 게 없으니 버튼을 활성화하지 않는다
-      if (after < before - 0.05) {
-        setDirty(true)
-      }
+      if (result.improved) setDirty(true)
     } finally {
       setOptimizing(false)
     }
@@ -224,7 +219,7 @@ export function RoutePage() {
               <button
                 type="button"
                 onClick={optimize}
-                disabled={optimizing || routePlaces.length < 3}
+                disabled={optimizing || routePlaces.length < MIN_STOPS_TO_OPTIMIZE}
                 className="btn-primary !px-4 !py-2.5 text-[13.5px]"
               >
                 {optimizing ? '계산 중…' : '경로 최적화'}
@@ -240,13 +235,13 @@ export function RoutePage() {
               {saving ? '저장 중…' : dirty ? '순서 저장하기' : '저장됨'}
             </button>
 
-            {routePlaces.length < 3 && (
+            {routePlaces.length < MIN_STOPS_TO_OPTIMIZE && (
               <p className="hint mb-3">장소가 3곳 이상일 때 최적화 효과가 있습니다.</p>
             )}
 
             {saved && (
               <p className="mb-3 rounded-xl bg-brand-50 px-4 py-3 text-[13px] font-semibold text-brand-700">
-                {saved.after < saved.before - 0.05
+                {saved.after < saved.before - MIN_GAIN_KM
                   ? `동선을 ${(saved.before - saved.after).toFixed(1)}km 단축했습니다. (${saved.before.toFixed(1)}km → ${saved.after.toFixed(1)}km)`
                   : '이미 최단 동선입니다. 순서를 바꿀 필요가 없어요.'}
               </p>

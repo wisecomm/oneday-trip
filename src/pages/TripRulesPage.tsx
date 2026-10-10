@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { places as placesApi, tripItems, trips } from '@/lib/db'
-import { optimizeOrder } from '@/lib/geo'
-import { pickByRating, type CategoryQuota } from '@/lib/recommend'
+import { planAutoAdd } from '@/rules/trip-create'
 import {
   TRANSPORT_LABEL,
   TRANSPORT_SPEED_KMH,
@@ -13,22 +12,10 @@ import {
 } from '@/lib/types'
 import { Loading, PageHeader, StepGuide } from '@/components/ui'
 
-/** 여행 생성 직후 자동으로 담아 줄 추천 장소 구성 — 밥집 2 · 카페 1 · 명소 4, 총 7곳 (명소 2 → 4, 10/10) */
-const AUTO_ADD_QUOTA: CategoryQuota[] = [
-  { category: 'babzip', count: 2 },
-  { category: 'cafe', count: 1 },
-  { category: 'spot', count: 4 },
-]
-
 /**
  * 여행 생성 직후 타임라인이 비어 있으면 사용자가 무엇부터 해야 할지 막막해진다.
- * 그래서 그 지역에서 별점 높은 곳을 골라 자동으로 담아 준다.
- *
- * · 고르기는 별점만(pickByRating) — 시간대 · 날씨 · 취향 태그는 쓰지 않는다(10/10).
- *   리뷰가 없는 곳끼리는 무작위.
- * · 종류 비율을 AUTO_ADD_QUOTA 로 고정해 밥집 · 카페 · 명소가 고르게 섞이게 한다.
- * · 순서는 별점 순위가 아니라 최단 동선(TRIP-03-02)으로 정렬해, 첫 화면부터
- *   말이 되는 일정이 보이게 한다.
+ * 그래서 그 지역에서 별점 높은 곳을 골라 자동으로 담아 준다. 무엇을 · 어떤 순서로는
+ * src/rules/trip-create.ts 의 planAutoAdd([TC-SEED] · [TC-SEED-ORDER]) — 여기는 조회와 저장만.
  *
  * @returns 실제로 담은 장소 수
  */
@@ -38,17 +25,13 @@ async function seedRecommendedPlaces(
   sigunguCode: number | null,
 ): Promise<number> {
   const filter = sigunguCode === null ? { areaCode } : { areaCode, sigunguCode }
-  const list = await placesApi.list(filter)
-  if (list.length === 0) return 0
-
-  const picked = pickByRating(list, AUTO_ADD_QUOTA)
-  const order = optimizeOrder(picked.map((p) => ({ lat: p.lat, lng: p.lng })))
+  const plan = planAutoAdd(await placesApi.list(filter))
 
   // add() 가 기존 개수로 sort_order 를 계산하므로 순차로 넣어야 순서가 보존된다
-  for (const index of order) {
-    await tripItems.add({ trip_id: tripId, place_id: picked[index].id })
+  for (const place of plan) {
+    await tripItems.add({ trip_id: tripId, place_id: place.id })
   }
-  return picked.length
+  return plan.length
 }
 
 /**
