@@ -82,10 +82,12 @@ select
   (select count(*) from tour.run_logs) as 로그_줄;
 
 -- ⑨ 최근 실행 — 수집(호스트 이름) · 반영(load@…) · 끝 시각이 비면 진행 중 또는 끊김
+--    멈춤 '하루 한도 도달'은 정상(다음 실행이 이어 받음) — 오류 칸이 비어 있다
 select r.id, r.host,
        to_char(r.started_at at time zone 'Asia/Seoul', 'MM-DD HH24:MI') as 시작,
        to_char(r.finished_at at time zone 'Asia/Seoul', 'MM-DD HH24:MI') as 끝,
        r.calls as 호출, r.result->>'details' as 상세_받음, r.result->>'changed' as 반영_장소,
+       case when r.result->>'stopped' = 'quota' then '하루 한도 도달' end as 멈춤,
        left(split_part(coalesce(r.error, ''), E'\n', 1), 80) as 오류,
        (select count(*) from tour.run_logs l where l.run_id = r.id) as 로그_줄
   from tour.runs r

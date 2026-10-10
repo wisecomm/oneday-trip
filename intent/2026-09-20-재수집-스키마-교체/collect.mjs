@@ -150,9 +150,29 @@ function buildUrl(op, params) {
   return `${BASE}/${op}?${keyPart}&${qs.toString()}`
 }
 
+/**
+ * 하루 호출 한도에 걸림 — 오류가 아니라 '오늘 몫을 다 씀'. 받은 것은 DB 에 있고 다음 실행이 이어 받는다.
+ * 실행은 정상 종료(종료코드 0)로 끝내고 tour.runs.result.stopped = 'quota' 로 남긴다 — 그래야 상세를 다
+ * 받을 때까지 매일 GitHub Actions 가 빨간 실패 · 메일을 내지 않는다. 진짜 오류만 실패로.
+ *
+ * 한도 응답으로 보는 것(공공데이터포털):
+ *   - HTTP 429 가 재시도 끝까지(약 31초) 계속 — 초당 제한이면 그 사이 풀린다
+ *   - JSON 이 아닌 응답에 LIMITED_NUMBER_OF_SERVICE_REQUESTS(…_EXCEEDS_ERROR)
+ *   - resultCode 22(서비스 요청 제한 횟수 초과)
+ */
+class QuotaError extends Error {}
+
+/** 감싼 오류(cause)까지 거슬러 한도 오류인지 */
+const isQuota = (e) => {
+  for (let x = e; x; x = x.cause) if (x instanceof QuotaError) return true
+  return false
+}
+
 /** 한 번 호출. 429·5xx 는 지수 백오프로 물러난다. */
 async function call(op, params) {
   const url = buildUrl(op, params)
+  let throttled = 0 // HTTP 429 받은 횟수
+  let last = '' // 마지막 실패 — 재시도가 끝나면 오류 메시지에 남긴다
   for (let attempt = 0; attempt <= MAX_RETRY; attempt++) {
     if (attempt > 0) {
       const wait = 1000 * 2 ** (attempt - 1)
@@ -165,10 +185,14 @@ async function call(op, params) {
       res = await fetch(url, { signal: AbortSignal.timeout(30_000) })
     } catch (e) {
       console.log(`      ! 네트워크 오류: ${e.message}`)
+      last = `네트워크 오류 ${e.message}`
       continue
     }
     if (res.status === 429 || res.status >= 500) {
-      console.log(`      ! HTTP ${res.status}`)
+      const body = (await res.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 200)
+      console.log(`      ! HTTP ${res.status}${body ? ` — ${body}` : ''}`)
+      if (res.status === 429) throttled++
+      last = `HTTP ${res.status}${body ? ` ${body}` : ''}`
       continue
     }
     const text = await res.text()
@@ -176,6 +200,9 @@ async function call(op, params) {
 
     // 한도 초과·키 오류는 JSON 이 아니라 XML 로 오는 경우가 있다
     if (!text.trimStart().startsWith('{')) {
+      if (/LIMITED_NUMBER_OF_SERVICE_REQUESTS/i.test(text)) {
+        throw new QuotaError(`${op}: 하루 호출 한도 초과 (LIMITED_NUMBER_OF_SERVICE_REQUESTS)`)
+      }
       throw new Error(`JSON 이 아닌 응답 (키 오류 또는 일일 한도 초과일 수 있음):\n${text.slice(0, 500)}`)
     }
     const json = JSON.parse(text)
@@ -184,6 +211,7 @@ async function call(op, params) {
       const msg = json?.response?.header?.resultMsg ?? JSON.stringify(json).slice(0, 300)
       // 결과 없음은 정상 — 빈 목록으로 다룬다
       if (code === '0003') return { items: [], totalCount: 0 }
+      if (code === '22') throw new QuotaError(`${op}: 하루 호출 한도 초과 (resultCode 22: ${msg})`)
       throw new Error(`resultCode ${code}: ${msg}`)
     }
     const body = json?.response?.body ?? {}
@@ -192,7 +220,10 @@ async function call(op, params) {
     const items = raw === '' || raw == null ? [] : [].concat(raw.item ?? [])
     return { items, totalCount: Number(body.totalCount ?? items.length) }
   }
-  throw new Error(`${op} 재시도 ${MAX_RETRY}회 모두 실패`)
+  if (throttled === MAX_RETRY + 1) {
+    throw new QuotaError(`${op}: 하루 호출 한도 (HTTP 429 가 ${throttled}번 연속)`)
+  }
+  throw new Error(`${op} 재시도 ${MAX_RETRY}회 모두 실패 — 마지막: ${last}`)
 }
 
 /** 페이지를 끝까지 돌며 모은다. */
@@ -692,7 +723,13 @@ async function printRuns(limit = 5) {
   console.log('최근 실행:')
   for (const r of runs) {
     const t = new Date(r.started_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })
-    const state = r.error ? `✗ ${r.error.split('\n')[0].slice(0, 80)}` : r.finished_at ? '끝' : '진행 중 또는 끊김'
+    const state = r.error
+      ? `✗ ${r.error.split('\n')[0].slice(0, 80)}`
+      : r.result?.stopped === 'quota'
+        ? '■ 하루 한도 도달 — 다음 실행이 이어 받음'
+        : r.finished_at
+          ? '끝'
+          : '진행 중 또는 끊김'
     console.log(`  #${r.id} ${t} · ${r.host ?? '-'} · 호출 ${r.calls} · ${state}`)
   }
 }
@@ -786,7 +823,8 @@ async function runMain(args, { skipDetail, detailOnly, areaFilter, dry, log }) {
     return
   }
 
-  const result = { sync: null, hidden: null, details: 0, syncError: null, hiddenError: null }
+  // stopped: 'quota' 면 하루 한도로 멈춤(정상 종료) — --status 와 점검 ⑨ 가 '한도 도달'로 보인다
+  const result = { sync: null, hidden: null, details: 0, syncError: null, hiddenError: null, stopped: null }
   const [run] = dry
     ? [null]
     : await q(`insert into tour.runs (host) values ($1) returning id`, [process.env.TOUR_HOST || os.hostname()])
@@ -815,13 +853,16 @@ async function runMain(args, { skipDetail, detailOnly, areaFilter, dry, log }) {
       result.sync = await syncLists({ dry })
     } catch (e) {
       result.syncError = e.message
-      console.error(`    ✗ 목록 갱신 건너뜀: ${e.message}`)
+      // 한도면 오류 줄(점검 ⑩)로 남기지 않는다 — 다음 실행이 같은 기준 시각부터 다시 받는다
+      if (isQuota(e)) console.log(`    ■ 목록 갱신 — 하루 한도라 내일: ${e.message}`)
+      else console.error(`    ✗ 목록 갱신 건너뜀: ${e.message}`)
     }
     try {
       result.hidden = await syncHidden({ dry })
     } catch (e) {
       result.hiddenError = e.message
-      console.error(`    ✗ 사라진 장소 확인 건너뜀: ${e.message}`)
+      if (isQuota(e)) console.log(`    ■ 사라진 장소 확인 — 하루 한도라 내일: ${e.message}`)
+      else console.error(`    ✗ 사라진 장소 확인 건너뜀: ${e.message}`)
     }
     console.log('')
     if (dry) return
@@ -857,7 +898,7 @@ async function runMain(args, { skipDetail, detailOnly, areaFilter, dry, log }) {
           for (const type of types) {
             const label = `${leaf.areaName} ${leaf.sigunguName}`
             const got = await collectPlaces(leaf.areaCode, leaf.sigunguCode, type, label, done).catch((e) => {
-              throw new Error(`${label} / ${type.label} 목록: ${e.message}`)
+              throw new Error(`${label} / ${type.label} 목록: ${e.message}`, { cause: e })
             })
             if (got) fetched++
           }
@@ -874,7 +915,7 @@ async function runMain(args, { skipDetail, detailOnly, areaFilter, dry, log }) {
             await collectDetail(leaf.areaCode, leaf.sigunguCode, type, label, stats).catch((e) => {
               result.details += stats.details
               stats.details = 0
-              throw new Error(`${label} / ${type.label} 상세: ${e.message}`)
+              throw new Error(`${label} / ${type.label} 상세: ${e.message}`, { cause: e })
             })
           }
         }
@@ -884,9 +925,17 @@ async function runMain(args, { skipDetail, detailOnly, areaFilter, dry, log }) {
     }
   } catch (e) {
     console.log('')
+    if (isQuota(e)) {
+      // 오늘 몫을 다 씀 — 실패가 아니다. 다음 실행(내일 0시 5분)이 그 자리에서 이어 받는다
+      console.log(`■ 하루 호출 한도 도달 — 내일 이어서 받습니다 (${e.message})`)
+      result.stopped = 'quota'
+      result.stoppedAt = e.message
+      await finish(null)
+      await printProgress().catch(() => {})
+      return
+    }
     console.error(`✗ ${e.message}`)
     console.error('중단합니다. 받은 것은 DB 에 남아 있으니 다시 실행하면 이어서 받습니다.')
-    console.error('(일일 호출 한도라면 다음 날 다시 실행하세요.)')
     await finish(e.message)
     await printProgress().catch(() => {})
     process.exitCode = 1

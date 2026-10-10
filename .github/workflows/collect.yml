@@ -3,6 +3,8 @@
 # Mac 의 run-daily.sh(launchd)와 같은 일을 GitHub 실행기에서 한다: 수집(collect.mjs → DB tour.*)
 # 다음 반영(load.mjs → 운영 places). 진행 · 기록은 DB(tour.runs · tour.run_logs)에 남으므로 어디서
 # 돌든 `./run-daily.sh --status` · 점검.sql ⑧~⑩ 로 같은 것을 본다. 실패하면 GitHub 가 메일을 보낸다.
+# 하루 호출 한도에 걸려 멈추는 것은 실패가 아니다 — collect.mjs 가 '한도 도달'로 정상 종료(초록)하고,
+# 진짜 오류(접속 · 응답 이상 등)만 빨간 실패 · 메일이 된다.
 #
 # 비밀값은 저장소 Settings → Secrets and variables → Actions 에 사용자가 직접 넣는다(커밋 금지):
 #   TOUR_API_KEY   공공데이터포털 TourAPI 키(.key 와 같은 값)
@@ -38,9 +40,9 @@ jobs:
       TOUR_DB_CA: ${{ secrets.TOUR_DB_CA }}
       TOUR_HOST: github-actions
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -51,7 +53,7 @@ jobs:
       - name: 수집 (collect.mjs)
         id: collect
         working-directory: intent/2026-09-20-재수집-스키마-교체
-        # 한도로 멈춰도 받은 만큼은 반영해야 하므로 실패해도 다음 단계로
+        # 하루 한도면 정상 종료(0)한다. 진짜 오류로 멈춰도 받은 만큼은 반영해야 하므로 다음 단계로
         continue-on-error: true
         run: node collect.mjs
 
@@ -62,6 +64,6 @@ jobs:
       - name: 수집 결과
         if: steps.collect.outcome == 'failure'
         run: |
-          echo "수집이 도중에 멈췄습니다(하루 한도면 정상 — 다음 실행이 이어 받습니다)."
-          echo "까닭은 위 '수집' 단계 로그 끝, 또는 점검.sql ⑨ · ⑩."
+          echo "수집이 오류로 멈췄습니다(하루 한도는 여기 오지 않습니다 — 정상 종료)."
+          echo "까닭은 위 '수집' 단계 로그 끝, 또는 점검.sql ⑨ · ⑩. 받은 것은 DB 에 있고 반영도 돌았습니다."
           exit 1
