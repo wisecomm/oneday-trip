@@ -2,35 +2,32 @@ import { useEffect, useState } from 'react'
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { places as placesApi, tripItems, trips } from '@/lib/db'
-import { useRegions } from '@/hooks/useRegions'
 import { optimizeOrder } from '@/lib/geo'
-import { fetchWeather, recommendMix, type CategoryQuota, type TripContext } from '@/lib/recommend'
+import { pickByRating, type CategoryQuota } from '@/lib/recommend'
 import {
   TRANSPORT_LABEL,
   TRANSPORT_SPEED_KMH,
-  type Profile,
-  type Region,
-  type RegionGroup,
   type Transport,
   type Trip,
   type TripDraft,
 } from '@/lib/types'
 import { Loading, PageHeader, StepGuide } from '@/components/ui'
 
-/** 여행 생성 직후 자동으로 담아 줄 추천 장소 구성 — 밥집 2 · 카페 1 · 명소 2, 총 5곳 */
+/** 여행 생성 직후 자동으로 담아 줄 추천 장소 구성 — 밥집 2 · 카페 1 · 명소 4, 총 7곳 (명소 2 → 4, 10/10) */
 const AUTO_ADD_QUOTA: CategoryQuota[] = [
   { category: 'babzip', count: 2 },
   { category: 'cafe', count: 1 },
-  { category: 'spot', count: 2 },
+  { category: 'spot', count: 4 },
 ]
 
 /**
  * 여행 생성 직후 타임라인이 비어 있으면 사용자가 무엇부터 해야 할지 막막해진다.
- * 그래서 AI 추천(MAP-04-02)과 같은 기준으로 상위 장소를 골라 자동으로 담아 준다.
+ * 그래서 그 지역에서 별점 높은 곳을 골라 자동으로 담아 준다.
  *
- * · 카테고리 비율을 AUTO_ADD_QUOTA 로 고정해, 점수만 따라가다 카페만 5곳처럼
- *   한쪽으로 쏠리지 않고 밥집·카페·명소가 고르게 섞이게 한다.
- * · 순서는 추천 순위가 아니라 최단 동선(TRIP-03-02)으로 정렬해, 첫 화면부터
+ * · 고르기는 별점만(pickByRating) — 시간대 · 날씨 · 취향 태그는 쓰지 않는다(10/10).
+ *   리뷰가 없는 곳끼리는 무작위.
+ * · 종류 비율을 AUTO_ADD_QUOTA 로 고정해 밥집 · 카페 · 명소가 고르게 섞이게 한다.
+ * · 순서는 별점 순위가 아니라 최단 동선(TRIP-03-02)으로 정렬해, 첫 화면부터
  *   말이 되는 일정이 보이게 한다.
  *
  * @returns 실제로 담은 장소 수
@@ -39,32 +36,12 @@ async function seedRecommendedPlaces(
   tripId: string,
   areaCode: number,
   sigunguCode: number | null,
-  profile: Profile | null,
-  groups: RegionGroup[],
-  regions: Region[],
 ): Promise<number> {
-  // 코드 구조에서는 sigungu 가 null 인지만 보면 된다. 이름으로 leaf 인지 group
-  // 전체인지 판별하던 로직이 통째로 없어졌다.
   const filter = sigunguCode === null ? { areaCode } : { areaCode, sigunguCode }
-
-  // 날씨를 물을 기준점 — 구를 골랐으면 그 구, 아니면 시/도 중심
-  const anchor =
-    (sigunguCode === null
-      ? groups.find((g) => g.tour_area_code === areaCode)
-      : regions.find(
-          (r) => r.tour_area_code === areaCode && r.tour_sigungu_code === sigunguCode,
-        )) ?? groups[0]
-
-  const [list, weather] = await Promise.all([
-    placesApi.list(filter),
-    fetchWeather(anchor.lat, anchor.lng),
-  ])
+  const list = await placesApi.list(filter)
   if (list.length === 0) return 0
 
-  const now = new Date()
-  const ctx: TripContext = { hour: now.getHours(), weekday: now.getDay(), ...weather }
-
-  const picked = recommendMix(list, ctx, profile, AUTO_ADD_QUOTA)
+  const picked = pickByRating(list, AUTO_ADD_QUOTA)
   const order = optimizeOrder(picked.map((p) => ({ lat: p.lat, lng: p.lng })))
 
   // add() 가 기존 개수로 sort_order 를 계산하므로 순차로 넣어야 순서가 보존된다
@@ -85,8 +62,7 @@ export function TripRulesPage() {
   const { tripId } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, profile } = useAuth()
-  const { groups, regions } = useRegions()
+  const { user } = useAuth()
 
   const isCreate = !tripId
   const draft = (location.state ?? null) as TripDraft | null
@@ -135,9 +111,6 @@ export function TripRulesPage() {
             created.id,
             created.tour_area_code,
             created.tour_sigungu_code,
-            profile,
-            groups,
-            regions,
           )
         } catch (err) {
           console.error('[TripRules] 추천 장소 자동 담기에 실패했습니다.', err)

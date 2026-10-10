@@ -1,16 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { recommendPlaces, tripItems, trips } from '@/lib/db'
 import { useRegions } from '@/hooks/useRegions'
-import {
-  contextLabel,
-  fetchWeather,
-  scorePlace,
-  type Scored,
-  type TripContext,
-} from '@/lib/recommend'
-import { knownTasteTags, regionLabel, shownRating, type Trip } from '@/lib/types'
+import { regionLabel, shownRating, type Place, type Trip } from '@/lib/types'
 import { CategoryDot, PlaceThumb, RatingStar } from '@/components/PlaceCard'
 import { BottomSheet, EmptyState, Loading, PageHeader } from '@/components/ui'
 import { formatTripDate } from '@/lib/trip-date'
@@ -23,24 +16,22 @@ const PAGE_SIZE = 10
 const ALL_LEAF = ''
 
 /**
- * MAP-04-02 · 04. 로컬 장소 탐색 > 4.2 AI 추천 > 맥락 인지 추천 피드
- * 실시간 날씨 API + 회원 프로필 취향 태그를 결합해 초개인화 카드를 구성하고,
- * [저장하기]로 나의 여행 방문 리스트(3.1)에 다이렉트 추가한다.
+ * MAP-04-02 · 04. 로컬 장소 탐색 > 4.2 추천 장소
+ * 고른 지역의 장소를 **방문자 별점** 높은 순으로 보여 주고(10/10 — 시간대 · 날씨 · 취향 점수는
+ * 없앰), [저장하기]로 나의 여행 방문 리스트(3.1)에 다이렉트 추가한다.
  *
- * 비회원도 본다(Q22). 취향 태그가 없으면 시간대·날씨만으로 매기고('기본 추천'),
- * [저장하기]를 누를 때 로그인으로 보낸다 — 공용 코스의 '담기'와 같은 방식이다.
+ * 비회원도 본다(Q22). [저장하기]를 누를 때 로그인으로 보낸다 — 공용 코스의 '담기'와 같은 방식이다.
  * 추천 탭(RecommendHubPage) 안의 '추천 장소'로 들어가므로 embedded 면 머리말을
  * 그리지 않는다.
  */
 export function RecommendPage({ embedded = false }: { embedded?: boolean } = {}) {
-  const { user, profile } = useAuth()
+  const { user } = useAuth()
   const navigate = useNavigate()
 
   const { groups, regions } = useRegions()
   const [areaCode, setAreaCode] = useState<number | null>(null)
   const [sigunguCode, setSigunguCode] = useState<number | null>(null)
-  const [ctx, setCtx] = useState<TripContext | null>(null)
-  const [feed, setFeed] = useState<Scored[]>([])
+  const [feed, setFeed] = useState<Place[]>([])
   /** 이 지역 후보 전체 수 — '추천 더 보기 · 10 / N곳' */
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -55,18 +46,11 @@ export function RecommendPage({ embedded = false }: { embedded?: boolean } = {})
   const [myTrips, setMyTrips] = useState<Trip[]>([])
   // 로그인하지 않았거나 나의 여행 로딩이 끝나야 '다가오는 여행 목적지' 기본값을 확정할 수 있다
   const [myTripsLoaded, setMyTripsLoaded] = useState(false)
-  const [saveTarget, setSaveTarget] = useState<Scored | null>(null)
+  const [saveTarget, setSaveTarget] = useState<Place | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
-  /** 서버가 고른 장소에 근거 라벨을 붙인다 — 점수 규칙은 서버와 같은 scorePlace() */
-  const withReasons = useCallback(
-    (list: Awaited<ReturnType<typeof recommendPlaces>>['places'], c: TripContext): Scored[] =>
-      list.map((place) => ({ place, ...scorePlace(place, c, profile?.taste_tags ?? []) })),
-    [profile],
-  )
-
   /**
-   * 첫 쪽 — 서버(recommend_places)가 이 지역 장소에 점수를 매겨 10곳만 돌려준다. 예전처럼 지역
+   * 첫 쪽 — 서버(recommend_places)가 이 지역 장소를 별점으로 매겨 10곳만 돌려준다. 예전처럼 지역
    * 장소를 전부(경기 3,357곳) 받아 브라우저에서 매기지 않는다.
    */
   const load = useCallback(async () => {
@@ -75,30 +59,20 @@ export function RecommendPage({ embedded = false }: { embedded?: boolean } = {})
     seedRef.current = Math.random().toString(36).slice(2, 10)
     setLoading(true)
     try {
-      // 날씨는 시군구 단위로 갈라 볼 필요가 없어, 선택된 시/도의 중심 좌표를 그대로 쓴다
-      const anchor = groups.find((g) => g.tour_area_code === areaCode)
-      const weather = anchor
-        ? await fetchWeather(anchor.lat, anchor.lng)
-        : { weather: 'clear' as const, temperature: null }
-      const now = new Date()
-      const nextCtx: TripContext = { hour: now.getHours(), weekday: now.getDay(), ...weather }
       const res = await recommendPlaces({
         areaCode,
         sigunguCode: sigunguCode ?? undefined,
-        ctx: nextCtx,
-        tasteTags: profile?.taste_tags ?? [],
         exclude: [],
         count: PAGE_SIZE,
         seed: seedRef.current,
       })
       if (req !== requestRef.current) return
-      setCtx(nextCtx)
-      setFeed(withReasons(res.places, nextCtx))
+      setFeed(res.places)
       setTotal(res.total)
     } finally {
       if (req === requestRef.current) setLoading(false)
     }
-  }, [areaCode, sigunguCode, groups, profile, withReasons])
+  }, [areaCode, sigunguCode])
 
   // 지역 목록·나의 여행이 모두 준비되면 기본 지역을 정한다 — 오늘 이후로 예정된
   // 여행이 있으면 그중 가장 빠른 여행의 목적지로, 없으면 첫 상위 지역으로 맞춘다
@@ -120,23 +94,21 @@ export function RecommendPage({ embedded = false }: { embedded?: boolean } = {})
     void load()
   }, [load, areaCode, groups.length])
 
-  /** 다음 쪽 — 보인 곳을 빼고 같은 씨앗 · 같은 맥락으로 서버에 다음 10곳을 묻는다 */
+  /** 다음 쪽 — 보인 곳을 빼고 같은 씨앗으로 서버에 다음 10곳을 묻는다 */
   async function showMore() {
-    if (areaCode === null || !ctx) return
+    if (areaCode === null) return
     const req = requestRef.current
     setLoadingMore(true)
     try {
       const res = await recommendPlaces({
         areaCode,
         sigunguCode: sigunguCode ?? undefined,
-        ctx,
-        tasteTags: profile?.taste_tags ?? [],
-        exclude: feed.map((f) => f.place.id),
+        exclude: feed.map((p) => p.id),
         count: PAGE_SIZE,
         seed: seedRef.current,
       })
       if (req !== requestRef.current) return
-      setFeed((prev) => [...prev, ...withReasons(res.places, ctx)])
+      setFeed((prev) => [...prev, ...res.places])
       setTotal(res.total)
     } finally {
       setLoadingMore(false)
@@ -172,40 +144,20 @@ export function RecommendPage({ embedded = false }: { embedded?: boolean } = {})
       (r) => r.tour_area_code === areaCode && r.tour_sigungu_code === sigunguCode,
     )?.name ?? null
   const destinationLabel = regionLabel(groupName, regionName)
-  const headline = useMemo(
-    () => (ctx ? contextLabel(ctx, destinationLabel) : '추천 맥락을 분석하는 중'),
-    [ctx, destinationLabel],
-  )
 
   return (
     <>
       {!embedded && (
-        <PageHeader title="AI 추천" subtitle="시간 · 날씨 · 취향을 반영한 실시간 큐레이션" />
+        <PageHeader title="추천 장소" subtitle="방문자 별점 높은 순" />
       )}
 
       <div className="px-4 py-4">
         <div className="card mb-4 overflow-hidden">
           <div className="bg-gradient-to-br from-brand-600 to-brand-800 px-5 py-5 text-white">
-            <p className="text-[12px] font-semibold text-brand-100">실시간 맥락 데이터</p>
-            <p className="mt-1 text-[19px] leading-snug font-extrabold">{headline}</p>
-            {ctx && (
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                <ContextChip>
-                  {ctx.weather === 'rain'
-                    ? '🌧️ 비'
-                    : ctx.weather === 'snow'
-                      ? '🌨️ 눈'
-                      : ctx.weather === 'cloudy'
-                        ? '☁️ 흐림'
-                        : '☀️ 맑음'}
-                </ContextChip>
-                {ctx.temperature !== null && <ContextChip>{Math.round(ctx.temperature)}°C</ContextChip>}
-                <ContextChip>{ctx.hour}시</ContextChip>
-                <ContextChip>
-                  {profile ? `취향 ${knownTasteTags(profile.taste_tags).length}개 반영` : '기본 추천'}
-                </ContextChip>
-              </div>
-            )}
+            <p className="text-[12px] font-semibold text-brand-100">방문자 별점 높은 순</p>
+            <p className="mt-1 text-[19px] leading-snug font-extrabold">
+              {destinationLabel ? `${destinationLabel}에서 가볼만한 곳` : '가볼만한 곳'}
+            </p>
           </div>
 
           <div className="flex items-center gap-1.5 px-4 py-3">
@@ -241,23 +193,13 @@ export function RecommendPage({ embedded = false }: { embedded?: boolean } = {})
           </div>
         </div>
 
-        {!profile && user && (
-          <button
-            type="button"
-            onClick={() => navigate('/onboarding')}
-            className="mb-4 w-full rounded-xl bg-amber-50 px-4 py-3 text-left text-[13px] font-semibold text-amber-700"
-          >
-            취향 태그를 등록하면 추천 정확도가 크게 올라갑니다 → 사용자 등록하기
-          </button>
-        )}
-
         {loading ? (
-          <Loading label="맥락 분석 중" />
+          <Loading label="불러오는 중" />
         ) : feed.length === 0 ? (
           <EmptyState icon="✨" title="추천할 장소가 없습니다" />
         ) : (
           <ul className="flex flex-col gap-3">
-            {feed.map(({ place, reasons }, i) => (
+            {feed.map((place, i) => (
               <li key={place.id} className="card overflow-hidden">
                 <div className="flex items-center gap-3 p-3.5">
                   <span className="w-5 shrink-0 text-center text-[15px] font-extrabold text-ink-300">
@@ -283,19 +225,6 @@ export function RecommendPage({ embedded = false }: { embedded?: boolean } = {})
                     )}
                   </button>
                 </div>
-
-                {reasons.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 border-t border-ink-100 px-3.5 py-2.5">
-                    {reasons.slice(0, 3).map((r) => (
-                      <span
-                        key={r}
-                        className="rounded-md bg-brand-50 px-2 py-1 text-[11.5px] font-semibold text-brand-700"
-                      >
-                        {r}
-                      </span>
-                    ))}
-                  </div>
-                )}
 
                 <button
                   type="button"
@@ -349,12 +278,6 @@ export function RecommendPage({ embedded = false }: { embedded?: boolean } = {})
   )
 }
 
-function ContextChip({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-semibold">{children}</span>
-  )
-}
-
 function SaveSheet({
   target,
   trips: myTrips,
@@ -362,7 +285,7 @@ function SaveSheet({
   onSaved,
   onCreateTrip,
 }: {
-  target: Scored | null
+  target: Place | null
   trips: Trip[]
   onClose: () => void
   onSaved: (message: string) => void
@@ -374,7 +297,7 @@ function SaveSheet({
     if (!target) return
     setBusy(true)
     try {
-      await tripItems.add({ trip_id: trip.id, place_id: target.place.id })
+      await tripItems.add({ trip_id: trip.id, place_id: target.id })
       onSaved(`${trip.title}에 저장했습니다.`)
     } finally {
       setBusy(false)

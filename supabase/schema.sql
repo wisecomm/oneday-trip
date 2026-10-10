@@ -814,13 +814,13 @@ revoke all on function public.places_nearest(double precision, double precision,
 grant execute on function public.places_nearest(double precision, double precision, integer, double precision, public.place_category[])
   to anon, authenticated;
 
--- ── 9. 추천 장소 — 서버가 점수를 매겨 한 쪽만 ─────────────────────────
+-- ── 9. 추천 장소 — 서버가 별점으로 한 쪽만 ─────────────────────────
 --
--- 고른 지역의 장소에 점수를 매겨 한 쪽(p_count, 앱은 10)을 고른다. 점수는 앱
--- recommend.ts 의 scorePlace() 와 같다(바꾸면 함께): 별점(베이지안) · 취향 태그 +3 ·
--- 시간대(점심 · 저녁 밥집, 오후 카페, 저녁 술집, 낮 명소) · 날씨(비 · 눈 카페 +4 명소 −3,
--- 맑음 명소 +3). 동점은 md5(p_seed || id) — 같은 씨앗이면 같은 순서. 한 쪽은 종류마다 절반
--- 까지 먼저, 모자라면 점수순으로 채운다(앱 takePage() 와 같다). '더 보기'는 보인 곳
+-- 고른 지역의 장소를 방문자 별점(베이지안 — 리뷰가 적을수록 3점 쪽으로)으로 매겨 한 쪽
+-- (p_count, 앱은 10)을 고른다. 앱 recommend.ts 의 ratingScore() 와 같다(바꾸면 함께).
+-- p_hour · p_weather · p_tags 는 받기만 하고 쓰지 않는다(20261017000000 — 예전엔 취향 태그 ·
+-- 시간대 · 날씨도 더했다). 동점은 md5(p_seed || id) — 같은 씨앗이면 같은 순서. 한 쪽은 종류마다
+-- 절반까지 먼저, 모자라면 점수순으로 채운다(앱 takePage() 와 같다). '더 보기'는 보인 곳
 -- (p_exclude)을 빼고 다음 쪽. total 은 지역 후보 전체 수. 미판정 · 숨긴 장소 제외.
 create or replace function public.recommend_places(
   p_area     integer,
@@ -841,16 +841,6 @@ as $$
     select p.id, p.category,
            ( case when p.rating_avg is null or p.rating_count <= 0 then 0::float8
                   else ((p.rating_avg::float8 * p.rating_count + 3 * 2) / (p.rating_count + 2) - 3) * 2 end
-           + 3 * (select count(*) from unnest(coalesce(p_tags, '{}')) t where t = any (p.tags))
-           + case when p_hour >= 11 and p_hour < 14 and p.category = 'babzip' then 4 else 0 end
-           + case when p_hour >= 17 and p_hour < 21 and p.category = 'babzip' then 4 else 0 end
-           + case when p_hour >= 14 and p_hour < 18 and p.category = 'cafe' then 4 else 0 end
-           + case when p_hour >= 18 and p.category = 'sulzip' then 4 else 0 end
-           + case when p_hour >= 9 and p_hour < 17 and p.category = 'spot' then 2 else 0 end
-           + case when p_weather in ('rain', 'snow') and p.category = 'cafe' then 4
-                  when p_weather in ('rain', 'snow') and p.category = 'spot' then -3
-                  when p_weather = 'clear' and p.category = 'spot' then 3
-                  else 0 end
            )::float8 as score,
            ('x' || substr(md5(coalesce(p_seed, '') || p.id), 1, 8))::bit(32)::bigint as tie,
            (p.id = any (coalesce(p_exclude, '{}'))) as shown

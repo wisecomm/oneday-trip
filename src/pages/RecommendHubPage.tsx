@@ -7,7 +7,7 @@ type Tab = 'course' | 'place'
 
 const TABS: { key: Tab; label: string; subtitle: string }[] = [
   { key: 'course', label: '추천 코스', subtitle: '남이 짜 둔 하루를 그대로 가져올 수 있습니다' },
-  { key: 'place', label: '추천 장소', subtitle: '시간 · 날씨 · 취향을 반영한 실시간 큐레이션' },
+  { key: 'place', label: '추천 장소', subtitle: '방문자 별점 높은 순' },
 ]
 
 /**

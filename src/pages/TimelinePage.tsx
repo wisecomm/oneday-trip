@@ -258,7 +258,7 @@ export function TimelinePage() {
               ✨
             </span>
             <p className="flex-1 text-[13px] leading-relaxed font-semibold text-brand-700">
-              오늘의 날씨와 취향에 맞춰 추천 {autoAdded}곳을 담고 최단 동선으로 정렬했습니다.
+              이 지역에서 별점 높은 {autoAdded}곳을 담고 최단 동선으로 정렬했습니다.
               마음에 들지 않으면 빼고 직접 담아 보세요.
             </p>
             <button

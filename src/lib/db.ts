@@ -2,7 +2,7 @@ import { isSupabaseConfigured, db as sb } from './supabase'
 import { mutateDb, readDb, uid } from './local-store'
 import { demo } from './demo-data'
 import { DAY_TRIP_RADIUS_KM, distanceKm, type LatLng } from './geo'
-import { rankAll, takePage, tieHash, type TripContext } from './recommend'
+import { rankAll, takePage, tieHash } from './recommend'
 import type {
   Place,
   PlaceCategory,
@@ -247,16 +247,14 @@ export const places = {
 }
 
 /**
- * 추천 장소 한 쪽 — 지역 장소에 점수를 매겨 count 곳(보인 곳 exclude 는 빼고). 점수 · 고르는 규칙은
- * recommend.ts 의 scorePlace() · takePage() 와 같고, 운영은 DB 함수 recommend_places 가 매겨
+ * 추천 장소 한 쪽 — 지역 장소를 별점 점수로 매겨 count 곳(보인 곳 exclude 는 빼고). 점수 · 고르는 규칙은
+ * recommend.ts 의 ratingScore() · takePage() 와 같고, 운영은 DB 함수 recommend_places 가 매겨
  * 고른 id 만 돌려준다 — 지역 장소 전부를 받아 브라우저에서 매기던 것(경기 3,357곳)을 10곳으로.
  * seed 가 같으면 동점 순서가 같아 쪽을 넘겨도 흔들리지 않는다. total 은 지역 후보 전체 수.
  */
 export async function recommendPlaces(opts: {
   areaCode: number
   sigunguCode?: number
-  ctx: Pick<TripContext, 'hour' | 'weather'>
-  tasteTags: string[]
   exclude: string[]
   count: number
   seed: string
@@ -265,9 +263,6 @@ export async function recommendPlaces(opts: {
     const { data, error } = await sb().rpc('recommend_places', {
       p_area: opts.areaCode,
       p_sigungu: opts.sigunguCode ?? null,
-      p_hour: opts.ctx.hour,
-      p_weather: opts.ctx.weather,
-      p_tags: opts.tasteTags,
       p_exclude: opts.exclude,
       p_count: opts.count,
       p_seed: opts.seed,
@@ -282,11 +277,8 @@ export async function recommendPlaces(opts: {
   }
   const all = await places.list({ areaCode: opts.areaCode, sigunguCode: opts.sigunguCode })
   const skip = new Set(opts.exclude)
-  const ctx = { ...opts.ctx, weekday: 0, temperature: null }
   const ranked = rankAll(
     all.filter((p) => !skip.has(p.id)),
-    ctx,
-    { taste_tags: opts.tasteTags } as Profile,
     (id) => tieHash(opts.seed, id),
   )
   return { places: takePage(ranked, opts.count).page.map((r) => r.place), total: all.length }

@@ -102,7 +102,7 @@ select r.id, r.host, to_char(l.logged_at at time zone 'Asia/Seoul', 'MM-DD HH24:
 
 -- ⑪ 앱이 부르는 DB 함수가 들어갔는지 — db push 뒤에 본다
 --    home_picks 는 인자 4개(위도, 경도, 개수, 보인 id 들) 하나만, places_nearest 는 5개,
---    recommend_places 는 8개(20261016000000).
+--    recommend_places 는 8개(20261016000000 · 20261017000000 — 인자는 같고 몸통만 바뀜).
 --    home_picks 가 2줄이면 옛 함수(3개)가 남은 것 — 20261015000000 이 안 들어갔다.
 select p.proname as 함수, pg_get_function_identity_arguments(p.oid) as 인자,
        has_function_privilege('anon', p.oid, 'execute') as 비회원_실행
